@@ -1,0 +1,86 @@
+{
+  "app": {"id": "A", "name": "PyShop"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/pyshop", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "observed", "locator": "sources/pyshop/app.py:5",
+     "summary": "Route GET /api/products (handler 'catalog') is declared; the comment says it browses the catalog and filters by category; the handler body is elided ('...')."},
+    {"id": "A-E02", "source": "A-R01", "basis": "observed", "locator": "sources/pyshop/app.py:8",
+     "summary": "Route POST /api/cart/items (handler 'add_to_cart') is declared; the comment gives the body as product_id int and quantity int; the handler body is elided."},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/pyshop/models.py:4-5",
+     "summary": "Product model (table products): id Integer primary key, name String, price Numeric."},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/pyshop/models.py:7-8",
+     "summary": "Cart model (table carts): id Integer primary key, user_id Integer (no User model or foreign key in the code)."},
+    {"id": "A-E05", "source": "A-R01", "basis": "observed", "locator": "sources/pyshop/models.py:10-11",
+     "summary": "CartItem model (table cart_items): id Integer primary key, cart_id Integer foreign key to carts.id, product_id Integer (no foreign key), quantity Integer."},
+    {"id": "A-E06", "source": "A-R01", "basis": "observed", "locator": "sources/pyshop/requirements.txt:1-2",
+     "summary": "Pinned dependencies flask 3.0.0 and sqlalchemy 2.0.25."},
+    {"id": "A-E07", "source": "A-R01", "basis": "inferred", "locator": "sources/pyshop/models.py:4-5",
+     "summary": "Product has no category column, so the category filter named in the app.py:5 comment has no visible data to filter on; how it works cannot be seen."}
+  ],
+  "stack": {"frontend": [], "backend": ["Python", "Flask 3.0.0"], "database": ["SQLAlchemy 2.0.25 (engine not configured in the code)"], "infrastructure": [], "basis": "observed"},
+  "packages": {"flask": "3.0.0", "sqlalchemy": "2.0.25"},
+  "architecture": {"frontend": "none in the source (JSON API only)", "backend": "Flask JSON API with SQLAlchemy models", "evidence": ["A-E01", "A-E03", "A-E06"], "basis": "observed"},
+  "features": [
+    {"id": "A-F01", "name": "Product catalog",
+     "description": "List the shop's products (name and price) through GET /api/products.",
+     "observed_behaviour": "Route is declared; the handler body is elided, so the response shape is not visible.",
+     "business_logic": "None visible.",
+     "data": ["Product.id", "Product.name", "Product.price"],
+     "evidence": ["A-E01", "A-E03"], "basis": "observed", "confidence": "medium"},
+    {"id": "A-F02", "name": "Category filter on the catalog",
+     "description": "Filter the product list by category (named in a code comment only).",
+     "observed_behaviour": "Only the comment on app.py:5 mentions it; there is no category field and no handler code.",
+     "business_logic": "Unknown.",
+     "data": ["Product (no category field found)"],
+     "depends_on": ["A-F01"],
+     "evidence": ["A-E01", "A-E07"], "basis": "inferred", "confidence": "low"},
+    {"id": "A-F03", "name": "Add product to cart",
+     "description": "Add a product with a quantity to the user's cart through POST /api/cart/items.",
+     "observed_behaviour": "Route is declared with body product_id (int) and quantity (int); the handler body is elided.",
+     "business_logic": "Quantity is an integer; any validation (positive quantity, product exists) is not visible.",
+     "data": ["Cart.id", "Cart.user_id", "CartItem.cart_id", "CartItem.product_id", "CartItem.quantity"],
+     "depends_on": ["A-F01"],
+     "evidence": ["A-E02", "A-E04", "A-E05"], "basis": "observed", "confidence": "medium"}
+  ],
+  "entities": [
+    {"name": "Product", "primary_key": {"name": "id", "type": "Integer"},
+     "fields": [{"name": "id", "type": "Integer", "required": true}, {"name": "name", "type": "String"}, {"name": "price", "type": "Numeric"}],
+     "features": ["A-F01", "A-F02"], "evidence": ["A-E03"], "basis": "observed"},
+    {"name": "Cart", "primary_key": {"name": "id", "type": "Integer"},
+     "fields": [{"name": "id", "type": "Integer", "required": true}, {"name": "user_id", "type": "Integer"}],
+     "features": ["A-F03"], "evidence": ["A-E04"], "basis": "observed"},
+    {"name": "CartItem", "primary_key": {"name": "id", "type": "Integer"},
+     "fields": [{"name": "id", "type": "Integer", "required": true}, {"name": "cart_id", "type": "Integer"}, {"name": "product_id", "type": "Integer"}, {"name": "quantity", "type": "Integer"}],
+     "foreign_keys": [{"field": "cart_id", "references": "Cart"}],
+     "features": ["A-F03"], "evidence": ["A-E05"], "basis": "observed"}
+  ],
+  "endpoints": [
+    {"method": "GET", "path": "/api/products", "auth": "unknown", "response": {"products": "array"},
+     "features": ["A-F01", "A-F02"], "evidence": ["A-E01"], "basis": "observed"},
+    {"method": "POST", "path": "/api/cart/items", "auth": "unknown",
+     "request": {"product_id": "int", "quantity": "int"},
+     "features": ["A-F03"], "evidence": ["A-E02"], "basis": "observed"}
+  ],
+  "auth": {"provider": "unknown", "methods": [], "session": "unknown", "model": "unknown", "roles": [],
+           "evidence": ["A-E04"], "basis": "inferred"},
+  "rules": [
+    {"key": "cart_item.quantity_type", "value": "integer", "features": ["A-F03"], "evidence": ["A-E02", "A-E05"]}
+  ],
+  "integrations": [],
+  "configuration": [],
+  "error_handling": [
+    {"case": "any error", "behaviour": "unknown: handler bodies are elided", "evidence": ["A-E01", "A-E02"]}
+  ],
+  "unknowns": [
+    "Handler bodies in app.py are elided ('...'): response shapes, validation and error handling cannot be seen; the full handler code would settle it.",
+    "The category filter is only named in a comment; Product has no category field. Asking the owner or seeing the real handler would settle it.",
+    "Cart.user_id implies users, but there is no User model, sign-in or session code in the source.",
+    "No database engine or connection configuration is present.",
+    "No frontend or screens exist in the source; the app is a JSON API only."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 3}
+}

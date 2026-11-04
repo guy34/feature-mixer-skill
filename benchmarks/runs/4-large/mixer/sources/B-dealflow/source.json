@@ -1,0 +1,98 @@
+{
+  "app": {"id": "B", "name": "DealFlow"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/dealflow", "accessed": "2026-11-04", "commit": "not a git repository"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "documented", "locator": "sources/dealflow/deals.py:1", "summary": "Module docstring (quoted: 'illustrative') describes a deals pipeline with custom stages and email reminders for stale deals."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/dealflow/deals.py:4", "summary": "DEFAULT_STAGES is new, contacted, negotiating, closed."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/dealflow/deals.py:6", "summary": "move_deal(db, deal_id, stage, stages=DEFAULT_STAGES) raises ValueError('unknown stage') for a stage not in the given list, otherwise updates stage and sets moved_at to datetime.utcnow()."},
+    {"id": "B-E04", "source": "B-R01", "basis": "observed", "locator": "sources/dealflow/deals.py:11", "summary": "stale_deal_reminders(db, mailer, days=14) selects deals with moved_at older than the cutoff and sends one email per deal to deal['owner_email'] naming the deal title and the day count."}
+  ],
+  "stack": {
+    "frontend": [],
+    "backend": ["Python (plain functions; db and mailer injected by the caller)"],
+    "database": ["unspecified; accessed through an injected db object"],
+    "infrastructure": [],
+    "basis": "observed"
+  },
+  "packages": {},
+  "runtimes": {"python": "version not pinned; uses datetime and timedelta from the standard library"},
+  "architecture": {
+    "frontend": "None in the repository.",
+    "backend": "A single Python module whose functions take the database and mailer as parameters (dependency injection); no HTTP layer or scheduler.",
+    "evidence": ["B-E03", "B-E04"],
+    "basis": "observed"
+  },
+  "screens": [],
+  "workflows": [],
+  "features": [
+    {
+      "id": "B-F01",
+      "name": "Deals pipeline (custom stages)",
+      "description": "Move deals through a stage list the caller supplies (default new, contacted, negotiating, closed), recording when each deal last moved.",
+      "observed_behaviour": "move_deal validates the stage against the supplied list, raises ValueError('unknown stage') otherwise, and writes stage plus moved_at (UTC now).",
+      "business_logic": "Stage list is a parameter, so stages are customisable per call; any stage may move to any other; moved_at is set on every move.",
+      "data": ["Deal"],
+      "integration": "Needs persistence and somewhere to store each pipeline's custom stage list (not present in the source).",
+      "evidence": ["B-E02", "B-E03", "B-E01"],
+      "basis": "observed",
+      "confidence": "high"
+    },
+    {
+      "id": "B-F02",
+      "name": "Stale-deal email reminders",
+      "description": "Email each deal's owner when the deal has not moved for a number of days (default 14).",
+      "observed_behaviour": "stale_deal_reminders selects deals with moved_at earlier than now minus days and calls mailer.send(owner_email, message) once per deal.",
+      "business_logic": "Threshold default 14 days; one email per stale deal per run; no de-duplication between runs is visible; closed deals are not excluded.",
+      "data": ["Deal"],
+      "depends_on": ["B-F01"],
+      "integration": "Needs an email provider and a scheduler (neither is in the source).",
+      "evidence": ["B-E04", "B-E01"],
+      "basis": "observed",
+      "confidence": "high"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Deal",
+      "fields": [
+        {"name": "title", "type": "unknown (used as text)"},
+        {"name": "stage", "type": "unknown (used as text)"},
+        {"name": "moved_at", "type": "datetime (naive UTC)"},
+        {"name": "owner_email", "type": "unknown (used as an email address)"}
+      ],
+      "features": ["B-F01", "B-F02"],
+      "evidence": ["B-E03", "B-E04"],
+      "basis": "inferred"
+    }
+  ],
+  "endpoints": [],
+  "rules": [
+    {"key": "deal.default_stages", "value": ["new", "contacted", "negotiating", "closed"], "features": ["B-F01"], "evidence": ["B-E02"]},
+    {"key": "deal.unknown_stage", "value": "ValueError('unknown stage')", "features": ["B-F01"], "evidence": ["B-E03"]},
+    {"key": "reminder.stale_after_days", "value": 14, "features": ["B-F02"], "evidence": ["B-E04"]}
+  ],
+  "integrations": [
+    {"name": "Email (injected mailer)", "purpose": "send stale-deal reminders to deal owners", "features": ["B-F02"], "evidence": ["B-E04"]}
+  ],
+  "configuration": [],
+  "error_handling": [
+    {"case": "move a deal to a stage not in the list", "behaviour": "ValueError('unknown stage')", "evidence": ["B-E03"]}
+  ],
+  "unknowns": [
+    "Deal schema: there is no schema file; fields are inferred from how the code uses them (title, stage, moved_at, owner_email) and the primary key type is unknown.",
+    "Where custom stage lists are stored or configured: the code takes them as a parameter only.",
+    "Owners and authentication: deals carry an owner_email, but there is no user, auth or role code.",
+    "Scheduling and email provider: how stale_deal_reminders is triggered and which mailer is used are not in the source.",
+    "Contacts: DealFlow has no contact entity; whether deals link to contacts is unknown."
+  ],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": ["(root)"],
+    "modules_skipped": [],
+    "files_read": 1
+  }
+}

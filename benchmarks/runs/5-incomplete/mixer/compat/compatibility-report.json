@@ -1,0 +1,445 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 5,
+    "medium": 4,
+    "low": 0,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "application:authorization-model:accounts-and-roles",
+      "category": "application",
+      "kind": "authorization-model",
+      "subject": "accounts-and-roles",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "severity": "high",
+      "detail": "Neither source shows authentication: A takes user_id as a parameter (A-E02); B implies two audiences, teams that publish slots and customers that book (B-E01), but documents no auth.",
+      "solutions": [
+        "Email-and-password accounts with roles customer and staff (staff publish slots)",
+        "Magic-link sign-in with the same two roles",
+        "Delegate to a hosted identity provider"
+      ],
+      "recommended": "Email-and-password accounts with server-side sessions in http-only cookies; roles customer and staff; staff manage slots, customers manage only their own bookings and waitlist entries.",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Email-and-password accounts with server-side sessions in http-only cookies; roles customer and staff; staff manage slots, customers manage only their own bookings and waitlist entries.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:business-rule:cancellation-refund",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "cancellation-refund",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03"
+      ],
+      "severity": "high",
+      "detail": "A lets a paid booking be cancelled 24h+ before start but hard-deletes it and issues no refund (A-E03, A-E05); payments.py is missing so a refund elsewhere cannot be ruled out. In the unified app a customer could pay, cancel within the allowed window, and lose the money.",
+      "solutions": [
+        "Full refund on any allowed cancellation (24h+ before start)",
+        "No refund (keep A's observed behaviour)",
+        "Partial refund / fee"
+      ],
+      "recommended": "Full refund through Stripe on every allowed cancellation; cancellations under 24h stay refused. Booking becomes status 'cancelled' (not deleted) with the refund id recorded.",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Full refund through Stripe on every allowed cancellation; cancellations under 24h stay refused. Booking becomes status 'cancelled' (not deleted) with the refund id recorded.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:business-rule:recurring-payment",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "recurring-payment",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F03",
+        "B-F03"
+      ],
+      "severity": "high",
+      "detail": "A charges the full slot price once, at booking time, before writing the booking (A-E05). B lets a customer book up to 12 weekly occurrences in one request (B-E02) and says nothing about payment. How a series is paid is undefined.",
+      "solutions": [
+        "Charge every occurrence up front at series creation, one charge per occurrence, all-or-nothing",
+        "Save the card and charge each occurrence shortly before it starts",
+        "Charge the whole series as one payment"
+      ],
+      "recommended": "Charge each occurrence up front at series creation (one Stripe charge per occurrence with its own idempotency key); if any charge fails, refund the ones that succeeded and create nothing. Keeps A's pay-at-booking rule and makes per-occurrence refunds simple. Saved-card charging is deferred (needs stored payment methods and off-session consent).",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M04",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Charge each occurrence up front at series creation (one Stripe charge per occurrence with its own idempotency key); if any charge fails, refund the ones that succeeded and create nothing. Keeps A's pay-at-booking rule and makes per-occurrence refunds simple. Saved-card charging is deferred (needs stored payment methods and off-session consent).",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:workflow:waitlist-release",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "waitlist-release",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F05"
+      ],
+      "severity": "high",
+      "detail": "B's waiting list needs to know when a place frees up (B-E05), but A's cancel hard-deletes the booking and emits nothing (A-E03). B does not document whether a freed place is auto-booked (which would charge a card without the customer's consent at that moment) or offered.",
+      "solutions": [
+        "Offer the freed place to the first waiting customer with a time-limited hold; they pay to accept",
+        "Auto-book and auto-charge the first waiting customer",
+        "Notify everyone on the list; first to pay wins"
+      ],
+      "recommended": "Cancellation emits slot-freed; the first waiting customer gets an offer and an exclusive hold (2 hours, ending no later than 24h before start); accepting runs the normal booking and payment flow; expiry passes the offer to the next. No automatic charges.",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M08"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Cancellation emits slot-freed; the first waiting customer gets an offer and an exclusive hold (2 hours, ending no later than 24h before start); accepting runs the normal booking and payment flow; expiry passes the offer to the next. No automatic charges.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:manual:slot-double-booking",
+      "category": "database",
+      "kind": "manual",
+      "subject": "slot-double-booking",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F01",
+        "A-F03"
+      ],
+      "severity": "high",
+      "detail": "A checks slot.taken but never sets it (A-E02), and charges before inserting with no rollback. With recurring bookings and waiting-list offers competing for the same slot, double booking or a charge without a booking is likely.",
+      "solutions": [
+        "Database-enforced single active booking per slot plus hold-then-charge-then-confirm",
+        "Application-level lock only"
+      ],
+      "recommended": "A partial unique index on bookings(slot_id) where status in (held, confirmed); create the booking as 'held' inside a transaction, charge, then confirm; on payment failure delete the hold.",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "A partial unique index on bookings(slot_id) where status in (held, confirmed); create the booking as 'held' inside a transaction, charge, then confirm; on payment failure delete the hold.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:workflow:recurring-cancellation",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "recurring-cancellation",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F03"
+      ],
+      "severity": "medium",
+      "detail": "A's 24h cancellation rule is per booking; B does not say whether a recurring series is cancelled as a whole or per occurrence.",
+      "solutions": [
+        "Each occurrence follows the 24h rule on its own; 'cancel series' cancels every remaining occurrence that is 24h+ away",
+        "Series can only be cancelled as a whole before the first occurrence"
+      ],
+      "recommended": "Per-occurrence 24h rule; 'cancel series' cancels all remaining occurrences 24h+ away and refunds each.",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Per-occurrence 24h rule; 'cancel series' cancels all remaining occurrences 24h+ away and refunds each.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:workflow:recurring-partial-availability",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "recurring-partial-availability",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F03"
+      ],
+      "severity": "medium",
+      "detail": "B does not say what happens when some weeks of a requested series are already taken.",
+      "solutions": [
+        "All-or-nothing: refuse and list the taken weeks",
+        "Book the free weeks and skip the taken ones"
+      ],
+      "recommended": "All-or-nothing, listing the taken weeks so the customer can shorten the series or join their waiting lists.",
+      "needs_approval": false,
+      "menu_features": [
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "All-or-nothing, listing the taken weeks so the customer can shorten the series or join their waiting lists.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:booking",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "booking",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "B-F02",
+        "B-F03",
+        "B-F04"
+      ],
+      "severity": "medium",
+      "detail": "Booking exists in A:Booking, B:Booking; fields not shared: created_at (only A), recurring (only B), slot_id (only A), user_id (only A)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M06",
+        "M07"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge A:Booking and B:Booking into one Booking entity (A's user_id, slot_id, created_at plus status, series_id for recurring, payment and refund ids); field origins listed in architecture.json",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:slot",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "slot",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "B-F01",
+        "B-F02",
+        "B-F05"
+      ],
+      "severity": "medium",
+      "detail": "Slot exists in A:Slot, B:Slot; fields not shared: price (only A), starts_at (only A), taken (only A)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M08"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge into one Slot entity (A's starts_at and price, plus ends_at, published_by, status); A's 'taken' flag replaced by the unique active-booking constraint",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:booking",
+      "entity": "Booking",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "add fields that only some sources have: created_at (only A), recurring (only B), slot_id (only A), user_id (only A)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "A.Booking.user_id: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "user_id"
+          ]
+        },
+        {
+          "change": "A.Booking.slot_id: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "slot_id"
+          ]
+        },
+        {
+          "change": "B.Booking.recurring: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "recurring"
+          ]
+        }
+      ],
+      "changes": [
+        "add fields that only some sources have: created_at (only A), recurring (only B), slot_id (only A), user_id (only A)",
+        "A.Booking.user_id: unknown to uuid can lose or reject values",
+        "A.Booking.slot_id: unknown to uuid can lose or reject values",
+        "B.Booking.recurring: unknown to uuid can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "recurring",
+        "slot_id",
+        "user_id"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:slot",
+      "entity": "Slot",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "add fields that only some sources have: price (only A), starts_at (only A), taken (only A)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "A.Slot fields not kept in Slot: taken",
+          "risk": "high",
+          "data_loss": [
+            "taken"
+          ]
+        },
+        {
+          "change": "A.Slot.price: unknown to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "price"
+          ]
+        }
+      ],
+      "changes": [
+        "add fields that only some sources have: price (only A), starts_at (only A), taken (only A)",
+        "A.Slot fields not kept in Slot: taken",
+        "A.Slot.price: unknown to integer can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "price",
+        "taken"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:waitlistentry",
+      "entity": "WaitlistEntry",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": true,
+      "needs_approval": false
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Notification engine",
+      "menu_ids": ["M10", "M11", "M12"],
+      "source_features": ["A-F05", "B-F04", "C-F02"],
+      "evidence": ["A-E06", "B-E07", "C-E03"],
+      "merge_type": "complementary",
+      "rationale": "Three apps notify in three different ways; one engine with three channels avoids three notification systems.",
+      "behaviour": "Every event creates one notification (in-app, always); the user's preferences add email and push; a dedupe key stops double sends.",
+      "improvements": "",
+      "depends_on": ["U02"],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

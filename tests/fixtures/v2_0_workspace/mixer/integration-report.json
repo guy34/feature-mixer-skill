@@ -1,0 +1,267 @@
+{
+  "app": "Team Hub",
+  "command": "python3 app/run_integration.py",
+  "date": "2026-11-04",
+  "summary": {
+    "total": 23,
+    "passed": 23,
+    "failed": 0,
+    "skipped": 0
+  },
+  "tests": [
+    {
+      "name": "test_teamhub.AccountsTest.test_account_rules",
+      "level": "form",
+      "features": [
+        "M01"
+      ],
+      "expected": "bad emails, short passwords, unknown roles and duplicate emails are rejected",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.AccountsTest.test_session_expires_after_idle_timeout",
+      "level": "auth",
+      "features": [
+        "M01"
+      ],
+      "expected": "a session unused for more than 30 minutes is ended",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.AccountsTest.test_sign_in_and_wrong_password",
+      "level": "auth",
+      "features": [
+        "M01"
+      ],
+      "expected": "the right password starts a session for that user; a wrong one is refused with 401",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.AccountsTest.test_unified_roles_and_approve_permission",
+      "level": "authorization",
+      "features": [
+        "M08",
+        "M09"
+      ],
+      "expected": "owners and admins manage users; members do not; approving needs the approve permission",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.ApprovalsTest.test_approval_journey",
+      "level": "journey",
+      "features": [
+        "M13",
+        "M10",
+        "M11"
+      ],
+      "expected": "approvers are told about a request, the decision is recorded, and the requester is told",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.ApprovalsTest.test_approval_rules",
+      "level": "authorization",
+      "features": [
+        "M13",
+        "M09"
+      ],
+      "expected": "members without the permission cannot decide, nobody decides their own request, and a decision is final",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.ApprovalsTest.test_pending_approval_blocks_closing",
+      "level": "interaction",
+      "features": [
+        "M13",
+        "M04"
+      ],
+      "expected": "a task cannot be moved to done while its approval is pending, and can once it is decided",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.CommentsTest.test_comment_rules",
+      "level": "form",
+      "features": [
+        "M07"
+      ],
+      "expected": "empty comments, replies across items and comments on missing items are rejected",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.CommentsTest.test_threaded_comments_on_tasks_and_approvals",
+      "level": "feature",
+      "features": [
+        "M07",
+        "M10"
+      ],
+      "expected": "replies nest under their parent, the parent's author is notified, and approvals take comments too",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.DashboardTest.test_workload_counts",
+      "level": "feature",
+      "features": [
+        "M14"
+      ],
+      "expected": "open tasks per person exclude done ones, overdue counts open tasks due before today (UTC), pending approvals are counted",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.DatabaseTest.test_integrity",
+      "level": "database",
+      "features": [
+        "M04",
+        "M13",
+        "M01"
+      ],
+      "expected": "foreign keys and checks hold: no approval for a missing task, deleting a task removes its approvals, no unknown roles",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.HttpApiTest.test_api_errors",
+      "level": "api",
+      "features": [
+        "M01"
+      ],
+      "expected": "no session gives 401, bad JSON gives 400, an unknown path gives 404, a wrong method gives 405, all in one error format",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.HttpApiTest.test_end_to_end_journey",
+      "level": "journey",
+      "features": [
+        "M01",
+        "M04",
+        "M05",
+        "M07",
+        "M08",
+        "M09",
+        "M10",
+        "M11",
+        "M13",
+        "M14"
+      ],
+      "expected": "an owner adds people, a member creates and assigns a task, asks for approval, an approver approves after a threaded discussion, the task closes, and every step shows up in notifications and the dashboard",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.HttpApiTest.test_push_subscription_over_http",
+      "level": "api",
+      "features": [
+        "M12"
+      ],
+      "expected": "a signed-in user can register an https push endpoint over the API",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.HttpApiTest.test_sign_out",
+      "level": "auth",
+      "features": [
+        "M01"
+      ],
+      "expected": "after signing out the old session cookie no longer works",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.NotificationEngineTest.test_preferences_choose_channels",
+      "level": "feature",
+      "features": [
+        "M10",
+        "M11",
+        "M12"
+      ],
+      "expected": "turning email off stops email deliveries; in-app always arrives",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.NotificationEngineTest.test_push_channel_for_opted_in_browsers",
+      "level": "feature",
+      "features": [
+        "M12",
+        "M10"
+      ],
+      "expected": "after opting in, a notification also queues a push to each subscribed browser; http endpoints are refused",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.NotificationEngineTest.test_read_and_privacy",
+      "level": "auth",
+      "features": [
+        "M10"
+      ],
+      "expected": "a user can mark their own notification read, and cannot see or touch anyone else's",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.TasksTest.test_assignee_must_exist",
+      "level": "error",
+      "features": [
+        "M05"
+      ],
+      "expected": "assigning to an unknown user is rejected",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.TasksTest.test_assignment_notifies_on_every_channel_once",
+      "level": "interaction",
+      "features": [
+        "M05",
+        "M10",
+        "M11"
+      ],
+      "expected": "the assignee gets one in-app notification and one queued email, even if assigned twice",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.TasksTest.test_no_notification_for_assigning_yourself",
+      "level": "feature",
+      "features": [
+        "M05",
+        "M10"
+      ],
+      "expected": "assigning a task to yourself sends nothing",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.TasksTest.test_only_allowed_people_move_tasks",
+      "level": "authorization",
+      "features": [
+        "M04",
+        "M08"
+      ],
+      "expected": "someone who is not the creator, assignee, owner or admin cannot move a task",
+      "status": "pass",
+      "actual": "as expected"
+    },
+    {
+      "name": "test_teamhub.TasksTest.test_task_board_flow",
+      "level": "feature",
+      "features": [
+        "M04"
+      ],
+      "expected": "a task starts in todo, moves to doing and done, and rejects unknown statuses and bad titles",
+      "status": "pass",
+      "actual": "as expected"
+    }
+  ]
+}

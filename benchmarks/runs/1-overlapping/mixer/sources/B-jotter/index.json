@@ -1,0 +1,87 @@
+{
+  "root": "../../../sources/jotter",
+  "indexed_at": "2026-11-04T09:15:38+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 3,
+    "lines": 21,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "size": 97,
+      "sha256": "226e1bd59a28ecadb77466b9eca9ccb36f376c7f3345490228029c09c412264f",
+      "language": "markdown",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 2
+    },
+    {
+      "path": "package.json",
+      "size": 77,
+      "sha256": "36174d1ed9bcb0ba452a4cbc67769e85f06d2cdbe80eed180738c1791074c768",
+      "language": "json",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 1
+    },
+    {
+      "path": "server.js",
+      "size": 1403,
+      "sha256": "7595e46d5d3a055709753fcd2ab165c933094ad7b73e61e7b756903e5b7a103c",
+      "language": "javascript",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 18,
+      "imports": [],
+      "packages": [
+        "uuid"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 21,
+      "languages": [
+        "javascript",
+        "json",
+        "markdown"
+      ],
+      "depends_on": [],
+      "external": [
+        "uuid"
+      ]
+    }
+  },
+  "external_imports": {
+    "uuid": [
+      "server.js"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "B-F01": [
+      "server.js"
+    ],
+    "B-F02": [
+      "README.md",
+      "server.js"
+    ],
+    "B-F03": [
+      "server.js"
+    ],
+    "B-F04": [
+      "README.md",
+      "server.js"
+    ],
+    "B-F05": [
+      "README.md",
+      "server.js"
+    ]
+  }
+}

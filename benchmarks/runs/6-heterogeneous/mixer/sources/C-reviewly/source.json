@@ -1,0 +1,78 @@
+{
+  "app": {"id": "C", "name": "Reviewly"},
+  "coverage": "partial",
+  "size": "S",
+  "sources_used": [
+    {"ref": "C-R01", "kind": "documentation", "location": "sources/reviewly-docs/overview.md", "accessed": "2026-11-04"},
+    {"ref": "C-R02", "kind": "api-spec", "location": "sources/reviewly-docs/openapi.yaml", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "C-E01", "source": "C-R01", "basis": "documented", "locator": "sources/reviewly-docs/overview.md:2",
+     "summary": "Customers leave a 1 to 5 star rating and a comment on a product."},
+    {"id": "C-E02", "source": "C-R01", "basis": "documented", "locator": "sources/reviewly-docs/overview.md:2",
+     "summary": "Shops can reply to reviews."},
+    {"id": "C-E03", "source": "C-R01", "basis": "documented", "locator": "sources/reviewly-docs/overview.md:3",
+     "summary": "Reviews appear after a purchase is confirmed."},
+    {"id": "C-E04", "source": "C-R02", "basis": "documented", "locator": "sources/reviewly-docs/openapi.yaml#/paths/~1v2~1products~1{productId}~1reviews/get",
+     "summary": "GET /v2/products/{productId}/reviews lists reviews for a product (API version 2)."},
+    {"id": "C-E05", "source": "C-R02", "basis": "documented", "locator": "sources/reviewly-docs/openapi.yaml#/paths/~1v2~1products~1{productId}~1reviews/post",
+     "summary": "POST /v2/products/{productId}/reviews leaves a review with a rating 1-5 and a comment."},
+    {"id": "C-E06", "source": "C-R02", "basis": "unknown", "locator": "sources/reviewly-docs/openapi.yaml",
+     "summary": "The spec has no request or response schemas, no security scheme, no error responses and no endpoint for shop replies."}
+  ],
+  "stack": {"frontend": [], "backend": [], "database": [], "infrastructure": [], "basis": "unknown"},
+  "features": [
+    {"id": "C-F01", "name": "List product reviews",
+     "description": "Show the reviews left on a product.",
+     "observed_behaviour": "Not observed; documented as GET /v2/products/{productId}/reviews.",
+     "business_logic": "Only reviews tied to a confirmed purchase appear (see C-F04).",
+     "data": ["Review"],
+     "evidence": ["C-E04"], "basis": "documented", "confidence": "medium"},
+    {"id": "C-F02", "name": "Leave a product review",
+     "description": "A customer rates a product 1 to 5 stars and writes a comment.",
+     "observed_behaviour": "Not observed; documented as POST /v2/products/{productId}/reviews.",
+     "business_logic": "Rating is between 1 and 5; a comment accompanies it (whether it is required is not documented).",
+     "data": ["Review.rating", "Review.comment", "Review.product_id"],
+     "evidence": ["C-E01", "C-E05"], "basis": "documented", "confidence": "medium"},
+    {"id": "C-F03", "name": "Shop replies to reviews",
+     "description": "The shop can post a reply to a customer's review.",
+     "observed_behaviour": "Not observed; mentioned in the overview only, with no API endpoint in the spec.",
+     "business_logic": "Unknown (how many replies, who may reply, editing).",
+     "data": ["Review reply (shape unknown)"],
+     "depends_on": ["C-F02"],
+     "evidence": ["C-E02", "C-E06"], "basis": "documented", "confidence": "low"},
+    {"id": "C-F04", "name": "Verified-purchase reviews",
+     "description": "A review is shown only after the reviewer's purchase is confirmed.",
+     "observed_behaviour": "Not observed; one sentence in the overview.",
+     "business_logic": "Visibility depends on a confirmed purchase; whether unpurchased reviews are refused or held back is not documented.",
+     "data": ["Review", "a purchase / order record (not described)"],
+     "depends_on": ["C-F02"],
+     "evidence": ["C-E03"], "basis": "documented", "confidence": "medium"}
+  ],
+  "entities": [
+    {"name": "Review",
+     "fields": [{"name": "product_id", "type": "unknown"}, {"name": "rating", "type": "integer"}, {"name": "comment", "type": "text"}],
+     "features": ["C-F01", "C-F02", "C-F04"], "evidence": ["C-E01", "C-E05"], "basis": "inferred"}
+  ],
+  "endpoints": [
+    {"method": "GET", "path": "/v2/products/{productId}/reviews", "auth": "unknown", "version": "v2",
+     "features": ["C-F01"], "evidence": ["C-E04"], "basis": "documented"},
+    {"method": "POST", "path": "/v2/products/{productId}/reviews", "auth": "unknown", "version": "v2",
+     "request": {"rating": "integer", "comment": "string"},
+     "features": ["C-F02"], "evidence": ["C-E05"], "basis": "documented"}
+  ],
+  "rules": [
+    {"key": "review.rating_range", "value": {"min": 1, "max": 5}, "features": ["C-F02"], "evidence": ["C-E01", "C-E05"]},
+    {"key": "review.visible_after", "value": "purchase confirmed", "features": ["C-F04"], "evidence": ["C-E03"]}
+  ],
+  "integrations": [],
+  "unknowns": [
+    "Request and response schemas, field names and types: the spec lists only paths and summaries. A fuller spec or the vendor's docs would settle it.",
+    "Authentication: no security scheme in the spec.",
+    "Error responses: none documented.",
+    "Shop replies: described in the overview but no endpoint or data shape is documented.",
+    "What 'purchase confirmed' means and where it is checked (Reviewly or the shop); whether reviews without a purchase are refused or hidden.",
+    "Moderation, editing and deleting reviews: not documented.",
+    "Stack and architecture: closed product, nothing documented; not inspected beyond the two public files given."
+  ]
+}

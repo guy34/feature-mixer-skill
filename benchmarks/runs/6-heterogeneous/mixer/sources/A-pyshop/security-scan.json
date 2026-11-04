@@ -1,0 +1,11 @@
+{
+  "root": "../../../sources/pyshop",
+  "scanned_at": "2026-11-04T09:13:47+00:00",
+  "scanner": "scan_source.py",
+  "files_scanned": 3,
+  "skipped": {},
+  "summary": {},
+  "high": 0,
+  "findings": [],
+  "acknowledged": true
+}

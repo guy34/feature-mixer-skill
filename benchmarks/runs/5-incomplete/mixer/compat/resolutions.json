@@ -1,0 +1,74 @@
+{
+  "application:authorization-model:accounts-and-roles": {
+    "decision": "Email-and-password accounts with server-side sessions in http-only cookies; roles customer and staff; staff manage slots, customers manage only their own bookings and waitlist entries.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:business-rule:cancellation-refund": {
+    "decision": "Full refund through Stripe on every allowed cancellation; cancellations under 24h stay refused. Booking becomes status 'cancelled' (not deleted) with the refund id recorded.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:business-rule:recurring-payment": {
+    "decision": "Charge each occurrence up front at series creation (one Stripe charge per occurrence with its own idempotency key); if any charge fails, refund the ones that succeeded and create nothing. Keeps A's pay-at-booking rule and makes per-occurrence refunds simple. Saved-card charging is deferred (needs stored payment methods and off-session consent).",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:workflow:waitlist-release": {
+    "decision": "Cancellation emits slot-freed; the first waiting customer gets an offer and an exclusive hold (2 hours, ending no later than 24h before start); accepting runs the normal booking and payment flow; expiry passes the offer to the next. No automatic charges.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:manual:slot-double-booking": {
+    "decision": "A partial unique index on bookings(slot_id) where status in (held, confirmed); create the booking as 'held' inside a transaction, charge, then confirm; on payment failure delete the hold.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:workflow:recurring-cancellation": {
+    "decision": "Per-occurrence 24h rule; 'cancel series' cancels all remaining occurrences 24h+ away and refunds each.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:workflow:recurring-partial-availability": {
+    "decision": "All-or-nothing, listing the taken weeks so the customer can shorten the series or join their waiting lists.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:duplicate-entity:booking": {
+    "decision": "Merge A:Booking and B:Booking into one Booking entity (A's user_id, slot_id, created_at plus status, series_id for recurring, payment and refund ids); field origins listed in architecture.json",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:duplicate-entity:slot": {
+    "decision": "Merge into one Slot entity (A's starts_at and price, plus ends_at, published_by, status); A's 'taken' flag replaced by the unique active-booking constraint",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:booking": {
+    "decision": "PLAN ONLY (high risk, destructive once architecture fixed types): if BookNow data exists, map A user_id/slot_id (unknown types) to uuid via a lookup table keeping the old id in legacy_id; B has no data to migrate (closed product). Backup, dry run, checks and rollback in design/migration-plan.md. Nothing runs without a separate run approval.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:slot": {
+    "decision": "PLAN ONLY (high risk): A price (unknown type) converted to integer minor units with a dry-run check that every value converts exactly; A taken flag not stored, derived from active bookings, and the dry run verifies every taken=true slot has a booking. See design/migration-plan.md.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:waitlistentry": {
+    "decision": "No source data exists (B is closed); table created empty",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  }
+}

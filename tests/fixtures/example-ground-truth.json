@@ -1,0 +1,18 @@
+{
+  "scenario": "team-hub-example",
+  "mode": "full",
+  "features": [
+    {"key": "a-board", "app": "A", "any": ["task board"]},
+    {"key": "a-flat", "app": "A", "any": ["flat comment"]},
+    {"key": "b-threaded", "app": "B", "any": ["threaded"]},
+    {"key": "a-share", "app": "A", "any": ["share link"]},
+    {"key": "b-approvals", "app": "B", "any": ["approval request"]},
+    {"key": "c-dashboard", "app": "C", "any": ["dashboard"]}
+  ],
+  "groups": [{"members": ["a-flat", "b-threaded"], "types": ["similar"]}],
+  "incompatible_pairs": [],
+  "dependencies": [["c-dashboard", "a-board"]],
+  "conflicts": [{"kind": "primary-key", "subject": "user"}, {"kind": "session", "subject": ""}],
+  "fabrication": ["invoice", "time tracking"],
+  "coverage": {"C": "partial"}
+}

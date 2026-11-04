@@ -1,0 +1,75 @@
+{
+  "root": "../../../sources/nodecart",
+  "indexed_at": "2026-11-04T09:17:49+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 3,
+    "lines": 18,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "package.json",
+      "size": 140,
+      "sha256": "c79fd4a3cd4afba078496060ab72c9704768057e7ca89bec7043c182acccc888",
+      "language": "json",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 1
+    },
+    {
+      "path": "schema.prisma",
+      "size": 240,
+      "sha256": "a3bb0e1253eda7c2870b12eb5a40fc5312358d3eea9282518dfd8648dfe943ca",
+      "language": "other",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 11
+    },
+    {
+      "path": "server.js",
+      "size": 543,
+      "sha256": "5a08d0e2e50ca2d53781bfc68a72d9f4de04874bc0b6c798400d35c8cea66dc7",
+      "language": "javascript",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 6,
+      "imports": [],
+      "packages": [
+        "stripe"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 18,
+      "languages": [
+        "javascript",
+        "json"
+      ],
+      "depends_on": [],
+      "external": [
+        "stripe"
+      ]
+    }
+  },
+  "external_imports": {
+    "stripe": [
+      "server.js"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "B-F01": [
+      "schema.prisma",
+      "server.js"
+    ],
+    "B-F02": [
+      "server.js"
+    ]
+  }
+}

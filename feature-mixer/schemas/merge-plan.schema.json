@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/guy34/feature-mixer-skill/blob/main/feature-mixer/schemas/merge-plan.schema.json",
+  "title": "Feature Mixer merge plan",
+  "description": "mixer/merge-plan.json: the final unified features, each built from one or more kept menu rows.",
+  "type": "object",
+  "required": [
+    "unified_features"
+  ],
+  "properties": {
+    "unified_features": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "menu_ids",
+          "source_features",
+          "evidence",
+          "merge_type",
+          "rationale",
+          "behaviour",
+          "depends_on",
+          "compatibility",
+          "validation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^U\\d{2,}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "menu_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^M\\d{2,}$"
+            }
+          },
+          "source_features": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{1,3}-F\\d{2,}$"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{1,3}-E\\d{2,}$"
+            }
+          },
+          "merge_type": {
+            "enum": [
+              "identical",
+              "similar",
+              "complementary",
+              "unique",
+              "incompatible",
+              "separate"
+            ]
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "behaviour": {
+            "type": "string",
+            "minLength": 1
+          },
+          "improvements": {
+            "type": "string"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^U\\d{2,}$"
+            }
+          },
+          "compatibility": {
+            "enum": [
+              "compatible",
+              "adaptable",
+              "resolved",
+              "conflict",
+              "incompatible",
+              "unknown"
+            ]
+          },
+          "validation": {
+            "enum": [
+              "verified",
+              "failed",
+              "untested",
+              "unverified"
+            ]
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

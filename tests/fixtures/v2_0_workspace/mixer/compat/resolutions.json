@@ -1,0 +1,128 @@
+{
+  "database:primary-key:user": {
+    "decision": "Every user id is a uuid. B's integer ids are re-keyed during import and kept in legacy_id until the import is checked (D03).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "database:field-type:user.id": {
+    "decision": "Same decision as database:primary-key:user: uuid (D03).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "migration:user": {
+    "decision": "Approved: re-key B's users to uuid and rewrite B's foreign keys; dry run on a copy first. The example starts from an empty database, so no live data is touched.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "api:contract:GET /api/users/{} response": {
+    "decision": "One user shape: {id: uuid, email, name, role, can_approve}. B's full_name maps to name (D05).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "api:endpoint-auth:GET /api/users/{}": {
+    "decision": "Every endpoint uses the one cookie session (D02).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:auth-provider:provider": {
+    "decision": "Team Hub runs its own accounts now (email and password). Google sign-in (M03) is deferred and will use the user's own Google OAuth app when picked up.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:roles:roles": {
+    "decision": "Roles owner, admin, member plus an approve permission. A owner->owner, A member->member, B admin->admin, B requester->member, B approver->member with approve, C admin->admin, C member->member (D04).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:route:/login": {
+    "decision": "One sign-in screen at /login for every user (the example ships the API; the UI is out of scope).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:route:/settings": {
+    "decision": "One /settings screen with account and notification sections.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:session:session": {
+    "decision": "http-only cookie sessions, 30 minutes idle, for every client (D02).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:workflow:closing-tasks-with-approvals": {
+    "decision": "Block moving a task to done while it has a pending approval. Implemented as a status guard the approvals module registers with tasks.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "dependency:runtime:node": {
+    "decision": "Not applicable: Team Hub is built on Python 3.8+ with the standard library (D01); no source code is carried over.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "dependency:version:react": {
+    "decision": "Not applicable: no React code is carried over (D01).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "api:api-version:GET /api/users/{}": {
+    "decision": "One unversioned /api while there are no outside clients (D05).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "api:duplicate-endpoint:GET /api/users/{}": {
+    "decision": "One GET /api/me for the signed-in user; user listing waits for an admin screen.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:auth-methods:methods": {
+    "decision": "Password now; Google later with M03.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "database:duplicate-entity:user": {
+    "decision": "One users table with the union of fields kept features use (D03).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "dependency:version:react-dom": {
+    "decision": "Not applicable (D01).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:component:button": {
+    "decision": "Not applicable to the API-only example; a UI would use one Button with primary, secondary, ghost and danger.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "dependency:duplicate-library:date-library": {
+    "decision": "Not applicable (D01): Python's datetime is used.",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "dependency:duplicate-library:http-client": {
+    "decision": "Not applicable (D01).",
+    "by": "user",
+    "date": "2026-11-04",
+    "approved": true
+  }
+}

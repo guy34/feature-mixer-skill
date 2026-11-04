@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/guy34/feature-mixer-skill/blob/main/feature-mixer/schemas/security-scan.schema.json",
+  "title": "Feature Mixer security scan",
+  "description": "mixer/sources/<id>-<slug>/security-scan.json, written by scan_source.py before a source is read.",
+  "type": "object",
+  "required": [
+    "root",
+    "scanned_at",
+    "scanner",
+    "files_scanned",
+    "summary",
+    "high",
+    "findings"
+  ],
+  "properties": {
+    "root": {
+      "type": "string"
+    },
+    "scanned_at": {
+      "type": "string"
+    },
+    "scanner": {
+      "type": "string"
+    },
+    "files_scanned": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skipped": {
+      "type": "object"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "high": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "severity",
+          "path",
+          "detail"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "secret",
+              "weak-secret",
+              "env-file",
+              "agent-instructions",
+              "instruction-text",
+              "execution-hook",
+              "supply-chain",
+              "symlink-escape",
+              "binary",
+              "oversized"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "high",
+              "medium",
+              "info"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "description": "set by Claude after showing high findings to the user"
+    }
+  }
+}

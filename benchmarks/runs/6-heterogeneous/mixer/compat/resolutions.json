@@ -1,0 +1,74 @@
+{
+  "application:security:checkout-client-prices": {
+    "decision": "Rebuild checkout so line items come only from the session user's cart and Product.price_minor; the request carries no items or prices (D04)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:auth-gap:no-identity-system": {
+    "decision": "Add a new accounts module: email + password (argon2id), server session in an http-only secure cookie, roles customer and owner, one permission check (D05)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:workflow:purchase-confirmation": {
+    "decision": "Add Order/OrderItem; checkout writes a pending Order; a signature-verified Stripe webhook marks it paid; the review gate needs a paid order containing the product (D04, D08)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:field-type:cartitem-quantity": {
+    "decision": "CartItem.quantity is integer with a CHECK quantity >= 1, validated on the server; B's text quantities are not migrated (D06)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:foreign-key:cartitem-product-id": {
+    "decision": "CartItem.product_id is an integer foreign key to products.id (A's keys kept); B's text product ids are not carried over (D02, D06)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "dependency:framework:backend-framework": {
+    "decision": "Flask (Python) is the one backend framework; NodeCart's Express endpoints are rebuilt in Flask. The script's 'Express is used by the most sources' is a 1-1 tie, so the choice follows where the adapted code and durable data are (D01)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "dependency:framework:data-layer": {
+    "decision": "SQLAlchemy is the one data layer; Prisma is not used (D01, D02)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "api:api-version:reviews-path": {
+    "decision": "Unversioned /api/products/{id}/reviews; Reviewly's /v2 path is not copied (D07)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:naming-style:fields": {
+    "decision": "snake_case for every table and field; B's camelCase names map through compat/aliases.json",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:product": {
+    "decision": "Approved as a PLAN ONLY (not to be run): copy A's products keeping ids; price_minor = round(price * 100) with a dry run that refuses any price with more than 2 decimals; see design/migration-plan.md. Running it needs a separate migration approval",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:cart": {
+    "decision": "Approved as a PLAN ONLY: B's Cart rows are not migrated; open NodeCart carts are discarded at cut-over (transient data; customers re-add items); see design/migration-plan.md",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:cartitem": {
+    "decision": "Approved as a PLAN ONLY: B's CartItem rows are not migrated (text ids and quantities would need re-keying and could be invalid); discarded with their carts; see design/migration-plan.md",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  }
+}

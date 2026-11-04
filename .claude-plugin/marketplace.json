@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "feature-mixer-skill",
+  "description": "Feature Mixer: one skill that reverse-engineers several apps and builds one unified app from the features you choose",
+  "owner": {
+    "name": "Udit Kandpal",
+    "url": "https://github.com/guy34"
+  },
+  "plugins": [
+    {
+      "name": "feature-mixer-skill",
+      "description": "Reverse-engineer several apps, compare and merge their features, check compatibility, and build and test one unified application.",
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/guy34/feature-mixer-skill",
+      "version": "2.1.0"
+    }
+  ]
+}

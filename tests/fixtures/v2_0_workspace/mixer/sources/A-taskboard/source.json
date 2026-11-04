@@ -1,0 +1,729 @@
+{
+  "app": {
+    "id": "A",
+    "name": "TaskBoard"
+  },
+  "coverage": "complete",
+  "size": "M",
+  "sources_used": [
+    {
+      "ref": "A-R01",
+      "kind": "local-directory",
+      "location": "sources/taskboard",
+      "accessed": "2026-11-04"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "A-E01",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/server/routes.js:8",
+      "summary": "POST /api/login checks the password hash and starts a cookie session"
+    },
+    {
+      "id": "A-E02",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/db/schema.sql:1",
+      "summary": "users table: uuid key, email, name, password hash, role owner or member"
+    },
+    {
+      "id": "A-E03",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/db/schema.sql:10",
+      "summary": "tasks table: title, status todo/doing/done, assignee, creator, due date"
+    },
+    {
+      "id": "A-E04",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/server/routes.js:24",
+      "summary": "PATCH /api/tasks/:id moves a task or assigns it and notifies the new assignee"
+    },
+    {
+      "id": "A-E05",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/db/schema.sql:20",
+      "summary": "comments table: one flat list per task, no replies"
+    },
+    {
+      "id": "A-E06",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/server/routes.js:33",
+      "summary": "In-app notifications: list and mark as read"
+    },
+    {
+      "id": "A-E07",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/server/routes.js:38",
+      "summary": "Share links let anyone with the token edit a board without an account"
+    },
+    {
+      "id": "A-E08",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/package.json:4",
+      "summary": "Node 18+, Express 4, React 18, express-session, pg"
+    },
+    {
+      "id": "A-E09",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/client/routes.js:2",
+      "summary": "Client routes: /login, /board, /tasks/:id, /notifications, /settings"
+    },
+    {
+      "id": "A-E10",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/server/routes.js:2",
+      "summary": "Sessions expire after 60 idle minutes (rolling cookie)"
+    },
+    {
+      "id": "A-E11",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/server/routes.js:40",
+      "summary": "Routes without a session answer 401 with a JSON error"
+    },
+    {
+      "id": "A-E12",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/taskboard/client/routes.js:11",
+      "summary": "Button variants: primary, ghost"
+    }
+  ],
+  "architecture": {
+    "frontend": "React single-page app with client-side routes",
+    "backend": "Express JSON API with cookie sessions",
+    "evidence": [
+      "A-E08",
+      "A-E09"
+    ],
+    "basis": "observed"
+  },
+  "stack": {
+    "frontend": [
+      "React 18"
+    ],
+    "backend": [
+      "Node 18",
+      "Express 4"
+    ],
+    "database": [
+      "PostgreSQL (pg)"
+    ],
+    "basis": "observed"
+  },
+  "features": [
+    {
+      "id": "A-F01",
+      "name": "Sign in with email and password",
+      "description": "Users sign in with email and password and get a cookie session.",
+      "evidence": [
+        "A-E01",
+        "A-E02",
+        "A-E10"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "observed_behaviour": "Wrong email or password returns 401; success returns the user's id and name.",
+      "business_logic": "Sessions are rolling and expire after 60 idle minutes.",
+      "data": [
+        "User"
+      ],
+      "integration": "Needs the user store and a session store."
+    },
+    {
+      "id": "A-F02",
+      "name": "Task board",
+      "description": "Create tasks and move them between todo, doing and done.",
+      "evidence": [
+        "A-E03",
+        "A-E04"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "observed_behaviour": "Tasks are listed and created over the API; PATCH changes status.",
+      "business_logic": "Status is one of todo, doing, done.",
+      "data": [
+        "Task"
+      ],
+      "depends_on": [
+        "A-F01"
+      ],
+      "integration": "Needs signed-in users."
+    },
+    {
+      "id": "A-F03",
+      "name": "Task assignment",
+      "description": "Assign a task to a person, who is notified.",
+      "evidence": [
+        "A-E04"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "observed_behaviour": "Setting assignee_id creates an in-app notification for the assignee.",
+      "business_logic": "Unassigning sets the assignee to empty; deleting a user unassigns their tasks.",
+      "data": [
+        "Task",
+        "Notification"
+      ],
+      "depends_on": [
+        "A-F02",
+        "A-F05"
+      ]
+    },
+    {
+      "id": "A-F04",
+      "name": "Flat comments on tasks",
+      "description": "One list of comments per task, no replies.",
+      "evidence": [
+        "A-E05"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "data": [
+        "Comment"
+      ],
+      "depends_on": [
+        "A-F02"
+      ]
+    },
+    {
+      "id": "A-F05",
+      "name": "In-app notifications",
+      "description": "A notification bell with read and unread items.",
+      "evidence": [
+        "A-E06"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "data": [
+        "Notification"
+      ],
+      "depends_on": [
+        "A-F01"
+      ]
+    },
+    {
+      "id": "A-F06",
+      "name": "Share links",
+      "description": "Anyone holding a share token can edit a board without an account.",
+      "evidence": [
+        "A-E07"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "business_logic": "share_links.can_edit defaults to true.",
+      "depends_on": [
+        "A-F02"
+      ]
+    },
+    {
+      "id": "A-F07",
+      "name": "Owner and member roles",
+      "description": "Every user is an owner or a member.",
+      "evidence": [
+        "A-E02"
+      ],
+      "basis": "observed",
+      "confidence": "medium",
+      "business_logic": "The schema allows only owner and member; how the roles differ is not visible in the routes read.",
+      "data": [
+        "User"
+      ],
+      "depends_on": [
+        "A-F01"
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "id": "A-S01",
+      "name": "Sign in",
+      "route": "/login",
+      "evidence": [
+        "A-E09"
+      ]
+    },
+    {
+      "id": "A-S02",
+      "name": "Board",
+      "route": "/board",
+      "components": [
+        "TaskCard",
+        "Button"
+      ],
+      "evidence": [
+        "A-E09"
+      ]
+    },
+    {
+      "id": "A-S03",
+      "name": "Task detail",
+      "route": "/tasks/:id",
+      "evidence": [
+        "A-E09"
+      ]
+    },
+    {
+      "id": "A-S04",
+      "name": "Notifications",
+      "route": "/notifications",
+      "evidence": [
+        "A-E09"
+      ]
+    },
+    {
+      "id": "A-S05",
+      "name": "Settings",
+      "route": "/settings",
+      "evidence": [
+        "A-E09"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "A-W01",
+      "name": "Assign a task and the assignee sees it",
+      "steps": [
+        "A-S02",
+        "A-S03",
+        "A-S04"
+      ],
+      "edge_cases": [
+        "assignee deleted",
+        "assigning yourself"
+      ],
+      "evidence": [
+        "A-E04",
+        "A-E06"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/login",
+      "screen": "A-S01"
+    },
+    {
+      "path": "/board",
+      "screen": "A-S02"
+    },
+    {
+      "path": "/tasks/:id",
+      "screen": "A-S03"
+    },
+    {
+      "path": "/notifications",
+      "screen": "A-S04"
+    },
+    {
+      "path": "/settings",
+      "screen": "A-S05"
+    }
+  ],
+  "components": [
+    {
+      "name": "Button",
+      "variants": [
+        "primary",
+        "ghost"
+      ],
+      "used_on": [
+        "A-S02"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "primary_key": {
+        "name": "id",
+        "type": "uuid"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "email",
+          "type": "text"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "password_hash",
+          "type": "text"
+        },
+        {
+          "name": "role",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ],
+      "features": [
+        "A-F01",
+        "A-F07"
+      ],
+      "evidence": [
+        "A-E02"
+      ],
+      "basis": "observed"
+    },
+    {
+      "name": "Task",
+      "primary_key": {
+        "name": "id",
+        "type": "uuid"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        },
+        {
+          "name": "assignee_id",
+          "type": "uuid"
+        },
+        {
+          "name": "created_by",
+          "type": "uuid"
+        },
+        {
+          "name": "due_on",
+          "type": "date"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "field": "assignee_id",
+          "references": "User",
+          "on_delete": "set null"
+        },
+        {
+          "field": "created_by",
+          "references": "User"
+        }
+      ],
+      "features": [
+        "A-F02",
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E03"
+      ],
+      "basis": "observed"
+    },
+    {
+      "name": "Comment",
+      "primary_key": {
+        "name": "id",
+        "type": "uuid"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "task_id",
+          "type": "uuid"
+        },
+        {
+          "name": "author_id",
+          "type": "uuid"
+        },
+        {
+          "name": "body",
+          "type": "text"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "field": "task_id",
+          "references": "Task",
+          "on_delete": "cascade"
+        },
+        {
+          "field": "author_id",
+          "references": "User"
+        }
+      ],
+      "features": [
+        "A-F04"
+      ],
+      "evidence": [
+        "A-E05"
+      ],
+      "basis": "observed"
+    },
+    {
+      "name": "Notification",
+      "primary_key": {
+        "name": "id",
+        "type": "uuid"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid"
+        },
+        {
+          "name": "message",
+          "type": "text"
+        },
+        {
+          "name": "read_at",
+          "type": "timestamptz"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "field": "user_id",
+          "references": "User",
+          "on_delete": "cascade"
+        }
+      ],
+      "features": [
+        "A-F05"
+      ],
+      "evidence": [
+        "A-E06"
+      ],
+      "basis": "observed"
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/login",
+      "auth": "none",
+      "request": {
+        "email": "text",
+        "password": "text"
+      },
+      "response": {
+        "id": "uuid",
+        "name": "text"
+      },
+      "errors": [
+        "401"
+      ],
+      "features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id",
+      "auth": "session",
+      "response": {
+        "id": "uuid",
+        "name": "text",
+        "role": "text"
+      },
+      "features": [
+        "A-F07"
+      ],
+      "evidence": [
+        "A-E01"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks",
+      "auth": "session",
+      "features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E04"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "POST",
+      "path": "/api/tasks",
+      "auth": "session",
+      "features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E04"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/tasks/:id",
+      "auth": "session",
+      "request": {
+        "status": "text",
+        "assignee_id": "uuid"
+      },
+      "features": [
+        "A-F02",
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E04"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/:id/comments",
+      "auth": "session",
+      "features": [
+        "A-F04"
+      ],
+      "evidence": [
+        "A-E05"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "auth": "session",
+      "features": [
+        "A-F05"
+      ],
+      "evidence": [
+        "A-E06"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/:id/read",
+      "auth": "session",
+      "features": [
+        "A-F05"
+      ],
+      "evidence": [
+        "A-E06"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "GET",
+      "path": "/share/:token",
+      "auth": "none",
+      "features": [
+        "A-F06"
+      ],
+      "evidence": [
+        "A-E07"
+      ],
+      "basis": "observed"
+    }
+  ],
+  "auth": {
+    "provider": "self",
+    "methods": [
+      "password"
+    ],
+    "session": "cookie",
+    "model": "rbac",
+    "roles": [
+      "owner",
+      "member"
+    ],
+    "evidence": [
+      "A-E01",
+      "A-E02",
+      "A-E10"
+    ],
+    "basis": "observed"
+  },
+  "rules": [
+    {
+      "key": "session.idle_timeout_minutes",
+      "value": 60,
+      "features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E10"
+      ]
+    },
+    {
+      "key": "task.statuses",
+      "value": [
+        "todo",
+        "doing",
+        "done"
+      ],
+      "features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E03"
+      ]
+    }
+  ],
+  "integrations": [],
+  "configuration": [
+    {
+      "key": "SESSION_IDLE_MINUTES",
+      "purpose": "idle session timeout",
+      "evidence": [
+        "A-E10"
+      ]
+    }
+  ],
+  "error_handling": [
+    {
+      "case": "no session",
+      "behaviour": "401 with {error}",
+      "evidence": [
+        "A-E11"
+      ]
+    },
+    {
+      "case": "wrong password",
+      "behaviour": "401 'bad login'",
+      "evidence": [
+        "A-E01"
+      ]
+    }
+  ],
+  "unknowns": []
+}

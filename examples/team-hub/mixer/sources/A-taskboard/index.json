@@ -1,0 +1,132 @@
+{
+  "root": "../../../sources/taskboard",
+  "indexed_at": "2026-11-04T09:04:04+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 5,
+    "lines": 115,
+    "modules": 4
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "size": 200,
+      "sha256": "6f532b5723b57462c18701b721cc07de7e0dadacfd771309165c2151e9226200",
+      "language": "markdown",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 5
+    },
+    {
+      "path": "client/routes.js",
+      "size": 375,
+      "sha256": "029f26fd336dd1a971592ac85121388b0285e3d80ce2e2f6793ae50ec399cb98",
+      "language": "javascript",
+      "module": "client",
+      "binary": false,
+      "generated": false,
+      "lines": 11,
+      "imports": [],
+      "packages": []
+    },
+    {
+      "path": "db/schema.sql",
+      "size": 1159,
+      "sha256": "a132a4e4a3f26c154f6f8ec6bbb2aa0d13491751ecfc50508a8c882c8555e815",
+      "language": "sql",
+      "module": "db",
+      "binary": false,
+      "generated": false,
+      "lines": 40
+    },
+    {
+      "path": "package.json",
+      "size": 327,
+      "sha256": "9f5872e1b43a2af015aa9c895a24a72aa06b9e1e4beb9ba505d6c32c8cd27649",
+      "language": "json",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 15
+    },
+    {
+      "path": "server/routes.js",
+      "size": 2429,
+      "sha256": "16e68fd6575ecd6e09ad6e52d3629f26c8325b3eded7ac9bdf0c95356ce19aa0",
+      "language": "javascript",
+      "module": "server",
+      "binary": false,
+      "generated": false,
+      "lines": 44,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 2,
+      "lines": 20,
+      "languages": [
+        "json",
+        "markdown"
+      ],
+      "depends_on": [],
+      "external": []
+    },
+    "client": {
+      "files": 1,
+      "lines": 11,
+      "languages": [
+        "javascript"
+      ],
+      "depends_on": [],
+      "external": []
+    },
+    "db": {
+      "files": 1,
+      "lines": 40,
+      "languages": [
+        "sql"
+      ],
+      "depends_on": [],
+      "external": []
+    },
+    "server": {
+      "files": 1,
+      "lines": 44,
+      "languages": [
+        "javascript"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "external_imports": {},
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "db/schema.sql",
+      "server/routes.js"
+    ],
+    "A-F02": [
+      "db/schema.sql",
+      "server/routes.js"
+    ],
+    "A-F03": [
+      "server/routes.js"
+    ],
+    "A-F04": [
+      "db/schema.sql"
+    ],
+    "A-F05": [
+      "server/routes.js"
+    ],
+    "A-F06": [
+      "server/routes.js"
+    ],
+    "A-F07": [
+      "db/schema.sql"
+    ]
+  }
+}

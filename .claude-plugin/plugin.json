@@ -1,0 +1,24 @@
+{
+  "name": "feature-mixer-skill",
+  "description": "Reverse-engineer one or more apps, compare and merge their features, check compatibility, then design, build and test one unified application. Evidence for every claim, scanned and untrusted sources, verified test runs. Standalone, free, MIT.",
+  "version": "2.1.0",
+  "author": {
+    "name": "Udit Kandpal",
+    "url": "https://github.com/guy34"
+  },
+  "homepage": "https://github.com/guy34/feature-mixer-skill",
+  "repository": "https://github.com/guy34/feature-mixer-skill",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "claude-skills",
+    "reverse-engineering",
+    "feature-merging",
+    "compatibility-analysis",
+    "app-builder",
+    "integration-testing",
+    "security",
+    "test-verification"
+  ],
+  "skills": "./"
+}

@@ -1,0 +1,17 @@
+{
+  "scenario": "4-large",
+  "mode": "plan",
+  "features": [
+    {"key": "a-contacts", "app": "A", "any": ["contact"], "none": ["merge", "duplicate"]},
+    {"key": "a-merge", "app": "A", "any": ["merge", "duplicate"]},
+    {"key": "a-pipeline", "app": "A", "any": ["deal", "pipeline", "stage"]},
+    {"key": "a-export", "app": "A", "any": ["export", "csv", "report"]},
+    {"key": "b-pipeline", "app": "B", "any": ["deal", "pipeline", "stage"], "none": ["remind"]},
+    {"key": "b-reminders", "app": "B", "any": ["remind", "stale"]}
+  ],
+  "groups": [{"members": ["a-pipeline", "b-pipeline"], "types": ["identical", "similar"]}],
+  "large": {"app": "A", "feature_modules": ["src/contacts", "src/deals", "src/reports"], "total_modules_min": 24},
+  "conflicts": [],
+  "fabrication": ["invoice", "calendar", "lead scoring", "forecast"],
+  "coverage": {"A": null, "B": "complete"}
+}

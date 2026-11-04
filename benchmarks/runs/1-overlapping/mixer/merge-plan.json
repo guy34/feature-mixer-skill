@@ -1,0 +1,157 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Notes",
+      "menu_ids": [
+        "M01",
+        "M02"
+      ],
+      "source_features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "evidence": [
+        "A-E02",
+        "A-E03",
+        "A-E08",
+        "B-E03",
+        "B-E04"
+      ],
+      "merge_type": "similar",
+      "rationale": "Both apps do note CRUD with different storage, ids and ordering; one Note module avoids two note stores.",
+      "behaviour": "Create (201), list, read, update (title/body only) and delete (204) notes stored in SQLite. Title required (1-200 chars), body may be empty. List order: pinned first, then newest created first. Unknown id returns 404 JSON error.",
+      "improvements": "Persistent storage replaces Jotter's in-memory Map; update whitelists fields (no mass assignment); updated_at refreshed on every edit; 404 instead of a crash on unknown ids.",
+      "depends_on": [],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U02",
+      "name": "Tags",
+      "menu_ids": [
+        "M03"
+      ],
+      "source_features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E04",
+        "A-E05",
+        "A-E08",
+        "A-E01"
+      ],
+      "merge_type": "similar",
+      "rationale": "QuickNotes' shared tags chosen over Jotter's free-text labels (same job; tags are de-duplicated, reusable and filterable).",
+      "behaviour": "Add a tag to a note by name (trimmed, case-insensitive unique, get-or-create); remove a tag from a note; list tags; filter notes by tag. Adding the same tag twice is a no-op.",
+      "improvements": "Unique (note_id, tag_id) pair; remove-tag endpoint; tag filter on list.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U03",
+      "name": "Search",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E06",
+        "A-E08",
+        "A-E01"
+      ],
+      "merge_type": "similar",
+      "rationale": "QuickNotes' title-and-body search is a superset of Jotter's title-only search.",
+      "behaviour": "GET search with q returns notes whose title or body contains q, case-insensitive, pinned first then newest. Empty q returns 400.",
+      "improvements": "Escape LIKE wildcards; explicit case-insensitivity; validate q.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "compatible",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U04",
+      "name": "Markdown preview",
+      "menu_ids": [
+        "M07"
+      ],
+      "source_features": [
+        "A-F04"
+      ],
+      "evidence": [
+        "A-E07",
+        "A-E08",
+        "A-E01"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only QuickNotes has it; useful for a Markdown notes app.",
+      "behaviour": "GET a note's preview returns its body rendered from Markdown to sanitised HTML.",
+      "improvements": "Sanitise rendered HTML (strip scripts, event handlers, javascript: URLs).",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U05",
+      "name": "Pinning",
+      "menu_ids": [
+        "M08"
+      ],
+      "source_features": [
+        "B-F04"
+      ],
+      "evidence": [
+        "B-E07",
+        "B-E04",
+        "B-E01"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Jotter has it; complements the list.",
+      "behaviour": "Pin and unpin a note; pinned notes list first in the note list and in search results.",
+      "improvements": "Add unpin; 404 on unknown id.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U06",
+      "name": "Markdown export",
+      "menu_ids": [
+        "M09"
+      ],
+      "source_features": [
+        "B-F05"
+      ],
+      "evidence": [
+        "B-E08",
+        "B-E01"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Jotter has it; keeps notes portable.",
+      "behaviour": "GET export returns a JSON list of {file, text}: one Markdown file per note, file name = slugified title plus short id, text = front matter (title, tags, created, updated) and body.",
+      "improvements": "Safe, unique file names; tags in front matter. Zip download left as an open question.",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

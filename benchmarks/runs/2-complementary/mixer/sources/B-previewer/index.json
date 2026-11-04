@@ -1,0 +1,54 @@
+{
+  "root": "../../../sources/previewer",
+  "indexed_at": "2026-11-04T09:15:18+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 11,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "previewer.py",
+      "size": 510,
+      "sha256": "b66e03513d41a49242f7300726f4c741a92df9535bdf632e92b8d49dd1c6eaf5",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 11,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 11,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "external_imports": {},
+  "skipped": {},
+  "feature_files": {
+    "B-F01": [
+      "previewer.py"
+    ],
+    "B-F02": [
+      "previewer.py"
+    ],
+    "B-F03": [
+      "previewer.py"
+    ]
+  },
+  "changes": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "stale_features": []
+}

@@ -1,0 +1,542 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one user and one small codebase",
+      "strong consistency between notes and tags in one SQLite file",
+      "no independent scaling or release need",
+      "both sources are single-process apps"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "six small features over one table; network calls and several deployables add cost with no benefit"
+      },
+      {
+        "style": "event-driven",
+        "fit": "poor",
+        "reason": "nothing is asynchronous; export is a synchronous read"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "no existing external system must stay separate"
+      },
+      {
+        "style": "hybrid",
+        "fit": "poor",
+        "reason": "no part needs a second style"
+      }
+    ],
+    "reason": "The simplest design that meets every driver: one Python process, one database, modules with clear boundaries"
+  },
+  "stack": {
+    "frontend": "Server-served static HTML + vanilla JavaScript (no build step)",
+    "backend": "Python 3.11+ with Flask 3",
+    "database": "SQLite (Python standard-library sqlite3)",
+    "markdown": "Python-Markdown 3 + nh3 HTML sanitiser",
+    "hosting": "Local single-user process bound to 127.0.0.1; no deployment planned",
+    "reasons": {
+      "backend": "D01: A's runtime (Python), so A's handlers can be adapted; B's Node features are small and rebuilt in Python; one runtime resolves dependency:runtime-mix",
+      "database": "D02: A already uses a relational schema with cascades; SQLite needs no server and ships with Python; replaces B's in-memory Map (persistence)",
+      "frontend": "D03: neither source has a UI in its folder; a no-build static page keeps the app small and needs no extra install",
+      "markdown": "D04: A uses a markdown render call; adding nh3 sanitises the HTML (A showed no sanitisation)",
+      "hosting": "D05: personal notes app, no deployment requested"
+    }
+  },
+  "modules": [
+    {
+      "name": "core",
+      "responsibility": "Config, database connection, migrations runner, error format, request validation helpers",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "notes",
+      "responsibility": "Note CRUD and the one list order (pinned first, then newest)",
+      "features": [
+        "M01",
+        "M02"
+      ],
+      "depends_on": [
+        "core"
+      ],
+      "owns_entities": [
+        "Note"
+      ]
+    },
+    {
+      "name": "tags",
+      "responsibility": "Shared tags, tagging and untagging notes, tag filter",
+      "features": [
+        "M03"
+      ],
+      "depends_on": [
+        "core",
+        "notes"
+      ],
+      "owns_entities": [
+        "Tag",
+        "NoteTag"
+      ]
+    },
+    {
+      "name": "search",
+      "responsibility": "Case-insensitive title and body search",
+      "features": [
+        "M05"
+      ],
+      "depends_on": [
+        "core",
+        "notes"
+      ],
+      "owns_entities": []
+    },
+    {
+      "name": "preview",
+      "responsibility": "Markdown to sanitised HTML",
+      "features": [
+        "M07"
+      ],
+      "depends_on": [
+        "core",
+        "notes"
+      ],
+      "owns_entities": []
+    },
+    {
+      "name": "pinning",
+      "responsibility": "Pin and unpin notes (writes Note.pinned through the notes module's API)",
+      "features": [
+        "M08"
+      ],
+      "depends_on": [
+        "core",
+        "notes"
+      ],
+      "owns_entities": []
+    },
+    {
+      "name": "export",
+      "responsibility": "Export every note as a Markdown file with front matter",
+      "features": [
+        "M09"
+      ],
+      "depends_on": [
+        "core",
+        "notes",
+        "tags"
+      ],
+      "owns_entities": []
+    }
+  ],
+  "entities": [
+    {
+      "name": "Note",
+      "merged_from": [
+        "A:Note",
+        "B:Note"
+      ],
+      "primary_key": "id uuid (text)",
+      "notes": "B's labels move to Tag/NoteTag (see migration plan); B's content renamed body; updatedAt renamed updated_at",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "from": [
+            "A:Note.id",
+            "B:Note.id"
+          ]
+        },
+        {
+          "name": "legacy_id",
+          "type": "integer",
+          "from": [
+            "A:Note.id"
+          ]
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "from": [
+            "A:Note.title",
+            "B:Note.title"
+          ]
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "from": [
+            "A:Note.body",
+            "B:Note.content"
+          ]
+        },
+        {
+          "name": "pinned",
+          "type": "boolean",
+          "from": [
+            "B:Note.pinned"
+          ]
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "from": [
+            "A:Note.created_at"
+          ]
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "from": [
+            "B:Note.updatedAt"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tag",
+      "merged_from": [
+        "A:Tag"
+      ],
+      "primary_key": "id uuid (text)",
+      "notes": "B's labels become tags (trim, case-fold, de-duplicate)",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "from": [
+            "A:Tag.id"
+          ]
+        },
+        {
+          "name": "legacy_id",
+          "type": "integer",
+          "from": [
+            "A:Tag.id"
+          ]
+        },
+        {
+          "name": "name",
+          "type": "text unique",
+          "from": [
+            "A:Tag.name",
+            "B:Note.labels"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NoteTag",
+      "merged_from": [
+        "A:NoteTag"
+      ],
+      "primary_key": "(note_id, tag_id)",
+      "fields": [
+        {
+          "name": "note_id",
+          "type": "uuid",
+          "from": [
+            "A:NoteTag.note_id"
+          ]
+        },
+        {
+          "name": "tag_id",
+          "type": "uuid",
+          "from": [
+            "A:NoteTag.tag_id"
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "method": "none: single local user, server bound to 127.0.0.1 (neither source has auth)",
+    "session": "none",
+    "roles": [
+      "owner"
+    ],
+    "permissions": {
+      "owner": [
+        "notes:*",
+        "tags:*",
+        "search",
+        "preview",
+        "pin",
+        "export"
+      ]
+    },
+    "role_mapping": {
+      "A:(no roles)": "owner",
+      "B:(no roles)": "owner"
+    }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/api/v1/notes",
+      "module": "notes",
+      "auth": "none (localhost only)",
+      "features": [
+        "M01",
+        "M02"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/notes",
+      "module": "notes",
+      "auth": "none (localhost only)",
+      "features": [
+        "M01",
+        "M02"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/notes/{id}",
+      "module": "notes",
+      "auth": "none (localhost only)",
+      "features": [
+        "M01",
+        "M02"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/notes/{id}",
+      "module": "notes",
+      "auth": "none (localhost only)",
+      "features": [
+        "M01",
+        "M02"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/notes/{id}",
+      "module": "notes",
+      "auth": "none (localhost only)",
+      "features": [
+        "M01",
+        "M02"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/tags",
+      "module": "tags",
+      "auth": "none (localhost only)",
+      "features": [
+        "M03"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/notes/{id}/tags",
+      "module": "tags",
+      "auth": "none (localhost only)",
+      "features": [
+        "M03"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/notes/{id}/tags/{tag}",
+      "module": "tags",
+      "auth": "none (localhost only)",
+      "features": [
+        "M03"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/search",
+      "module": "search",
+      "auth": "none (localhost only)",
+      "features": [
+        "M05"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/notes/{id}/preview",
+      "module": "preview",
+      "auth": "none (localhost only)",
+      "features": [
+        "M07"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/notes/{id}/pin",
+      "module": "pinning",
+      "auth": "none (localhost only)",
+      "features": [
+        "M08"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/notes/{id}/pin",
+      "module": "pinning",
+      "auth": "none (localhost only)",
+      "features": [
+        "M08"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/export",
+      "module": "export",
+      "auth": "none (localhost only)",
+      "features": [
+        "M09"
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "route": "/",
+      "screen": "Notes list with search box, tag filter and pinned section",
+      "module": "notes"
+    },
+    {
+      "route": "/notes/new",
+      "screen": "New note editor",
+      "module": "notes"
+    },
+    {
+      "route": "/notes/{id}",
+      "screen": "Note editor with Markdown preview, tags and pin toggle",
+      "module": "notes"
+    }
+  ],
+  "design_system": {
+    "tokens": {
+      "colour_roles": [
+        "bg",
+        "surface",
+        "text",
+        "muted",
+        "accent",
+        "danger"
+      ],
+      "type_scale": [
+        14,
+        16,
+        20,
+        28
+      ],
+      "spacing": [
+        4,
+        8,
+        16,
+        24,
+        32
+      ],
+      "radius": [
+        4,
+        8
+      ]
+    },
+    "components": [
+      "NoteListItem (default, pinned)",
+      "SearchBox",
+      "TagChip (default, removable)",
+      "Editor",
+      "PreviewPane",
+      "Button (primary, secondary, danger)",
+      "EmptyState"
+    ],
+    "fonts": "system font stack",
+    "icons": "none (text labels)"
+  },
+  "configuration": {
+    "NOTES_DB_PATH": "path to the SQLite file (default ./data/notes.db)",
+    "NOTES_HOST": "bind address (default 127.0.0.1)",
+    "NOTES_PORT": "port (default 5000)"
+  },
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Core loop: write and list notes that persist",
+      "features": [
+        "M01",
+        "M02"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V2",
+      "name": "Organise and find: tags and search",
+      "features": [
+        "M03",
+        "M05"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V3",
+      "name": "Polish: preview, pinning, export",
+      "features": [
+        "M07",
+        "M08",
+        "M09"
+      ],
+      "status": "pending"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Python + Flask backend",
+      "reason": "A's runtime; one runtime for the whole app",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "SQLite via sqlite3",
+      "reason": "persistent, relational, no server",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "Static HTML + vanilla JS frontend",
+      "reason": "no source UI to reuse; no build step",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "Python-Markdown + nh3 sanitiser",
+      "reason": "safe preview HTML",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "Local single-user, no auth, bound to 127.0.0.1",
+      "reason": "neither source has accounts; adding accounts is an open question if the app is ever hosted",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "Modular monolith",
+      "reason": "see style",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "REST /api/v1, JSON, error shape {error:{code,message}}, no pagination in V1",
+      "reason": "both sources are REST; small data sets",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "uuid keys, legacy_id for A's integer ids; list order pinned first then created_at desc; update whitelists title/body",
+      "reason": "compatibility resolutions",
+      "approved": true
+    }
+  ]
+}

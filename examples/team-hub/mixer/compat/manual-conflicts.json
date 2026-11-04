@@ -1,0 +1,17 @@
+[
+  {
+    "category": "application",
+    "kind": "workflow",
+    "subject": "closing-tasks-with-approvals",
+    "apps": ["A", "B"],
+    "severity": "high",
+    "detail": "In A anyone allowed to edit a task can move it to done at any time. B's approvals were standalone. Once approvals attach to tasks, a task could be closed while its approval is still pending.",
+    "solutions": [
+      "Block moving a task to done while it has a pending approval",
+      "Allow it and cancel the pending approval automatically",
+      "Allow it and only warn"
+    ],
+    "recommended": "Block moving to done while an approval is pending; the approver decides first",
+    "features": ["A-F02", "B-F02"]
+  }
+]

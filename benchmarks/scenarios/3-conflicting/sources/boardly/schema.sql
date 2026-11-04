@@ -1,0 +1,2 @@
+create table users (id uuid primary key, email text not null unique, display_name text not null, role text not null check (role in ('member','moderator')));
+create table posts (id uuid primary key, author_id uuid not null references users(id), body text not null check (length(body) <= 5000), status text not null default 'pending' check (status in ('pending','published','rejected')), created_at timestamptz not null);

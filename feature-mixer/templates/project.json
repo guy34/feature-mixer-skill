@@ -1,0 +1,45 @@
+{
+  "name": "<Product name>",
+  "format": 3,
+  "mode": "full",
+  "selection": "manual",
+  "audience": "<who it is for>",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "<App name>",
+      "slug": "<app-slug>",
+      "access": "own-code",
+      "licence": "<licence, or proprietary>",
+      "code_reuse": "allowed",
+      "slice": "<the part of the app to study>",
+      "local_path": "<optional: read-only local copy of its code>",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "<path>"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "in-progress"
+    }
+  },
+  "checkpoints": [],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "run-tests",
+      "target": "<what may run, where>",
+      "approved": false,
+      "by": "<user>",
+      "date": "<date>",
+      "note": "<conditions, e.g. in a container>"
+    }
+  ]
+}

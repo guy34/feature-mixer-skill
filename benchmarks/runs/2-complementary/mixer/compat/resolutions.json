@@ -1,0 +1,80 @@
+{
+  "database:primary-key:file": {
+    "decision": "One File table keyed by id TEXT holding a uuid4 hex. B never persisted files (it receives a dict) and A's store is not in the source, so there are no existing rows to re-key; no legacy_id needed.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:field-type:file.id": {
+    "decision": "id is TEXT in SQLite and str in Python; A's text and B's str are the same value type.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:field-type:file.name": {
+    "decision": "name is TEXT in SQLite and str in Python; no conversion needed.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:duplicate-entity:file": {
+    "decision": "Merge into one File entity with A's fields (id, owner_id, name, size, created_at); B's data field lives in file_content (see database:storage:file-bytes).",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:permission:file-access": {
+    "decision": "Owner-only link create/revoke and owner-only file list/delete/preview/content; a valid unexpired token (plus password if set) grants read-only metadata, preview and download of that one file.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:identity:owner": {
+    "decision": "Minimal accounts: register/login with username + password hashed by salted PBKDF2-HMAC-SHA256; server-side session token (secrets.token_urlsafe) in an http-only SameSite=Strict cookie.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:security:link-password-hash": {
+    "decision": "Salted PBKDF2-HMAC-SHA256 with hmac.compare_digest for link passwords.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:lifecycle:file-delete-links": {
+    "decision": "share_links.file_id REFERENCES files(id) ON DELETE CASCADE (foreign keys enabled per connection).",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:storage:file-bytes": {
+    "decision": "file_content(file_id PK REFERENCES files ON DELETE CASCADE, data BLOB).",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:route:thumbnail-url": {
+    "decision": "Image preview URL points at /api/files/<id>/content (owner) or /s/<token>/content (link); no resizing.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:file": {
+    "decision": "Schema decision only: the unified app creates a fresh SQLite schema on first start; no existing data from any source is migrated and no migration is run in this phase. See design/migration-plan.md.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:filecontent": {
+    "decision": "Schema decision only: B's id and name are kept in File (not FileContent); B's data (Python bytes) is stored as SQLite BLOB, which holds bytes unchanged. No B data is persisted anywhere, so nothing is migrated.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:sharelink": {
+    "decision": "Schema decision only: C's str fields become SQLite TEXT (same values); password_hash format changes to salted PBKDF2, so any old SHA-256 hashes would not carry over, but C's links lived only in memory, so none exist. Nothing is migrated.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  }
+}

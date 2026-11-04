@@ -1,0 +1,127 @@
+{
+  "app": {"id": "B", "name": "Jotter"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/jotter", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "documented", "locator": "sources/jotter/README.md:2", "summary": "README: jot notes, label them, pin the important ones, export everything as Markdown files."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/jotter/package.json:1", "summary": "Dependencies express ^4.18.2 and uuid ^9.0.0."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/jotter/server.js:2-3", "summary": "Notes kept in an in-memory Map keyed by uuid: id, title, content, labels[], pinned, updatedAt."},
+    {"id": "B-E04", "source": "B-R01", "basis": "observed", "locator": "sources/jotter/server.js:6-9", "summary": "List (sorted pinned first), create (201, uuid, labels empty, pinned false), update via Object.assign of the request body, delete (204)."},
+    {"id": "B-E05", "source": "B-R01", "basis": "observed", "locator": "sources/jotter/server.js:10-11", "summary": "POST /api/notes/:id/labels pushes a label string onto the note's labels array; comment says labels work like tags."},
+    {"id": "B-E06", "source": "B-R01", "basis": "observed", "locator": "sources/jotter/server.js:12-13", "summary": "GET /api/search?q filters notes whose title includes q (case-sensitive, title only)."},
+    {"id": "B-E07", "source": "B-R01", "basis": "observed", "locator": "sources/jotter/server.js:14-15", "summary": "POST /api/notes/:id/pin sets pinned = true."},
+    {"id": "B-E08", "source": "B-R01", "basis": "observed", "locator": "sources/jotter/server.js:16-17", "summary": "GET /api/export returns a JSON array of {file: '<title>.md', text: content}; the comment says a zip, the code does not zip."}
+  ],
+  "stack": {
+    "frontend": [],
+    "backend": ["Node.js", "Express ^4.18.2"],
+    "database": ["none (in-memory Map, lost on restart)"],
+    "infrastructure": [],
+    "basis": "observed"
+  },
+  "packages": {"express": "^4.18.2", "uuid": "^9.0.0"},
+  "runtimes": {"node": "unknown version (no engines field)"},
+  "architecture": {
+    "frontend": "Not present in the source folder.",
+    "backend": "One Express router module over an in-memory Map; no persistence.",
+    "evidence": ["B-E02", "B-E03", "B-E04"],
+    "basis": "observed"
+  },
+  "features": [
+    {
+      "id": "B-F01", "name": "Note CRUD",
+      "description": "Create, list, edit and delete notes with a title and content.",
+      "observed_behaviour": "GET /api/notes lists notes, pinned first; POST creates with uuid id and returns 201; PUT merges the request body into the note; DELETE returns 204.",
+      "business_logic": "No validation; PUT merges any field (including id and pinned); updatedAt is set at creation and not refreshed on update; storage is in-memory only.",
+      "data": ["Note"],
+      "depends_on": [],
+      "subfeatures": ["create", "list pinned first", "update", "delete"],
+      "evidence": ["B-E03", "B-E04"],
+      "basis": "observed", "confidence": "high"
+    },
+    {
+      "id": "B-F02", "name": "Labels",
+      "description": "Add free-text labels to a note.",
+      "observed_behaviour": "POST /api/notes/:id/labels appends the label to the note's labels array and returns the note.",
+      "business_logic": "Labels are strings stored on the note; no de-duplication; no shared label list.",
+      "data": ["Note"],
+      "depends_on": ["B-F01"],
+      "evidence": ["B-E05", "B-E01"],
+      "basis": "observed", "confidence": "high"
+    },
+    {
+      "id": "B-F03", "name": "Search titles",
+      "description": "Find notes whose title contains the query.",
+      "observed_behaviour": "GET /api/search?q=... filters by title.includes(q).",
+      "business_logic": "Title only, case-sensitive substring match.",
+      "data": ["Note"],
+      "depends_on": ["B-F01"],
+      "evidence": ["B-E06"],
+      "basis": "observed", "confidence": "high"
+    },
+    {
+      "id": "B-F04", "name": "Pin notes",
+      "description": "Pin important notes so they appear at the top of the list.",
+      "observed_behaviour": "POST /api/notes/:id/pin sets pinned true; GET /api/notes sorts pinned notes first.",
+      "business_logic": "No unpin endpoint; unpinning is only possible through PUT with pinned false (inferred from Object.assign).",
+      "data": ["Note"],
+      "depends_on": ["B-F01"],
+      "evidence": ["B-E07", "B-E04", "B-E01"],
+      "basis": "observed", "confidence": "high"
+    },
+    {
+      "id": "B-F05", "name": "Export as Markdown",
+      "description": "Export every note as a Markdown file.",
+      "observed_behaviour": "GET /api/export returns a JSON list of {file: '<title>.md', text: content}.",
+      "business_logic": "File name is the raw title + .md (no sanitising, duplicates possible); the code comment promises a zip but no zip is produced.",
+      "data": ["Note"],
+      "depends_on": ["B-F01"],
+      "evidence": ["B-E08", "B-E01"],
+      "basis": "observed", "confidence": "medium"
+    }
+  ],
+  "entities": [
+    {"name": "Note", "primary_key": {"name": "id", "type": "uuid"},
+     "fields": [{"name": "title", "type": "string"}, {"name": "content", "type": "string"}, {"name": "labels", "type": "string[]"}, {"name": "pinned", "type": "boolean"}, {"name": "updatedAt", "type": "Date"}],
+     "features": ["B-F01", "B-F02", "B-F03", "B-F04", "B-F05"], "evidence": ["B-E03"], "basis": "observed"}
+  ],
+  "endpoints": [
+    {"method": "GET", "path": "/api/notes", "auth": "none observed", "response": {"body": "list of Note, pinned first"}, "features": ["B-F01", "B-F04"], "evidence": ["B-E04"], "basis": "observed"},
+    {"method": "POST", "path": "/api/notes", "auth": "none observed", "request": {"title": "string", "content": "string"}, "response": {"status": "201", "body": "Note"}, "features": ["B-F01"], "evidence": ["B-E04"], "basis": "observed"},
+    {"method": "PUT", "path": "/api/notes/:id", "auth": "none observed", "request": {"any": "fields merged into the note"}, "response": {"body": "Note"}, "features": ["B-F01"], "evidence": ["B-E04"], "basis": "observed"},
+    {"method": "DELETE", "path": "/api/notes/:id", "auth": "none observed", "response": {"status": "204"}, "features": ["B-F01"], "evidence": ["B-E04"], "basis": "observed"},
+    {"method": "POST", "path": "/api/notes/:id/labels", "auth": "none observed", "request": {"label": "string"}, "response": {"body": "Note"}, "features": ["B-F02"], "evidence": ["B-E05"], "basis": "observed"},
+    {"method": "GET", "path": "/api/search", "auth": "none observed", "request": {"q": "string"}, "response": {"body": "list of Note"}, "features": ["B-F03"], "evidence": ["B-E06"], "basis": "observed"},
+    {"method": "POST", "path": "/api/notes/:id/pin", "auth": "none observed", "response": {"body": "Note"}, "features": ["B-F04"], "evidence": ["B-E07"], "basis": "observed"},
+    {"method": "GET", "path": "/api/export", "auth": "none observed", "response": {"body": "list of {file, text}"}, "features": ["B-F05"], "evidence": ["B-E08"], "basis": "observed"}
+  ],
+  "auth": {"provider": "none", "methods": [], "session": "none observed", "model": "no authentication or authorization in the code", "roles": [], "evidence": ["B-E04"], "basis": "observed"},
+  "rules": [
+    {"key": "notes.list.order", "value": "pinned first (insertion order otherwise)", "features": ["B-F01", "B-F04"], "evidence": ["B-E04"]},
+    {"key": "note.id.type", "value": "uuid v4", "features": ["B-F01"], "evidence": ["B-E03"]},
+    {"key": "search.fields", "value": ["title"], "features": ["B-F03"], "evidence": ["B-E06"]},
+    {"key": "export.filename", "value": "<title>.md", "features": ["B-F05"], "evidence": ["B-E08"]}
+  ],
+  "integrations": [],
+  "configuration": [],
+  "state": [{"key": "notes (Map)", "scope": "process memory", "features": ["B-F01"]}],
+  "error_handling": [
+    {"case": "unknown note id on update, label or pin", "behaviour": "notes.get returns undefined and the handler throws (500 from Express default handler); inferred from code", "evidence": ["B-E04", "B-E05", "B-E07"]},
+    {"case": "search without q", "behaviour": "title.includes(undefined) matches titles containing the text 'undefined'; inferred from code", "evidence": ["B-E06"]}
+  ],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": ["(root)"],
+    "modules_skipped": [],
+    "files_read": 3
+  },
+  "unknowns": [
+    "How the Express app is created and the router mounted (body parser, port) is outside the folder.",
+    "No frontend in the folder; screens unknown. Settled by UI code or screenshots.",
+    "Whether export was meant to be a zip download (comment) or the JSON list the code returns. Settled by asking the user.",
+    "Code is labelled illustrative and was not run (running source code not approved), so behaviour is read from code only."
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": ["one small team and one release cadence", "strong consistency between slots, bookings, payments and the waiting list (no double booking, no charge without booking)", "modest scale with no part needing independent scaling", "BookNow, the only source with code, is Python"],
+    "alternatives": [
+      {"style": "microservices", "fit": "poor", "reason": "splitting bookings from payments and the waiting list would turn the single-transaction hold-charge-confirm flow into a distributed saga with no scaling benefit"},
+      {"style": "event-driven", "fit": "partial", "reason": "the waiting list reacts to a freed slot asynchronously, but one in-process event covers it without a message broker"},
+      {"style": "service-oriented", "fit": "poor", "reason": "there is no existing system that must stay separate; Stripe is called through its SDK"},
+      {"style": "hybrid", "fit": "partial", "reason": "a monolith plus a broker for slot-freed would work but adds infrastructure the volume does not justify; revisit if calendar sync (M07) is added"}
+    ],
+    "reason": "The simplest design that keeps booking, payment and waiting-list state consistent in one database transaction; the one asynchronous reaction (slot freed -> waitlist offer) is an in-process event plus a scheduled job for offer expiry."
+  },
+  "stack": {
+    "frontend": "Django templates (server-rendered) with htmx for small partial updates",
+    "backend": "Python 3.12, Django 5 (LTS line), Stripe Python SDK in test mode during development",
+    "database": "PostgreSQL 16",
+    "jobs": "Django management command run every minute by the host's scheduler (offer expiry)",
+    "hosting": "a managed Python host plus managed PostgreSQL, chosen by the user; no deployment in this run",
+    "reasons": {
+      "frontend": "D10: no source has a UI to reuse and the app is form-and-list heavy; server rendering keeps one codebase and works with session cookies",
+      "backend": "D10: BookNow's logic is Python; Django brings auth, sessions, CSRF, admin and migrations, which neither source provides",
+      "database": "D11: partial unique indexes and transactions enforce one active booking per slot (D06); timestamps with time zone",
+      "jobs": "D12: offer expiry needs a timer; a scheduled command avoids a queue broker",
+      "hosting": "D13: no hosting constraint given; deployment is out of scope and never automatic"
+    }
+  },
+  "modules": [
+    {"name": "accounts", "responsibility": "sign-up, sign-in, sessions, roles and the single permission check used by every route and query", "features": [], "depends_on": [], "owns_entities": ["User"]},
+    {"name": "slots", "responsibility": "staff create, publish, edit and withdraw slots; customers list open slots", "features": ["M05"], "depends_on": ["accounts"], "owns_entities": ["Slot"]},
+    {"name": "payments", "responsibility": "Stripe charges with idempotency keys, refunds, and the Stripe webhook", "features": ["M04"], "depends_on": ["accounts"], "owns_entities": ["Payment"]},
+    {"name": "bookings", "responsibility": "hold-charge-confirm booking of one slot, 24-hour cancellation with refund, and the slot-freed event", "features": ["M01", "M03"], "depends_on": ["accounts", "slots", "payments"], "owns_entities": ["Booking"]},
+    {"name": "recurring", "responsibility": "weekly series of 2 to 12 bookings, all-or-nothing creation and series cancellation", "features": ["M06"], "depends_on": ["bookings", "slots"], "owns_entities": ["BookingSeries"]},
+    {"name": "waitlist", "responsibility": "join and leave a slot's waiting list; offer freed places in join order with a time-limited hold", "features": ["M08"], "depends_on": ["bookings", "slots", "accounts"], "owns_entities": ["WaitlistEntry"]}
+  ],
+  "events": [
+    {"name": "slot-freed", "producer": "bookings", "consumers": ["waitlist"]}
+  ],
+  "entities": [
+    {"name": "User", "merged_from": ["new"], "primary_key": "uuid", "notes": "Neither source has accounts; A's user_id becomes a foreign key to this table (D07)",
+     "fields": [{"name": "id", "type": "uuid"}, {"name": "email", "type": "citext"}, {"name": "password_hash", "type": "text"}, {"name": "role", "type": "text"}, {"name": "created_at", "type": "timestamptz"}]},
+    {"name": "Slot", "merged_from": ["A:Slot", "B:Slot"], "primary_key": "uuid", "notes": "A's taken flag is not stored: 'taken' is derived from an active booking, enforced by a partial unique index on Booking (D06, D09)",
+     "fields": [{"name": "id", "type": "uuid"}, {"name": "starts_at", "type": "timestamptz", "from": ["A:Slot.starts_at"]}, {"name": "ends_at", "type": "timestamptz"}, {"name": "price_amount", "type": "integer", "from": ["A:Slot.price"]}, {"name": "currency", "type": "text"}, {"name": "status", "type": "text"}, {"name": "published_by", "type": "uuid"}, {"name": "created_at", "type": "timestamptz"}]},
+    {"name": "Booking", "merged_from": ["A:Booking", "B:Booking"], "primary_key": "uuid", "notes": "Soft cancel (D02); status held | confirmed | cancelled; series_id replaces B's 'recurring' option (D08)",
+     "fields": [{"name": "id", "type": "uuid"}, {"name": "user_id", "type": "uuid", "from": ["A:Booking.user_id"]}, {"name": "slot_id", "type": "uuid", "from": ["A:Booking.slot_id"]}, {"name": "created_at", "type": "timestamptz", "from": ["A:Booking.created_at"]}, {"name": "status", "type": "text"}, {"name": "series_id", "type": "uuid", "from": ["B:Booking.recurring"]}, {"name": "cancelled_at", "type": "timestamptz"}]},
+    {"name": "BookingSeries", "merged_from": ["new"], "primary_key": "uuid", "notes": "Weekly recurrence of 2 to 12 occurrences (B rule recurrence_max_weeks = 12)",
+     "fields": [{"name": "id", "type": "uuid"}, {"name": "user_id", "type": "uuid"}, {"name": "weeks", "type": "integer"}, {"name": "status", "type": "text"}, {"name": "created_at", "type": "timestamptz"}]},
+    {"name": "Payment", "merged_from": ["new"], "primary_key": "uuid", "notes": "A's payments module was not provided, so this is designed fresh (D01, D02)",
+     "fields": [{"name": "id", "type": "uuid"}, {"name": "booking_id", "type": "uuid"}, {"name": "amount", "type": "integer"}, {"name": "currency", "type": "text"}, {"name": "stripe_payment_intent_id", "type": "text"}, {"name": "idempotency_key", "type": "text"}, {"name": "status", "type": "text"}, {"name": "stripe_refund_id", "type": "text"}, {"name": "created_at", "type": "timestamptz"}]},
+    {"name": "WaitlistEntry", "merged_from": ["B:WaitlistEntry"], "primary_key": "uuid", "notes": "status waiting | offered | accepted | expired | left; one offer at a time per slot (D03)",
+     "fields": [{"name": "id", "type": "uuid"}, {"name": "slot_id", "type": "uuid"}, {"name": "user_id", "type": "uuid"}, {"name": "status", "type": "text"}, {"name": "offer_expires_at", "type": "timestamptz"}, {"name": "created_at", "type": "timestamptz"}]}
+  ],
+  "auth": {
+    "method": "email and password (Django auth, PBKDF2/Argon2 hashing)",
+    "session": "server-side session, http-only secure SameSite=Lax cookie, CSRF tokens on every form and POST",
+    "roles": ["customer", "staff"],
+    "permissions": {
+      "customer": ["list open slots", "book, view and cancel own bookings and series", "join, leave and accept own waitlist entries"],
+      "staff": ["everything a customer can", "create, edit, publish and withdraw slots", "view all bookings of slots they manage"]
+    },
+    "role_mapping": {
+      "A: (no roles; user_id passed in)": "customer",
+      "B: customers (documented audience)": "customer",
+      "B: teams that publish slots (documented audience)": "staff"
+    }
+  },
+  "api": [
+    {"method": "POST", "path": "/api/v1/auth/signup", "module": "accounts", "auth": "none", "features": []},
+    {"method": "POST", "path": "/api/v1/auth/login", "module": "accounts", "auth": "none", "features": []},
+    {"method": "POST", "path": "/api/v1/auth/logout", "module": "accounts", "auth": "session", "features": []},
+    {"method": "GET", "path": "/api/v1/slots", "module": "slots", "auth": "none (published slots only)", "features": ["M05"]},
+    {"method": "POST", "path": "/api/v1/slots", "module": "slots", "auth": "session, staff", "features": ["M05"]},
+    {"method": "PATCH", "path": "/api/v1/slots/{id}", "module": "slots", "auth": "session, staff", "features": ["M05"]},
+    {"method": "POST", "path": "/api/v1/bookings", "module": "bookings", "auth": "session", "features": ["M01", "M04"]},
+    {"method": "GET", "path": "/api/v1/bookings", "module": "bookings", "auth": "session (own only)", "features": ["M01"]},
+    {"method": "POST", "path": "/api/v1/bookings/{id}/cancel", "module": "bookings", "auth": "session (owner)", "features": ["M03", "M04"]},
+    {"method": "POST", "path": "/api/v1/payments/stripe-webhook", "module": "payments", "auth": "Stripe signature (STRIPE_WEBHOOK_SECRET)", "features": ["M04"]},
+    {"method": "POST", "path": "/api/v1/series", "module": "recurring", "auth": "session", "features": ["M06"]},
+    {"method": "POST", "path": "/api/v1/series/{id}/cancel", "module": "recurring", "auth": "session (owner)", "features": ["M06"]},
+    {"method": "POST", "path": "/api/v1/slots/{id}/waitlist", "module": "waitlist", "auth": "session", "features": ["M08"]},
+    {"method": "DELETE", "path": "/api/v1/waitlist/{id}", "module": "waitlist", "auth": "session (owner)", "features": ["M08"]},
+    {"method": "POST", "path": "/api/v1/waitlist/{id}/accept", "module": "waitlist", "auth": "session (owner)", "features": ["M08"]}
+  ],
+  "navigation": [
+    {"route": "/", "screen": "Open slots", "module": "slots"},
+    {"route": "/signup", "screen": "Sign up", "module": "accounts"},
+    {"route": "/login", "screen": "Sign in", "module": "accounts"},
+    {"route": "/slots/{id}", "screen": "Slot detail (book, book weekly, join waiting list)", "module": "bookings"},
+    {"route": "/bookings", "screen": "My bookings and series", "module": "bookings"},
+    {"route": "/waitlist", "screen": "My waiting lists and offers", "module": "waitlist"},
+    {"route": "/staff/slots", "screen": "Manage slots", "module": "slots"},
+    {"route": "/staff/slots/new", "screen": "New slot", "module": "slots"}
+  ],
+  "design_system": {
+    "tokens": {"colour_roles": ["background", "surface", "text", "muted", "primary", "danger", "success", "focus"], "type_scale": "1.25 ratio from 16px", "spacing": "4px base (4, 8, 12, 16, 24, 32)", "radius": "6px"},
+    "components": {"Button": ["primary", "secondary", "danger"], "SlotCard": ["open", "taken", "past"], "StatusBadge": ["held", "confirmed", "cancelled", "offered", "waiting"], "Form": ["default", "error"], "EmptyState": [], "Alert": ["info", "error", "success"]},
+    "fonts": "Inter (SIL Open Font License)", "icons": "Lucide (ISC)", "brand": "the user's own; nothing visual taken from Slotty"
+  },
+  "configuration": {
+    "DATABASE_URL": "PostgreSQL connection (secret)",
+    "SECRET_KEY": "Django signing key (secret)",
+    "STRIPE_SECRET_KEY": "Stripe API key, test mode in development (secret)",
+    "STRIPE_WEBHOOK_SECRET": "verifies Stripe webhooks (secret)",
+    "DEFAULT_CURRENCY": "ISO currency for slot prices; default 'usd' in development (source currency unknown)",
+    "CANCELLATION_WINDOW_HOURS": "default 24 (A rule)",
+    "RECURRENCE_MAX_WEEKS": "default 12 (B rule)",
+    "WAITLIST_OFFER_HOLD_MINUTES": "default 120 (D03)",
+    "ALLOWED_HOSTS": "host names the app serves"
+  },
+  "slices": [
+    {"id": "V1", "name": "Core loop: staff publishes a slot, customer signs in, books and pays, sees the booking", "features": ["M05", "M04", "M01"], "status": "pending"},
+    {"id": "V2", "name": "Cancel 24h+ before with full refund; slot reopens", "features": ["M03"], "status": "pending"},
+    {"id": "V3", "name": "Weekly recurring series (2-12), all-or-nothing, per-occurrence charges", "features": ["M06"], "status": "pending"},
+    {"id": "V4", "name": "Waiting list with time-limited offers on slot-freed", "features": ["M08"], "status": "pending"}
+  ],
+  "decisions": [
+    {"id": "D01", "decision": "Series paid up front, one Stripe charge per occurrence, all-or-nothing", "reason": "keeps A's pay-at-booking rule; simple per-occurrence refunds", "approved": true},
+    {"id": "D02", "decision": "Full refund on every allowed cancellation; soft cancel", "reason": "A hard-deletes and refunds nothing; a paid, allowed cancellation must not lose money", "approved": true},
+    {"id": "D03", "decision": "Waitlist offers with a 2-hour exclusive hold (ending no later than 24h before start); accept pays; no auto-charge", "reason": "B's release rule is undocumented; charging without consent is unsafe", "approved": true},
+    {"id": "D04", "decision": "24h rule per occurrence; cancel-series cancels remaining eligible occurrences", "reason": "consistent with A's rule", "approved": true},
+    {"id": "D05", "decision": "Series creation is all-or-nothing and lists taken weeks", "reason": "predictable payment and no half-made series", "approved": true},
+    {"id": "D06", "decision": "Partial unique index on Booking(slot_id) where status in (held, confirmed); hold-charge-confirm in a transaction", "reason": "A never sets taken and charges before insert", "approved": true},
+    {"id": "D07", "decision": "Email/password accounts, server-side sessions, roles customer and staff", "reason": "neither source has auth; B implies two audiences", "approved": true},
+    {"id": "D08", "decision": "One Booking entity merged from A and B; B's recurring option becomes series_id", "reason": "duplicate entity", "approved": true},
+    {"id": "D09", "decision": "One Slot entity merged from A and B; A's taken flag derived, not stored", "reason": "duplicate entity; a stored flag can drift from bookings", "approved": true},
+    {"id": "D10", "decision": "Python 3.12 + Django 5, server-rendered templates with htmx", "reason": "A is Python; Django supplies auth, sessions, CSRF, admin, migrations", "approved": true},
+    {"id": "D11", "decision": "PostgreSQL 16", "reason": "transactions and partial unique indexes for D06", "approved": true},
+    {"id": "D12", "decision": "Offer expiry by a scheduled management command, not a broker", "reason": "one timer job does not justify a queue", "approved": true},
+    {"id": "D13", "decision": "Modular monolith with one in-process event (slot-freed)", "reason": "see style", "approved": true},
+    {"id": "D14", "decision": "REST under /api/v1, error shape {\"error\": {\"code\", \"message\"}}, cursor pagination, session auth", "reason": "one API style for every endpoint", "approved": true},
+    {"id": "D15", "decision": "Calendar sync (M07) deferred; no module or slice for it", "reason": "auto-pick: could, low confidence, calendar.md missing", "approved": true}
+  ]
+}

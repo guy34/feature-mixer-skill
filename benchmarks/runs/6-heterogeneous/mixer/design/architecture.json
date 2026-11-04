@@ -1,0 +1,93 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": ["one small team owning both source apps", "strong consistency between cart, order, payment and review eligibility", "modest scale with no part needing independent scaling", "plan-mode project with no operations platform named"],
+    "alternatives": [
+      {"style": "microservices", "fit": "poor", "reason": "network calls and distributed data between cart, orders and reviews with no independent scaling or team need"},
+      {"style": "service-oriented", "fit": "poor", "reason": "would keep PyShop and NodeCart as two services in two runtimes, which is the split the merge removes"},
+      {"style": "event-driven", "fit": "partial", "reason": "only the Stripe payment confirmation is asynchronous; one webhook handler covers it without a message bus"},
+      {"style": "hybrid", "fit": "partial", "reason": "no part clearly needs a second style yet"}
+    ],
+    "reason": "The simplest design that keeps cart, order and review eligibility in one transaction-consistent database"
+  },
+  "stack": {
+    "frontend": "Server-rendered Jinja2 templates with a small amount of vanilla JS",
+    "backend": "Python 3.12, Flask 3.0, SQLAlchemy 2.0",
+    "database": "PostgreSQL (SQLite for local development and tests)",
+    "payments": "Stripe Checkout (official Python SDK), test mode",
+    "hosting": "not decided by the user; any container host",
+    "reasons": {
+      "backend": "D01: the catalog (M01) is adapted from PyShop's Flask/SQLAlchemy code and the products are the durable data; Stripe has an official Python SDK, so NodeCart's two endpoints are rebuilt in Python",
+      "database": "D02: one relational database keeps orders and review eligibility consistent; SQLAlchemy matches the adapted models",
+      "frontend": "D03: no source has a frontend; server-rendered pages are the least moving parts for a small shop",
+      "payments": "D04: keep Stripe Checkout from NodeCart, rebuilt with server-side line items and a verified webhook"
+    }
+  },
+  "modules": [
+    {"name": "accounts", "responsibility": "Sign-up, sign-in, sessions, roles and the single permission check (platform module; no source had it)", "features": [], "depends_on": [], "owns_entities": ["User"]},
+    {"name": "catalog", "responsibility": "Products and prices", "features": ["M01"], "depends_on": [], "owns_entities": ["Product"]},
+    {"name": "cart", "responsibility": "The signed-in customer's cart", "features": ["M04"], "depends_on": ["accounts", "catalog"], "owns_entities": ["Cart", "CartItem"]},
+    {"name": "checkout", "responsibility": "Orders, Stripe Checkout sessions and the payment webhook", "features": ["M05"], "depends_on": ["accounts", "catalog", "cart"], "owns_entities": ["Order", "OrderItem"]},
+    {"name": "reviews", "responsibility": "Listing and writing product reviews, gated on a paid order", "features": ["M06", "M07", "M09"], "depends_on": ["accounts", "catalog", "checkout"], "owns_entities": ["Review"]}
+  ],
+  "entities": [
+    {"name": "User", "merged_from": ["new"], "primary_key": "integer", "notes": "No source has a User model; A and B carts reference a user id only",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "email", "type": "text"}, {"name": "password_hash", "type": "text"}, {"name": "role", "type": "text"}, {"name": "created_at", "type": "timestamp"}]},
+    {"name": "Product", "merged_from": ["A:Product"], "primary_key": "integer", "notes": "A's ids are kept; price becomes integer minor units plus currency",
+     "fields": [{"name": "id", "type": "integer", "from": ["A:Product.id"]}, {"name": "name", "type": "text", "from": ["A:Product.name"]}, {"name": "price_minor", "type": "integer", "from": ["A:Product.price"]}, {"name": "currency", "type": "text"}, {"name": "created_at", "type": "timestamp"}]},
+    {"name": "Cart", "merged_from": ["B:Cart"], "primary_key": "integer", "notes": "Shape from B; one cart per user (unique user_id); B's cart rows are not migrated (decision D06)",
+     "fields": [{"name": "id", "type": "integer", "from": ["B:Cart.id"]}, {"name": "user_id", "type": "integer", "from": ["B:Cart.userId"]}, {"name": "created_at", "type": "timestamp"}]},
+    {"name": "CartItem", "merged_from": ["B:CartItem"], "primary_key": "integer", "notes": "quantity integer >= 1; unique (cart_id, product_id); product_id is a real foreign key to Product",
+     "fields": [{"name": "id", "type": "integer", "from": ["B:CartItem.id"]}, {"name": "cart_id", "type": "integer", "from": ["B:CartItem.cartId"]}, {"name": "product_id", "type": "integer", "from": ["B:CartItem.productId"]}, {"name": "quantity", "type": "integer", "from": ["B:CartItem.quantity"]}]},
+    {"name": "Order", "merged_from": ["new"], "primary_key": "integer", "notes": "status pending|paid|cancelled; paid only by the verified webhook",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "user_id", "type": "integer"}, {"name": "status", "type": "text"}, {"name": "total_minor", "type": "integer"}, {"name": "currency", "type": "text"}, {"name": "stripe_session_id", "type": "text"}, {"name": "created_at", "type": "timestamp"}, {"name": "paid_at", "type": "timestamp"}]},
+    {"name": "OrderItem", "merged_from": ["new"], "primary_key": "integer", "notes": "price copied at checkout time",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "order_id", "type": "integer"}, {"name": "product_id", "type": "integer"}, {"name": "quantity", "type": "integer"}, {"name": "unit_price_minor", "type": "integer"}]},
+    {"name": "Review", "merged_from": ["new"], "primary_key": "integer", "notes": "Modelled on Reviewly's documented behaviour (C-F01, C-F02, C-F04); no Reviewly data or code is imported; rating check 1..5; unique (user_id, product_id)",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "product_id", "type": "integer"}, {"name": "user_id", "type": "integer"}, {"name": "rating", "type": "integer"}, {"name": "comment", "type": "text"}, {"name": "created_at", "type": "timestamp"}]}
+  ],
+  "auth": {
+    "method": "email and password (argon2id hash)",
+    "session": "server-side session id in an http-only, secure, SameSite=Lax cookie",
+    "roles": ["customer", "owner"],
+    "permissions": {"customer": ["cart:own", "checkout:own", "review:write-if-purchased"], "owner": ["catalog:manage"]},
+    "role_mapping": {"A: (no roles; Cart.user_id)": "customer", "B: (no roles; Cart.userId)": "customer", "C: customer (documented)": "customer", "C: shop (documented, replies deferred)": "owner"}
+  },
+  "api": [
+    {"method": "POST", "path": "/api/auth/signup", "module": "accounts", "auth": "none", "features": []},
+    {"method": "POST", "path": "/api/auth/login", "module": "accounts", "auth": "none", "features": []},
+    {"method": "POST", "path": "/api/auth/logout", "module": "accounts", "auth": "session", "features": []},
+    {"method": "GET", "path": "/api/products", "module": "catalog", "auth": "none", "features": ["M01"]},
+    {"method": "GET", "path": "/api/products/{id}", "module": "catalog", "auth": "none", "features": ["M01"]},
+    {"method": "GET", "path": "/api/cart", "module": "cart", "auth": "session", "features": ["M04"]},
+    {"method": "POST", "path": "/api/cart/items", "module": "cart", "auth": "session", "features": ["M04"]},
+    {"method": "POST", "path": "/api/checkout", "module": "checkout", "auth": "session", "features": ["M05"]},
+    {"method": "POST", "path": "/api/stripe/webhook", "module": "checkout", "auth": "Stripe signature", "features": ["M05"]},
+    {"method": "GET", "path": "/api/products/{id}/reviews", "module": "reviews", "auth": "none", "features": ["M06"]},
+    {"method": "POST", "path": "/api/products/{id}/reviews", "module": "reviews", "auth": "session", "features": ["M07", "M09"]}
+  ],
+  "navigation": [
+    {"route": "/", "screen": "Product list", "module": "catalog"},
+    {"route": "/products/{id}", "screen": "Product page with reviews and review form", "module": "catalog"},
+    {"route": "/cart", "screen": "Cart", "module": "cart"},
+    {"route": "/checkout/success", "screen": "Order confirmation", "module": "checkout"},
+    {"route": "/login", "screen": "Sign in / sign up", "module": "accounts"}
+  ],
+  "design_system": {"tokens": "colour roles (surface, text, primary, danger), 4px spacing scale, 1.25 type scale, 6px radius", "components": ["Button (primary, secondary)", "ProductCard", "QuantityInput", "StarRating (display, input)", "FormField", "Alert"], "fonts": "system font stack", "icons": "none needed beyond text"},
+  "configuration": {"DATABASE_URL": "database connection", "SECRET_KEY": "session signing", "STRIPE_SECRET": "Stripe secret key (test mode)", "STRIPE_WEBHOOK_SECRET": "webhook signature check", "APP_BASE_URL": "Stripe success/cancel URLs"},
+  "slices": [
+    {"id": "V1", "name": "Browse and add to cart (core loop)", "features": ["M01", "M04"], "status": "pending"},
+    {"id": "V2", "name": "Checkout and paid orders", "features": ["M05"], "status": "pending"},
+    {"id": "V3", "name": "Reviews with verified-purchase gate", "features": ["M06", "M07", "M09"], "status": "pending"}
+  ],
+  "decisions": [
+    {"id": "D01", "decision": "One Python/Flask/SQLAlchemy backend; NodeCart's endpoints rebuilt in Python", "reason": "Catalog (durable data) and its model are in PyShop; Stripe has an official Python SDK; one runtime instead of two", "approved": true},
+    {"id": "D02", "decision": "PostgreSQL, integer primary keys everywhere", "reason": "Keeps A's product ids; B's uuid keys only belonged to transient carts", "approved": true},
+    {"id": "D03", "decision": "Server-rendered pages", "reason": "No source has a frontend; fewest moving parts", "approved": true},
+    {"id": "D04", "decision": "Stripe Checkout with server-built line items and a signature-verified webhook", "reason": "Fixes the critical client-price flaw and gives the review gate a confirmed order", "approved": true},
+    {"id": "D05", "decision": "New accounts module (email+password, http-only cookie session, roles customer/owner)", "reason": "No source has identity, but carts, checkout and reviews need a user", "approved": true},
+    {"id": "D06", "decision": "Do not migrate NodeCart's cart rows; migrate PyShop's products with price converted to integer minor units", "reason": "Carts are transient; products are durable; see migration-plan.md", "approved": true},
+    {"id": "D07", "decision": "Unversioned REST under /api, error shape {\"error\": {\"code\", \"message\"}}, page/limit pagination on lists", "reason": "One API style; Reviewly's /v2 paths are not copied", "approved": true},
+    {"id": "D08", "decision": "Review gate refuses (403) reviews without a paid order containing the product", "reason": "Reviewly's refuse-vs-hide rule is undocumented; refusing is simpler and testable", "approved": true}
+  ]
+}

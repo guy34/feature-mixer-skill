@@ -1,0 +1,144 @@
+{
+  "name": "Unified Notes",
+  "format": 3,
+  "mode": "plan",
+  "audience": "The user (owner of QuickNotes and Jotter): one notes app with the best of both. Features chosen by Claude (auto-pick, per operator), plan stops after architecture.",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "QuickNotes",
+      "slug": "quicknotes",
+      "access": "own-code",
+      "licence": "own code (no licence file; user states it is their own)",
+      "code_reuse": "allowed",
+      "slice": "core notes loop: write, tag, search, preview",
+      "local_path": "sources/quicknotes",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/quicknotes"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Jotter",
+      "slug": "jotter",
+      "access": "own-code",
+      "licence": "own code (no licence file; user states it is their own)",
+      "code_reuse": "allowed",
+      "slice": "core notes loop: jot, label, pin, search, export",
+      "local_path": "sources/jotter",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/jotter"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "auto-pick; approved by benchmark-operator (pre-approved in task)"
+    },
+    "compatibility": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "approved by benchmark-operator (pre-approved in task); migration approved as plan only"
+    },
+    "architecture": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "approved by benchmark-operator (pre-approved in task); plan mode ends here"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "mixer/checkpoints/CP1-recon",
+      "date": "2026-11-04",
+      "note": "snapshot (not a git repo)"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "mixer/checkpoints/CP2-extraction",
+      "date": "2026-11-04",
+      "note": "snapshot"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "mixer/checkpoints/CP3-selection",
+      "date": "2026-11-04",
+      "note": "snapshot"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "mixer/checkpoints/CP4-compatibility",
+      "date": "2026-11-04",
+      "note": "snapshot"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "mixer/checkpoints/CP5-architecture",
+      "date": "2026-11-04",
+      "note": "snapshot"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "other",
+      "target": "selection checkpoint: keep M01,M02,M03,M05,M07,M08,M09; drop M04,M06; merge plan U01-U06",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "auto-pick selection"
+    },
+    {
+      "id": "A02",
+      "action": "other",
+      "target": "migration plans migration:note, migration:tag, migration:notetag (design/migration-plan.md)",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plan only; executing the migration is NOT approved"
+    },
+    {
+      "id": "A03",
+      "action": "other",
+      "target": "compatibility checkpoint: resolutions for all 9 conflicts in compat/resolutions.json",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04"
+    },
+    {
+      "id": "A04",
+      "action": "other",
+      "target": "architecture checkpoint: modular monolith, Python/Flask/SQLite, modules, data model, slices V1-V3, decisions D01-D08",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04"
+    }
+  ]
+}

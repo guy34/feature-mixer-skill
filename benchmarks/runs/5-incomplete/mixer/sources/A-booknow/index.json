@@ -1,0 +1,81 @@
+{
+  "root": "../../../sources/booknow",
+  "indexed_at": "2026-11-04T09:17:42+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 2,
+    "lines": 19,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "size": 79,
+      "sha256": "2fbc5c004eb4e3852c375ced83cac7d5dbcda8852e0b507d73e95e1b92fcd7c5",
+      "language": "markdown",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 2
+    },
+    {
+      "path": "bookings.py",
+      "size": 755,
+      "sha256": "a9910b8f070f7585659c62035ba587556483e8d83e25dc5fba9943e098e0839f",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 17,
+      "imports": [],
+      "packages": [
+        "datetime",
+        "payments"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 2,
+      "lines": 19,
+      "languages": [
+        "markdown",
+        "python"
+      ],
+      "depends_on": [],
+      "external": [
+        "datetime",
+        "payments"
+      ]
+    }
+  },
+  "external_imports": {
+    "datetime": [
+      "bookings.py"
+    ],
+    "payments": [
+      "bookings.py"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "README.md",
+      "bookings.py"
+    ],
+    "A-F02": [
+      "README.md",
+      "bookings.py"
+    ],
+    "A-F03": [
+      "README.md",
+      "bookings.py"
+    ]
+  },
+  "changes": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "stale_features": []
+}

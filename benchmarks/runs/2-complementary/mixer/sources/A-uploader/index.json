@@ -1,0 +1,67 @@
+{
+  "root": "../../../sources/uploader",
+  "indexed_at": "2026-11-04T09:15:18+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 2,
+    "lines": 14,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "schema.sql",
+      "size": 140,
+      "sha256": "7f576c852397362c6eaff3e54f8c056eca57964c9a847df295a68360d4eb01c2",
+      "language": "sql",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 1
+    },
+    {
+      "path": "uploader.py",
+      "size": 503,
+      "sha256": "69bbd9615c88afb9d8ecaf98205597567dc1b6cc844d2eec85265b40d2a6c47d",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 13,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 2,
+      "lines": 14,
+      "languages": [
+        "python",
+        "sql"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "external_imports": {},
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "schema.sql",
+      "uploader.py"
+    ],
+    "A-F02": [
+      "schema.sql",
+      "uploader.py"
+    ],
+    "A-F03": [
+      "uploader.py"
+    ]
+  },
+  "changes": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "stale_features": []
+}

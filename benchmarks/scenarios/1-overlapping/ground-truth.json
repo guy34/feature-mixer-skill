@@ -1,0 +1,26 @@
+{
+  "scenario": "1-overlapping",
+  "mode": "plan",
+  "features": [
+    {"key": "a-notes", "app": "A", "any": ["create", "crud", "edit", "manage", "write"], "all": ["note"]},
+    {"key": "a-tags", "app": "A", "any": ["tag"]},
+    {"key": "a-search", "app": "A", "any": ["search"]},
+    {"key": "a-preview", "app": "A", "any": ["preview", "render"]},
+    {"key": "b-notes", "app": "B", "any": ["create", "crud", "edit", "manage", "jot"], "all": ["note"]},
+    {"key": "b-labels", "app": "B", "any": ["label", "tag"]},
+    {"key": "b-search", "app": "B", "any": ["search"]},
+    {"key": "b-pin", "app": "B", "any": ["pin"]},
+    {"key": "b-export", "app": "B", "any": ["export"]}
+  ],
+  "groups": [
+    {"members": ["a-notes", "b-notes"], "types": ["identical", "similar"]},
+    {"members": ["a-tags", "b-labels"], "types": ["identical", "similar"]},
+    {"members": ["a-search", "b-search"], "types": ["similar"]}
+  ],
+  "conflicts": [
+    {"kind": "duplicate-entity", "subject": "note"},
+    {"kind": "primary-key", "subject": "note"}
+  ],
+  "fabrication": ["share", "collaborat", "reminder", "sync", "encrypt"],
+  "coverage": {"A": "complete", "B": "complete"}
+}

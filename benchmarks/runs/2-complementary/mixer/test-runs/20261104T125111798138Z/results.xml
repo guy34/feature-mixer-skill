@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuite name="unittest" tests="38">
+  <testcase classname="tests.test_journey.DependencyTests" name="test_app_imports_only_the_standard_library" time="0.049">
+    <properties>
+      <property name="features" value="M01, M04, M07"/>
+      <property name="expect" value="every import in the fileshare package is the standard library or the package itself"/>
+      <property name="level" value="dependency"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_journey.JourneyTests" name="test_upload_preview_share_open_revoke" time="0.070">
+    <properties>
+      <property name="features" value="M01, M02, M04, M07, M08, M09, M10"/>
+      <property name="expect" value="register, upload, list, preview, share with a password, recipient opens and downloads, owner revokes, link dies"/>
+      <property name="level" value="journey"/>
+      <property name="acceptance" value="AC13"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.AccountsTests" name="test_account_password_is_salted_pbkdf2" time="0.035">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="account passwords are stored as pbkdf2_sha256 with a per-user salt, never in plain text"/>
+      <property name="level" value="database"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.AccountsTests" name="test_register_login_logout" time="0.044">
+    <properties>
+      <property name="features" value="M01, M02"/>
+      <property name="expect" value="register sets an http-only session cookie; logout ends it; login with the right password restores it"/>
+      <property name="level" value="auth"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.AccountsTests" name="test_session_expires" time="0.036">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="a session older than 7 days answers 401"/>
+      <property name="level" value="auth"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.AccountsTests" name="test_wrong_password_and_duplicate_username" time="0.032">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="wrong password is 401 bad_credentials; a taken username is 409; short passwords are 400"/>
+      <property name="level" value="auth"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.FallbackPreviewTests" name="test_other_types_have_no_preview" time="0.046">
+    <properties>
+      <property name="features" value="M06"/>
+      <property name="expect" value=".pdf, .zip and extensionless files preview as kind none with the reason"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC08"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.ListTests" name="test_each_user_sees_only_their_files" time="0.055">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="two users each list only their own files, newest first"/>
+      <property name="level" value="auth"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.ListTests" name="test_empty_list" time="0.040">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="a new user gets an empty list"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.PlatformTests" name="test_invalid_json_is_400" time="0.032">
+    <properties>
+      <property name="features" value="M07"/>
+      <property name="expect" value="a malformed JSON body answers 400 invalid_json"/>
+      <property name="level" value="api"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.PlatformTests" name="test_pages_and_unknown_routes" time="0.032">
+    <properties>
+      <property name="features" value="M02, M09"/>
+      <property name="expect" value="/ and /s/&lt;token&gt; serve HTML; unknown routes are 404 and wrong methods 405, both in the JSON error shape"/>
+      <property name="level" value="navigation"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.PlatformTests" name="test_schema_created_from_empty_with_foreign_keys" time="0.030">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="every table exists after start and foreign keys cascade from files"/>
+      <property name="level" value="database"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.TextPreviewTests" name="test_preview_of_someone_elses_file_is_404" time="0.039">
+    <properties>
+      <property name="features" value="M04"/>
+      <property name="expect" value="previewing another user's file answers 404 not_found"/>
+      <property name="level" value="auth"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.TextPreviewTests" name="test_text_preview_first_20_lines" time="0.033">
+    <properties>
+      <property name="features" value="M04"/>
+      <property name="expect" value=".txt, .md and .csv (any case) preview as kind text with at most 20 lines"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC06"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.TextPreviewTests" name="test_text_preview_replaces_invalid_utf8" time="0.025">
+    <properties>
+      <property name="features" value="M04"/>
+      <property name="expect" value="undecodable bytes become replacement characters instead of an error"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC06"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.UploadTests" name="test_file_endpoints_need_sign_in" time="0.027">
+    <properties>
+      <property name="features" value="M01, M02, M03, M04, M07"/>
+      <property name="expect" value="every owner endpoint answers 401 with the JSON error shape when nobody is signed in"/>
+      <property name="level" value="auth"/>
+      <property name="acceptance" value="AC03"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.UploadTests" name="test_upload_limit_is_10_mb" time="0.095">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="exactly 10485760 bytes is accepted; 10485761 is 413 file_too_large and nothing is stored"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC02"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.UploadTests" name="test_upload_rejects_oversize_content_length_before_reading" time="0.029">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="a Content-Length over the limit is refused with 413 without reading the body"/>
+      <property name="level" value="api"/>
+      <property name="acceptance" value="AC02"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.UploadTests" name="test_upload_returns_file" time="0.037">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="201 with id, name, size and a guessed content type"/>
+      <property name="level" value="api"/>
+      <property name="acceptance" value="AC01"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v1_core.UploadTests" name="test_upload_validation" time="0.025">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="missing or unsafe names are 400 invalid_name; a missing Content-Length is 411"/>
+      <property name="level" value="form"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v2_sharing.CreateLinkTests" name="test_custom_expiry_and_validation" time="0.033">
+    <properties>
+      <property name="features" value="M07"/>
+      <property name="expect" value="positive hours are honoured; 0, negative, text, booleans and null are 400 invalid_expiry"/>
+      <property name="level" value="form"/>
+      <property name="acceptance" value="AC09"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v2_sharing.CreateLinkTests" name="test_default_expiry_is_24_hours" time="0.045">
+    <properties>
+      <property name="features" value="M07"/>
+      <property name="expect" value="a link without expires_in_hours expires exactly 24 h after creation and has a 16-byte url-safe token"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC09"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v2_sharing.CreateLinkTests" name="test_expired_link_is_404" time="0.037">
+    <properties>
+      <property name="features" value="M07, M09"/>
+      <property name="expect" value="a link opens up to its expiry second and answers 404 not_found after it"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC09"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v2_sharing.CreateLinkTests" name="test_only_the_owner_can_create_links" time="0.046">
+    <properties>
+      <property name="features" value="M07"/>
+      <property name="expect" value="another user creating a link to alice's file gets 404 and no link is stored; unknown files are 404"/>
+      <property name="level" value="auth"/>
+      <property name="acceptance" value="AC09"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v2_sharing.OpenLinkTests" name="test_anonymous_download" time="0.033">
+    <properties>
+      <property name="features" value="M09"/>
+      <property name="expect" value="the content route returns the exact bytes as an attachment for non-image types"/>
+      <property name="level" value="api"/>
+      <property name="acceptance" value="AC11"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v2_sharing.OpenLinkTests" name="test_anonymous_open_shows_metadata_and_preview" time="0.032">
+    <properties>
+      <property name="features" value="M09, M04"/>
+      <property name="expect" value="without a session the link returns name, size, content type and the text preview"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC11"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v2_sharing.OpenLinkTests" name="test_link_gives_access_to_one_file_only" time="0.030">
+    <properties>
+      <property name="features" value="M09, M02"/>
+      <property name="expect" value="a link holder cannot list the owner's files or reach other files through owner routes"/>
+      <property name="level" value="auth"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v2_sharing.OpenLinkTests" name="test_unknown_token_is_404" time="0.037">
+    <properties>
+      <property name="features" value="M09"/>
+      <property name="expect" value="an unknown token answers 404 with the same message as an expired one"/>
+      <property name="level" value="api"/>
+      <property name="acceptance" value="AC11"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.DeleteTests" name="test_cannot_delete_someone_elses_file" time="0.065">
+    <properties>
+      <property name="features" value="M03"/>
+      <property name="expect" value="bob deleting alice's file gets 404 and alice still has it"/>
+      <property name="level" value="auth"/>
+      <property name="acceptance" value="AC05"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.DeleteTests" name="test_delete_removes_file_and_its_links" time="0.062">
+    <properties>
+      <property name="features" value="M03, M09"/>
+      <property name="expect" value="204; the file leaves the list, its bytes are gone, and its share link answers 404"/>
+      <property name="level" value="database"/>
+      <property name="acceptance" value="AC05"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.ImagePreviewTests" name="test_image_preview_through_a_share_link" time="0.042">
+    <properties>
+      <property name="features" value="M05, M09"/>
+      <property name="expect" value="a shared image previews with a link-scoped URL that serves the image without a session"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC07"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.ImagePreviewTests" name="test_image_preview_url_serves_the_image" time="0.042">
+    <properties>
+      <property name="features" value="M05"/>
+      <property name="expect" value=".png/.jpg/.gif preview as kind image; the URL serves the bytes inline with an image content type"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC07"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.ImagePreviewTests" name="test_svg_and_html_are_downloads_not_inline" time="0.043">
+    <properties>
+      <property name="features" value="M05, M06"/>
+      <property name="expect" value="types outside png/jpg/gif (svg, html) get no image preview and are served as attachments"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.PasswordLinkTests" name="test_invalid_password_value" time="0.051">
+    <properties>
+      <property name="features" value="M08"/>
+      <property name="expect" value="an empty or non-string password is 400 invalid_password"/>
+      <property name="level" value="form"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.PasswordLinkTests" name="test_password_required_and_checked" time="0.041">
+    <properties>
+      <property name="features" value="M08, M09"/>
+      <property name="expect" value="no password is 403 password_required, a wrong one 403 wrong_password, the right one opens metadata and content"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC10"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.PasswordLinkTests" name="test_password_stored_as_salted_slow_hash" time="0.042">
+    <properties>
+      <property name="features" value="M08"/>
+      <property name="expect" value="the stored hash is pbkdf2_sha256 with a salt, not ShareLink's unsalted SHA-256 hex, and two links with the same password differ"/>
+      <property name="level" value="database"/>
+      <property name="acceptance" value="AC10"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.RevokeTests" name="test_other_user_cannot_revoke" time="0.035">
+    <properties>
+      <property name="features" value="M10"/>
+      <property name="expect" value="bob revoking alice's link gets 404 and the link keeps working"/>
+      <property name="level" value="auth"/>
+      <property name="acceptance" value="AC12"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_v3_should.RevokeTests" name="test_owner_revokes_link" time="0.053">
+    <properties>
+      <property name="features" value="M10, M09"/>
+      <property name="expect" value="204, after which the link answers 404; revoking again is 404"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC12"/>
+    </properties>
+  </testcase>
+</testsuite>

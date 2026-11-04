@@ -1,0 +1,12 @@
+id,feature,area,source_app,priority,complexity,depends_on,conflicts_with,pick,notes,merge_group,merge_type,evidence_refs,compatibility,implementation_strategy,confidence,integration_notes,description,source_features
+M01,Sign up and log in,accounts,A,must,S,,,keep,Every source has it; build once,sign-in,identical,A-E01,adaptable,adapt,high,A's flow chosen; M11 is B's version of the same thing,Email and password accounts,A-F01
+M02,Kanban boards,tasks,A,must,M,M01,,keep,Drag cards between columns,,unique,A-E02,compatible,adapt,high,,Boards with columns and cards,A-F02
+M03,Automation rules (when X then Y),tasks,A,should,L,M02,,,Triggers on card moves,,unique,A-E03,unknown,rebuild,medium,Rule engine is only documented not observed,Run an action when a card changes,A-F03
+M04,Approval workflow,workflow,B,must,M,M01;M06,,keep,Request -> reviewer -> approved/rejected,,unique,B-E01,adaptable,rebuild,high,,Ask for and record sign-off,B-F01
+M05,Comments,collaboration,B,should,S,M01,,keep,A: flat list; B: threaded. B's threaded version chosen,comments,similar,B-E02,compatible,adapt,high,M10 is A's flat version; B's threaded one chosen,Threaded discussion on any item,B-F02
+M06,Roles and permissions,accounts,B,must,M,M01,M07,,Owner / approver / member,,unique,B-E03,conflict,combine,high,A has owner/member roles too: one role model needed,Who can do what,B-F03
+M07,Open sharing (anyone with link edits),accounts,A,could,S,M01,M06,,Conflicts with B's role model,,incompatible,A-E05,incompatible,reject,medium,Cannot coexist with role-based access,Edit access for anyone holding a link,A-F04
+M08,Dashboards and charts,reporting,C,should,L,M02,,later,,,unique,C-E01,compatible,rebuild,medium,C is a closed app: rebuild from its docs,Team metrics,C-F01
+M09,Template marketplace,network,A,,,,,skip,Their community content: cannot be rebuilt,,unique,A-E06,incompatible,reject,high,Owned content and network,Templates other users published,A-F05
+M10,Flat comments,collaboration,A,should,S,M01,,drop,Older flat list,comments,similar,A-E04,compatible,reject,high,Superseded by M05,One list of comments per item,A-F06
+M11,Sign up and log in,accounts,B,must,S,,,drop,Same as M01,sign-in,identical,B-E04,adaptable,reject,high,Duplicate of M01,Email and password accounts,B-F04

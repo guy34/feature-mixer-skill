@@ -1,0 +1,484 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 1,
+    "high": 4,
+    "medium": 3,
+    "low": 2,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "database:primary-key:deal",
+      "category": "database",
+      "kind": "primary-key",
+      "subject": "deal",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "critical",
+      "detail": "Deal primary keys differ (A: integer, B: unknown)",
+      "solutions": [
+        "Pick one key type for the merged entity and re-key the other source's rows",
+        "Keep a legacy_id column holding the old key during migration"
+      ],
+      "recommended": "Use one key type (uuid is usual for merged data) and add a legacy_id column while migrating",
+      "needs_approval": true,
+      "menu_features": [
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "uuid (stored as text) for every unified Deal; each imported row keeps legacy_source ('A' or 'B') and legacy_id (A's integer id; B's id as text, type unknown) during and after migration; Contact is re-keyed the same way so Deal.contact_id is uuid",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:rule:deal-stages",
+      "category": "application",
+      "kind": "rule",
+      "subject": "deal-stages",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F01"
+      ],
+      "severity": "high",
+      "detail": "A's stages are lead, qualified, proposal, won, lost (fixed); B's default stages are new, contacted, negotiating, closed (caller-supplied). Existing stage values do not match, and B's 'closed' does not say whether the deal was won or lost.",
+      "solutions": [
+        "One configurable stage table seeded with A's stages; map B's values new->lead, contacted->qualified, negotiating->proposal, and keep 'closed' as an extra closed stage with outcome 'unspecified'",
+        "Seed with B's stages and map A's won and lost both to closed (loses the outcome)",
+        "Keep two separate pipelines, one per source"
+      ],
+      "recommended": "One configurable stage table seeded with A's five stages plus a 'closed' stage (outcome unspecified) for B's closed deals, so no stage value is lost or invented; users can reclassify those deals later",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Accept the recommendation: configurable Stage table seeded with lead, qualified, proposal, won, lost plus closed (outcome unspecified) for B's closed deals",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:workflow:deal-owner",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "deal-owner",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "B's reminders email deal['owner_email'], but A's deals have no owner at all and neither app has users or authentication, so reminders cannot work for A's deals until an owner exists.",
+      "solutions": [
+        "Add a User entity and a required Deal.owner_id; B's owner_email values become users; A's deals are assigned to an owner the user names at migration",
+        "Keep a free-text owner_email on Deal and leave A's deals without reminders"
+      ],
+      "recommended": "Add User and Deal.owner_id; create users from B's distinct owner_email values; assign A's existing deals to one default owner chosen by the user before migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Add User and required Deal.owner_id; create users from B's distinct owner_email values; A's existing deals get a default owner the user names before migration",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:field-type:deal.stage",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "deal.stage",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Deal.stage types differ (A: text, B: unknown)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Deal.stage becomes stage_id (uuid, FK to Stage); A's text values map 1:1 to the seeded stages; B's values map new->lead, contacted->qualified, negotiating->proposal, closed->'closed' (outcome unspecified); any other B value is imported as an extra configured stage, never dropped",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:field-type:deal.title",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "deal.title",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Deal.title types differ (A: text, B: unknown)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Deal.title is text, not null, max 200; B's values (type unknown, used as text) are cast with str() on import and the dry run reports any that are empty or not strings",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:data:deal-contact",
+      "category": "application",
+      "kind": "data",
+      "subject": "deal-contact",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "A's deals link to a contact; B's deals have no contact, so B's deals arrive without one.",
+      "solutions": [
+        "Keep Deal.contact_id nullable",
+        "Create a placeholder contact for B's deals"
+      ],
+      "recommended": "Keep Deal.contact_id nullable (it already is in A's schema); show 'no contact' in the UI",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Deal.contact_id stays nullable; B's deals import with no contact",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:rule:reminders-on-closed-deals",
+      "category": "application",
+      "kind": "rule",
+      "subject": "reminders-on-closed-deals",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "B's reminder job does not exclude closed deals, so after the merge won and lost deals would be emailed about forever; it also re-sends on every run.",
+      "solutions": [
+        "Skip deals in stages whose outcome is won, lost or unspecified-closed, and dedupe on (deal, moved_at)",
+        "Keep B's behaviour"
+      ],
+      "recommended": "Skip closed stages and send at most one reminder per deal per idle period",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Reminders skip stages with a closed outcome and dedupe on (deal_id, moved_at)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:deal",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "deal",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "Deal exists in A:Deal, B:Deal; fields not shared: contact_id (only A), moved_at (only B), owner_email (only B), value_cents (only A)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge A:Deal and B:Deal into one Deal entity; field origins listed in architecture.json",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:data:moved-at-timezone",
+      "category": "application",
+      "kind": "data",
+      "subject": "moved-at-timezone",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "low",
+      "detail": "B stores moved_at from datetime.utcnow(), a naive timestamp.",
+      "solutions": [
+        "Store timezone-aware UTC; treat B's naive values as UTC on import"
+      ],
+      "recommended": "Store timezone-aware UTC; treat B's naive values as UTC on import",
+      "needs_approval": false,
+      "menu_features": [
+        "M04",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Store timezone-aware UTC; B's naive values are read as UTC on import; A's deals get moved_at = import time",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:workflow:merge-vs-moved-at",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "merge-vs-moved-at",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "severity": "low",
+      "detail": "A's contact merge rewrites deals; if it touched moved_at it would reset B's staleness clock.",
+      "solutions": [
+        "Merge changes only contact_id on deals",
+        "Treat a merge as a move"
+      ],
+      "recommended": "Merge changes only contact_id; moved_at changes only on stage moves",
+      "needs_approval": false,
+      "menu_features": [
+        "M02",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Contact merge changes only contact_id on deals; moved_at changes only on stage moves",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:deal",
+      "entity": "Deal",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "re-key rows to one primary key type (A: integer, B: unknown) and rewrite foreign keys that point at them",
+          "risk": "high",
+          "data_loss": [],
+          "note": "old ids and anything outside that stores them stop matching"
+        },
+        {
+          "change": "convert stage to one type (A: text, B: unknown)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "convert title to one type (A: text, B: unknown)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "add fields that only some sources have: contact_id (only A), moved_at (only B), owner_email (only B), value_cents (only A)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "A.Deal.contact_id: integer to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "contact_id"
+          ]
+        },
+        {
+          "change": "A.Deal.stage: text to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "stage"
+          ]
+        },
+        {
+          "change": "B.Deal.title: unknown to text can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "title"
+          ]
+        },
+        {
+          "change": "B.Deal.stage: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "stage"
+          ]
+        },
+        {
+          "change": "B.Deal.owner_email: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "owner_email"
+          ]
+        }
+      ],
+      "changes": [
+        "re-key rows to one primary key type (A: integer, B: unknown) and rewrite foreign keys that point at them",
+        "convert stage to one type (A: text, B: unknown)",
+        "convert title to one type (A: text, B: unknown)",
+        "add fields that only some sources have: contact_id (only A), moved_at (only B), owner_email (only B), value_cents (only A)",
+        "A.Deal.contact_id: integer to uuid can lose or reject values",
+        "A.Deal.stage: text to uuid can lose or reject values",
+        "B.Deal.title: unknown to text can lose or reject values",
+        "B.Deal.stage: unknown to uuid can lose or reject values",
+        "B.Deal.owner_email: unknown to uuid can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "contact_id",
+        "owner_email",
+        "stage",
+        "title"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:contact",
+      "entity": "Contact",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": true,
+      "needs_approval": false
+    }
+  ]
+}

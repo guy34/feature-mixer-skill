@@ -1,0 +1,22 @@
+[
+ {"kind": "api", "subject": "note-update-semantics", "apps": ["A", "B"], "severity": "high",
+  "detail": "A's PUT sets only title and body; B's PUT merges the whole request body into the note (Object.assign), so a client can overwrite id, pinned or labels",
+  "solutions": ["Whitelist title and body on update; pin/unpin and tags through their own endpoints", "Keep B's merge semantics"],
+  "recommended": "Whitelist title and body; reject unknown fields with 400",
+  "features": ["A-F01", "B-F01"]},
+ {"kind": "database", "subject": "labels-to-tags", "apps": ["A", "B"], "severity": "medium",
+  "detail": "B stores labels as a free-text array per note (duplicates allowed); the kept model is A's shared, uniquely named tags. Migrating labels collapses duplicates and case variants",
+  "solutions": ["Map each distinct trimmed, case-folded label to one tag and link it", "Discard B's labels"],
+  "recommended": "Map labels to tags (trim, case-fold, de-duplicate); log merged variants",
+  "features": ["A-F02", "B-F02"]},
+ {"kind": "database", "subject": "jotter-data-in-memory", "apps": ["B"], "severity": "medium",
+  "detail": "B keeps notes only in process memory, so there is no stored B data to migrate; any live B data can only be captured from a running instance before it stops",
+  "solutions": ["Treat B as having no data to migrate", "Capture a running instance's GET /api/notes output (needs approval to run or call it)"],
+  "recommended": "Plan the B import from a JSON dump of GET /api/notes; if none exists, B has no data to migrate",
+  "features": ["B-F01"]},
+ {"kind": "application", "subject": "export-filenames", "apps": ["B"], "severity": "low",
+  "detail": "B names export files <title>.md, so equal titles collide and titles with / or other unsafe characters produce bad paths",
+  "solutions": ["Slugify title and append a short id", "Keep raw titles"],
+  "recommended": "Slugify title plus first 8 characters of the uuid",
+  "features": ["B-F05"]}
+]

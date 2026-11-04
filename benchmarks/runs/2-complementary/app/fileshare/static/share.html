@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shared file</title>
+<style>
+:root { --bg:#f7f7f5; --surface:#fff; --text:#1d1d1b; --muted:#5c5c57; --accent:#1f5f8b; --danger:#a3271b; --r:6px; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width:760px; margin:0 auto; padding:24px 16px; }
+h1 { font-size:28px; margin:0 0 16px; }
+.card { background:var(--surface); border-radius:var(--r); padding:16px; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+input { font:inherit; padding:8px; border:1px solid #ccc; border-radius:var(--r); width:100%; margin-bottom:8px; }
+button { font:inherit; padding:8px 16px; border-radius:var(--r); border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; margin-top:8px; }
+.muted { color:var(--muted); font-size:14px; } .notice.error { padding:8px; border-radius:var(--r); background:#f8e3e0; color:var(--danger); }
+pre { white-space:pre-wrap; background:var(--bg); padding:8px; border-radius:var(--r); font-size:14px; }
+img { max-width:100%; max-height:420px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Shared file</h1>
+  <div id="out" class="card">Loading…</div>
+</main>
+<script>
+const token = location.pathname.split("/").pop();
+const out = document.getElementById("out");
+function el(tag, text, cls) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
+let password = "";
+function headers() { return password ? { "X-Link-Password": password } : {}; }
+function askPassword(message) {
+  out.replaceChildren(el("p", message, message.startsWith("Wrong") ? "notice error" : ""));
+  const i = el("input"); i.type = "password"; i.placeholder = "Password";
+  const b = el("button", "Open"); b.onclick = () => { password = i.value; open(); };
+  out.append(i, b);
+}
+async function download(name) {
+  const r = await fetch(`/api/share/${token}/content`, { headers: headers() });
+  if (!r.ok) return;
+  const url = URL.createObjectURL(await r.blob()); const a = el("a"); a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function open() {
+  const r = await fetch(`/api/share/${token}`, { headers: headers() });
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 403) return askPassword(data.error.code === "wrong_password" ? "Wrong password, try again." : "This link needs a password.");
+  if (!r.ok) { out.replaceChildren(el("p", "This link has expired or does not exist.", "notice error")); return; }
+  out.replaceChildren(el("h2", data.name), el("p", (data.size / 1024).toFixed(1) + " KB · " + data.content_type, "muted"));
+  const p = data.preview;
+  if (p.kind === "text") out.append(el("pre", p.first_lines.join("\n")));
+  else if (p.kind === "image") {
+    const img = el("img"); img.alt = data.name;
+    const ir = await fetch(p.url, { headers: headers() }); if (ir.ok) img.src = URL.createObjectURL(await ir.blob());
+    out.append(img);
+  } else out.append(el("p", p.reason, "muted"));
+  const b = el("button", "Download"); b.onclick = () => download(data.name); out.append(b);
+}
+open();
+</script>
+</body>
+</html>

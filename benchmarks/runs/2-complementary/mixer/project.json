@@ -1,0 +1,202 @@
+{
+  "name": "FileShare (Uploader + Previewer + ShareLink)",
+  "format": 3,
+  "mode": "full",
+  "audience": "people who want to upload files, preview them and share them by link (benchmark run; user not present)",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Uploader",
+      "slug": "uploader",
+      "access": "own-code",
+      "licence": "proprietary (user's own code)",
+      "code_reuse": "allowed",
+      "slice": "core loop: upload, list and delete own files",
+      "local_path": "sources/uploader",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/uploader"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Previewer",
+      "slug": "previewer",
+      "access": "own-code",
+      "licence": "proprietary (user's own code)",
+      "code_reuse": "allowed",
+      "slice": "core loop: preview a stored file by type",
+      "local_path": "sources/previewer",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/previewer"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "ShareLink",
+      "slug": "sharelink",
+      "access": "own-code",
+      "licence": "proprietary (user's own code)",
+      "code_reuse": "allowed",
+      "slice": "core loop: create, open and revoke share links with expiry and optional password",
+      "local_path": "sources/sharelink",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/sharelink"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "3 sources, all complete, 0 scan findings"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "10 rows: 10 unique (A 3, B 3, C 4); 0 groups"
+    },
+    "selection": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "auto-pick: keep M01-M10; approved by benchmark-operator (pre-approved in task)"
+    },
+    "compatibility": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "10 conflicts (1 critical, 5 high, 4 medium) resolved; migration:file approved (A01, schema only)"
+    },
+    "architecture": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "modular monolith, stdlib Python + SQLite; 6 modules; 3 slices; D01-D09"
+    },
+    "implementation": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "V1-V3 done; 38 tests pass"
+    },
+    "integration": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "38/38 tests verified (verify_tests.py, also --rerun); 10/10 features verified"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "mixer/checkpoints/CP1-recon",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ (not a git repo)"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "mixer/checkpoints/CP2-extraction",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ (not a git repo)"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "mixer/checkpoints/CP3-selection",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ (not a git repo)"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "mixer/checkpoints/CP4-compatibility",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ (not a git repo)"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "mixer/checkpoints/CP5-architecture",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ (not a git repo)"
+    },
+    {
+      "id": "CP6",
+      "phase": "implementation",
+      "ref": "mixer/checkpoints/CP6-implementation",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ and app/ (not a git repo)"
+    },
+    {
+      "id": "CP7",
+      "phase": "implementation",
+      "ref": "mixer/checkpoints/CP7-implementation",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ and app/ (not a git repo)"
+    },
+    {
+      "id": "CP8",
+      "phase": "implementation",
+      "ref": "mixer/checkpoints/CP8-implementation",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ and app/ (not a git repo)"
+    },
+    {
+      "id": "CP9",
+      "phase": "integration",
+      "ref": "mixer/checkpoints/CP9-integration",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ and app/ (not a git repo)"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "migration",
+      "target": "migration:file",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "schema decision only: fresh SQLite schema created by the unified app; no existing data migrated"
+    },
+    {
+      "id": "A02",
+      "action": "migration",
+      "target": "migration:filecontent",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "schema decision only; surfaced when check_compatibility.py was rerun after architecture.json; no data exists to migrate"
+    },
+    {
+      "id": "A03",
+      "action": "migration",
+      "target": "migration:sharelink",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "schema decision only; surfaced on the post-architecture rerun; C links are in-memory, nothing to migrate"
+    },
+    {
+      "id": "A04",
+      "action": "run-tests",
+      "target": "app/ unittest suite (app/tests) via run_tests.py, in-process, temporary SQLite files only",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "the unified app's own tests only; no installs, no network, no source app code"
+    }
+  ]
+}

@@ -1,0 +1,425 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 1,
+    "high": 2,
+    "medium": 4,
+    "low": 2,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "database:primary-key:note",
+      "category": "database",
+      "kind": "primary-key",
+      "subject": "note",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F03",
+        "A-F04",
+        "B-F01",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05"
+      ],
+      "severity": "critical",
+      "detail": "Note primary keys differ (A: integer, B: uuid)",
+      "solutions": [
+        "Pick one key type for the merged entity and re-key the other source's rows",
+        "Keep a legacy_id column holding the old key during migration"
+      ],
+      "recommended": "Use one key type (uuid is usual for merged data) and add a legacy_id column while migrating",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "uuid (text) primary key for Note and Tag in the unified app; A's integer ids kept in legacy_id during migration, B's uuids kept as-is",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:api:note-update-semantics",
+      "category": "application",
+      "kind": "api",
+      "subject": "note-update-semantics",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "severity": "high",
+      "detail": "A's PUT sets only title and body; B's PUT merges the whole request body into the note (Object.assign), so a client can overwrite id, pinned or labels",
+      "solutions": [
+        "Whitelist title and body on update; pin/unpin and tags through their own endpoints",
+        "Keep B's merge semantics"
+      ],
+      "recommended": "Whitelist title and body; reject unknown fields with 400",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Update whitelists title and body; unknown fields rejected with 400; pin/unpin and tags have their own endpoints",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:business-rule:notes.list.order",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "notes.list.order",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01",
+        "B-F04"
+      ],
+      "severity": "high",
+      "detail": "Rule notes.list.order differs (A: \"created_at desc\", B: \"pinned first (insertion order otherwise)\")",
+      "solutions": [
+        "Choose one value and record why",
+        "Make it a setting if both are legitimate"
+      ],
+      "recommended": "Pick one value with the user; make it configurable only if both are needed",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M08"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One order everywhere: pinned first, then created_at descending (keeps A's order for unpinned notes, adds B's pinning); not configurable",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:database:jotter-data-in-memory",
+      "category": "application",
+      "kind": "database",
+      "subject": "jotter-data-in-memory",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "B keeps notes only in process memory, so there is no stored B data to migrate; any live B data can only be captured from a running instance before it stops",
+      "solutions": [
+        "Treat B as having no data to migrate",
+        "Capture a running instance's GET /api/notes output (needs approval to run or call it)"
+      ],
+      "recommended": "Plan the B import from a JSON dump of GET /api/notes; if none exists, B has no data to migrate",
+      "needs_approval": false,
+      "menu_features": [
+        "M02"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "B has no stored data; import only from a JSON dump of GET /api/notes if the user supplies one, otherwise nothing to migrate",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:database:labels-to-tags",
+      "category": "application",
+      "kind": "database",
+      "subject": "labels-to-tags",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "B stores labels as a free-text array per note (duplicates allowed); the kept model is A's shared, uniquely named tags. Migrating labels collapses duplicates and case variants",
+      "solutions": [
+        "Map each distinct trimmed, case-folded label to one tag and link it",
+        "Discard B's labels"
+      ],
+      "recommended": "Map labels to tags (trim, case-fold, de-duplicate); log merged variants",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Map each distinct trimmed, case-folded label to one tag and link it; log merged variants",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:note",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "note",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F03",
+        "A-F04",
+        "B-F01",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05"
+      ],
+      "severity": "medium",
+      "detail": "Note exists in A:Note, B:Note; fields not shared: created_at (only A), labels (only B), pinned (only B), updated_at (only B)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge into one Note table: id, legacy_id, title, body (B content), pinned, created_at, updated_at; field origins listed in architecture.json",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "dependency:runtime-mix:backend-runtime",
+      "category": "dependency",
+      "kind": "runtime-mix",
+      "subject": "backend-runtime",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "medium",
+      "detail": "Several runtimes: node: B; python: A",
+      "solutions": [
+        "Choose one backend runtime and rebuild the features from the other",
+        "Keep two services only if a kept feature truly needs the other runtime"
+      ],
+      "recommended": "One backend runtime for the unified app, chosen in the architecture phase",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One backend runtime: Python (A's runtime); B's features rebuilt in Python",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:application:export-filenames",
+      "category": "application",
+      "kind": "application",
+      "subject": "export-filenames",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F05"
+      ],
+      "severity": "low",
+      "detail": "B names export files <title>.md, so equal titles collide and titles with / or other unsafe characters produce bad paths",
+      "solutions": [
+        "Slugify title and append a short id",
+        "Keep raw titles"
+      ],
+      "recommended": "Slugify title plus first 8 characters of the uuid",
+      "needs_approval": false,
+      "menu_features": [
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "File name = slugified title + '-' + first 8 characters of the uuid + '.md'",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:naming-style:fields",
+      "category": "database",
+      "kind": "naming-style",
+      "subject": "fields",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "low",
+      "detail": "Field naming styles differ (camelCase: B; snake_case: A)",
+      "solutions": [
+        "Pick one naming style for tables and fields and map the others"
+      ],
+      "recommended": "Use one style (snake_case is usual for SQL)",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "snake_case for all tables and fields; B's camelCase mapped (updatedAt -> updated_at)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:note",
+      "entity": "Note",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "re-key rows to one primary key type (A: integer, B: uuid) and rewrite foreign keys that point at them",
+          "risk": "high",
+          "data_loss": [],
+          "note": "old ids and anything outside that stores them stop matching"
+        },
+        {
+          "change": "add fields that only some sources have: created_at (only A), labels (only B), pinned (only B), updated_at (only B)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "B.Note fields not kept in Note: labels",
+          "risk": "high",
+          "data_loss": [
+            "labels"
+          ]
+        },
+        {
+          "change": "B.Note.updatedAt: date to timestamp keeps every value",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "re-key rows to one primary key type (A: integer, B: uuid) and rewrite foreign keys that point at them",
+        "add fields that only some sources have: created_at (only A), labels (only B), pinned (only B), updated_at (only B)",
+        "B.Note fields not kept in Note: labels",
+        "B.Note.updatedAt: date to timestamp keeps every value"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "labels"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:tag",
+      "entity": "Tag",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    },
+    {
+      "id": "migration:notetag",
+      "entity": "NoteTag",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "A.NoteTag.note_id: integer to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "note_id"
+          ]
+        },
+        {
+          "change": "A.NoteTag.tag_id: integer to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "tag_id"
+          ]
+        }
+      ],
+      "changes": [
+        "A.NoteTag.note_id: integer to uuid can lose or reject values",
+        "A.NoteTag.tag_id: integer to uuid can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "note_id",
+        "tag_id"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    }
+  ]
+}

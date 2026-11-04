@@ -1,0 +1,11 @@
+model Cart {
+  id     String     @id @default(uuid())
+  userId String
+  items  CartItem[]
+}
+model CartItem {
+  id        String @id @default(uuid())
+  cartId    String
+  productId String
+  quantity  String   // stored as text in this app
+}

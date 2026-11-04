@@ -1,0 +1,40 @@
+{
+  "app": {"id": "A", "name": "Uploader"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/uploader", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "observed", "locator": "sources/uploader/uploader.py:2", "summary": "MAX_BYTES = 10 MB; comment says uploads over 10 MB are rejected."},
+    {"id": "A-E02", "source": "A-R01", "basis": "observed", "locator": "sources/uploader/uploader.py:4-7", "summary": "upload() raises ValueError('file too large') above MAX_BYTES, else store.save(owner_id, name, size, data)."},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/uploader/uploader.py:9-10", "summary": "list_files() returns store.list(owner_id) - files scoped to one owner."},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/uploader/uploader.py:12-13", "summary": "delete_file() calls store.delete(owner_id, file_id) - delete scoped by owner."},
+    {"id": "A-E05", "source": "A-R01", "basis": "observed", "locator": "sources/uploader/schema.sql:1", "summary": "Table files(id text pk, owner_id text not null, name text not null, size integer not null, created_at timestamp not null); no column for file bytes."},
+    {"id": "A-E06", "source": "A-R01", "basis": "inferred", "locator": "sources/uploader/uploader.py:1", "summary": "Docstring calls the module illustrative; the store object it calls is not in the source, so storage and HTTP layer are unknown."}
+  ],
+  "stack": {"backend": ["Python (module-level functions)"], "database": ["SQL table (dialect not stated)"], "basis": "observed"},
+  "runtimes": {"python": "3 (f-strings not used; version not stated)"},
+  "architecture": {"backend": "plain Python functions over an injected store object; no HTTP layer in the source", "evidence": ["A-E02", "A-E06"], "basis": "observed"},
+  "features": [
+    {"id": "A-F01", "name": "Upload a file", "description": "Owner uploads a named file; it is stored with its size.", "observed_behaviour": "len(data) > 10 MB raises ValueError('file too large'); otherwise store.save is called with owner_id, name, size and data and its result returned.", "business_logic": "Max size 10 * 1024 * 1024 bytes (exactly 10 MB is allowed).", "data": ["File.owner_id", "File.name", "File.size", "File.created_at"], "integration": "needs an owner identity (auth) and file storage", "evidence": ["A-E01", "A-E02", "A-E05"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F02", "name": "List my files", "description": "Owner lists the files they uploaded.", "observed_behaviour": "Returns store.list(owner_id=owner_id).", "business_logic": "Only the owner's files are returned.", "data": ["File"], "depends_on": ["A-F01"], "integration": "needs an owner identity", "evidence": ["A-E03", "A-E05"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F03", "name": "Delete my file", "description": "Owner deletes one of their files.", "observed_behaviour": "Calls store.delete(owner_id, file_id); behaviour for a missing or foreign file depends on the store, which is not in the source.", "business_logic": "Delete is scoped by owner_id.", "data": ["File"], "depends_on": ["A-F01"], "integration": "needs an owner identity; share links to a deleted file should stop working", "evidence": ["A-E04"], "basis": "observed", "confidence": "medium"}
+  ],
+  "entities": [
+    {"name": "File", "primary_key": {"name": "id", "type": "text"}, "fields": [{"name": "id", "type": "text", "required": true}, {"name": "owner_id", "type": "text", "required": true}, {"name": "name", "type": "text", "required": true}, {"name": "size", "type": "integer", "required": true}, {"name": "created_at", "type": "timestamp", "required": true}], "features": ["A-F01", "A-F02", "A-F03"], "evidence": ["A-E05"], "basis": "observed"}
+  ],
+  "endpoints": [],
+  "rules": [
+    {"key": "max_upload_bytes", "value": 10485760, "features": ["A-F01"], "evidence": ["A-E01", "A-E02"]}
+  ],
+  "error_handling": [
+    {"case": "file over 10 MB", "behaviour": "ValueError('file too large')", "evidence": ["A-E02"]}
+  ],
+  "unknowns": [
+    "The store implementation (save/list/delete) is not in the source: id generation, where file bytes live (schema.sql has no data column) and missing/foreign-file behaviour on delete are unknown; the store code would settle it.",
+    "No authentication or user model: owner_id is passed in by the caller; how it is obtained is unknown.",
+    "No HTTP/UI layer: routes and screens do not exist in this source."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 2}
+}

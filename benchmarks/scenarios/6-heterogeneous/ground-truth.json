@@ -1,0 +1,101 @@
+{
+  "scenario": "6-heterogeneous",
+  "mode": "plan",
+  "features": [
+    {
+      "key": "a-catalog",
+      "app": "A",
+      "any": [
+        "catalog",
+        "product",
+        "browse"
+      ],
+      "none": [
+        "cart"
+      ]
+    },
+    {
+      "key": "a-cart",
+      "app": "A",
+      "any": [
+        "cart"
+      ]
+    },
+    {
+      "key": "b-cart",
+      "app": "B",
+      "any": [
+        "cart"
+      ],
+      "none": [
+        "checkout"
+      ]
+    },
+    {
+      "key": "b-checkout",
+      "app": "B",
+      "any": [
+        "checkout",
+        "payment",
+        "stripe"
+      ]
+    },
+    {
+      "key": "c-reviews",
+      "app": "C",
+      "any": [
+        "review",
+        "rating"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "members": [
+        "a-cart",
+        "b-cart"
+      ],
+      "types": [
+        "identical",
+        "similar"
+      ]
+    }
+  ],
+  "conflicts": [
+    {
+      "kind": "framework",
+      "subject": "backend"
+    },
+    {
+      "kind": "runtime-mix",
+      "subject": ""
+    },
+    {
+      "kind": "framework",
+      "subject": "data"
+    },
+    {
+      "kind": "duplicate-entity",
+      "subject": "cart"
+    },
+    {
+      "kind": "primary-key",
+      "subject": "cart"
+    },
+    {
+      "kind": "field-type",
+      "subject": "quantity"
+    }
+  ],
+  "fabrication": [
+    "wishlist",
+    "coupon",
+    "inventory forecast",
+    "loyalty"
+  ],
+  "coverage": {
+    "A": "complete",
+    "B": "complete",
+    "C": null
+  }
+}

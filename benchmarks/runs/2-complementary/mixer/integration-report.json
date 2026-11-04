@@ -1,0 +1,517 @@
+{
+  "app": "FileShare (Uploader + Previewer + ShareLink)",
+  "command": "python -m unittest discover -s tests -t . (Feature Mixer harness)",
+  "framework": "unittest",
+  "date": "2026-11-04",
+  "execution": {
+    "run_id": "20261104T125111798138Z",
+    "runner": "run_tests.py",
+    "cwd": "app",
+    "started_at": "2026-11-04T12:51:11+00:00",
+    "finished_at": "2026-11-04T12:51:13+00:00",
+    "exit_code": 0,
+    "log": "test-runs/20261104T125111798138Z/output.log",
+    "log_sha256": "84504762758d279530d614e10bb1c37e724b06e936ad81a6e2ea5c5b320d81a5",
+    "results": "test-runs/20261104T125111798138Z/results.xml",
+    "results_sha256": "8683064de173c151b41fec4f0ded7dc5c6443564d56dbb9cbf915ce646a83af0",
+    "approval": "A04"
+  },
+  "summary": {
+    "total": 38,
+    "passed": 38,
+    "failed": 0,
+    "skipped": 0,
+    "not_executed": 0,
+    "unverified": 0
+  },
+  "tests": [
+    {
+      "name": "tests.test_journey.DependencyTests.test_app_imports_only_the_standard_library",
+      "level": "dependency",
+      "features": [
+        "M01",
+        "M04",
+        "M07"
+      ],
+      "acceptance": [],
+      "expected": "every import in the fileshare package is the standard library or the package itself",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_journey.JourneyTests.test_upload_preview_share_open_revoke",
+      "level": "journey",
+      "features": [
+        "M01",
+        "M02",
+        "M04",
+        "M07",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "acceptance": [
+        "AC13"
+      ],
+      "expected": "register, upload, list, preview, share with a password, recipient opens and downloads, owner revokes, link dies",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.AccountsTests.test_account_password_is_salted_pbkdf2",
+      "level": "database",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [],
+      "expected": "account passwords are stored as pbkdf2_sha256 with a per-user salt, never in plain text",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.AccountsTests.test_register_login_logout",
+      "level": "auth",
+      "features": [
+        "M01",
+        "M02"
+      ],
+      "acceptance": [],
+      "expected": "register sets an http-only session cookie; logout ends it; login with the right password restores it",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.AccountsTests.test_session_expires",
+      "level": "auth",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [],
+      "expected": "a session older than 7 days answers 401",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.AccountsTests.test_wrong_password_and_duplicate_username",
+      "level": "auth",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [],
+      "expected": "wrong password is 401 bad_credentials; a taken username is 409; short passwords are 400",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.FallbackPreviewTests.test_other_types_have_no_preview",
+      "level": "feature",
+      "features": [
+        "M06"
+      ],
+      "acceptance": [
+        "AC08"
+      ],
+      "expected": ".pdf, .zip and extensionless files preview as kind none with the reason",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.ListTests.test_each_user_sees_only_their_files",
+      "level": "auth",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC04"
+      ],
+      "expected": "two users each list only their own files, newest first",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.ListTests.test_empty_list",
+      "level": "feature",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [],
+      "expected": "a new user gets an empty list",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.PlatformTests.test_invalid_json_is_400",
+      "level": "api",
+      "features": [
+        "M07"
+      ],
+      "acceptance": [],
+      "expected": "a malformed JSON body answers 400 invalid_json",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.PlatformTests.test_pages_and_unknown_routes",
+      "level": "navigation",
+      "features": [
+        "M02",
+        "M09"
+      ],
+      "acceptance": [],
+      "expected": "/ and /s/<token> serve HTML; unknown routes are 404 and wrong methods 405, both in the JSON error shape",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.PlatformTests.test_schema_created_from_empty_with_foreign_keys",
+      "level": "database",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [],
+      "expected": "every table exists after start and foreign keys cascade from files",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.TextPreviewTests.test_preview_of_someone_elses_file_is_404",
+      "level": "auth",
+      "features": [
+        "M04"
+      ],
+      "acceptance": [],
+      "expected": "previewing another user's file answers 404 not_found",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.TextPreviewTests.test_text_preview_first_20_lines",
+      "level": "feature",
+      "features": [
+        "M04"
+      ],
+      "acceptance": [
+        "AC06"
+      ],
+      "expected": ".txt, .md and .csv (any case) preview as kind text with at most 20 lines",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.TextPreviewTests.test_text_preview_replaces_invalid_utf8",
+      "level": "feature",
+      "features": [
+        "M04"
+      ],
+      "acceptance": [
+        "AC06"
+      ],
+      "expected": "undecodable bytes become replacement characters instead of an error",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.UploadTests.test_file_endpoints_need_sign_in",
+      "level": "auth",
+      "features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M07"
+      ],
+      "acceptance": [
+        "AC03"
+      ],
+      "expected": "every owner endpoint answers 401 with the JSON error shape when nobody is signed in",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.UploadTests.test_upload_limit_is_10_mb",
+      "level": "feature",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "exactly 10485760 bytes is accepted; 10485761 is 413 file_too_large and nothing is stored",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.UploadTests.test_upload_rejects_oversize_content_length_before_reading",
+      "level": "api",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "a Content-Length over the limit is refused with 413 without reading the body",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.UploadTests.test_upload_returns_file",
+      "level": "api",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC01"
+      ],
+      "expected": "201 with id, name, size and a guessed content type",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_core.UploadTests.test_upload_validation",
+      "level": "form",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [],
+      "expected": "missing or unsafe names are 400 invalid_name; a missing Content-Length is 411",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_sharing.CreateLinkTests.test_custom_expiry_and_validation",
+      "level": "form",
+      "features": [
+        "M07"
+      ],
+      "acceptance": [
+        "AC09"
+      ],
+      "expected": "positive hours are honoured; 0, negative, text, booleans and null are 400 invalid_expiry",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_sharing.CreateLinkTests.test_default_expiry_is_24_hours",
+      "level": "feature",
+      "features": [
+        "M07"
+      ],
+      "acceptance": [
+        "AC09"
+      ],
+      "expected": "a link without expires_in_hours expires exactly 24 h after creation and has a 16-byte url-safe token",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_sharing.CreateLinkTests.test_expired_link_is_404",
+      "level": "feature",
+      "features": [
+        "M07",
+        "M09"
+      ],
+      "acceptance": [
+        "AC09"
+      ],
+      "expected": "a link opens up to its expiry second and answers 404 not_found after it",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_sharing.CreateLinkTests.test_only_the_owner_can_create_links",
+      "level": "auth",
+      "features": [
+        "M07"
+      ],
+      "acceptance": [
+        "AC09"
+      ],
+      "expected": "another user creating a link to alice's file gets 404 and no link is stored; unknown files are 404",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_sharing.OpenLinkTests.test_anonymous_download",
+      "level": "api",
+      "features": [
+        "M09"
+      ],
+      "acceptance": [
+        "AC11"
+      ],
+      "expected": "the content route returns the exact bytes as an attachment for non-image types",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_sharing.OpenLinkTests.test_anonymous_open_shows_metadata_and_preview",
+      "level": "interaction",
+      "features": [
+        "M09",
+        "M04"
+      ],
+      "acceptance": [
+        "AC11"
+      ],
+      "expected": "without a session the link returns name, size, content type and the text preview",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_sharing.OpenLinkTests.test_link_gives_access_to_one_file_only",
+      "level": "auth",
+      "features": [
+        "M09",
+        "M02"
+      ],
+      "acceptance": [],
+      "expected": "a link holder cannot list the owner's files or reach other files through owner routes",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_sharing.OpenLinkTests.test_unknown_token_is_404",
+      "level": "api",
+      "features": [
+        "M09"
+      ],
+      "acceptance": [
+        "AC11"
+      ],
+      "expected": "an unknown token answers 404 with the same message as an expired one",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.DeleteTests.test_cannot_delete_someone_elses_file",
+      "level": "auth",
+      "features": [
+        "M03"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "bob deleting alice's file gets 404 and alice still has it",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.DeleteTests.test_delete_removes_file_and_its_links",
+      "level": "database",
+      "features": [
+        "M03",
+        "M09"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "204; the file leaves the list, its bytes are gone, and its share link answers 404",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.ImagePreviewTests.test_image_preview_through_a_share_link",
+      "level": "interaction",
+      "features": [
+        "M05",
+        "M09"
+      ],
+      "acceptance": [
+        "AC07"
+      ],
+      "expected": "a shared image previews with a link-scoped URL that serves the image without a session",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.ImagePreviewTests.test_image_preview_url_serves_the_image",
+      "level": "feature",
+      "features": [
+        "M05"
+      ],
+      "acceptance": [
+        "AC07"
+      ],
+      "expected": ".png/.jpg/.gif preview as kind image; the URL serves the bytes inline with an image content type",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.ImagePreviewTests.test_svg_and_html_are_downloads_not_inline",
+      "level": "feature",
+      "features": [
+        "M05",
+        "M06"
+      ],
+      "acceptance": [],
+      "expected": "types outside png/jpg/gif (svg, html) get no image preview and are served as attachments",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.PasswordLinkTests.test_invalid_password_value",
+      "level": "form",
+      "features": [
+        "M08"
+      ],
+      "acceptance": [],
+      "expected": "an empty or non-string password is 400 invalid_password",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.PasswordLinkTests.test_password_required_and_checked",
+      "level": "feature",
+      "features": [
+        "M08",
+        "M09"
+      ],
+      "acceptance": [
+        "AC10"
+      ],
+      "expected": "no password is 403 password_required, a wrong one 403 wrong_password, the right one opens metadata and content",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.PasswordLinkTests.test_password_stored_as_salted_slow_hash",
+      "level": "database",
+      "features": [
+        "M08"
+      ],
+      "acceptance": [
+        "AC10"
+      ],
+      "expected": "the stored hash is pbkdf2_sha256 with a salt, not ShareLink's unsalted SHA-256 hex, and two links with the same password differ",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.RevokeTests.test_other_user_cannot_revoke",
+      "level": "auth",
+      "features": [
+        "M10"
+      ],
+      "acceptance": [
+        "AC12"
+      ],
+      "expected": "bob revoking alice's link gets 404 and the link keeps working",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_should.RevokeTests.test_owner_revokes_link",
+      "level": "feature",
+      "features": [
+        "M10",
+        "M09"
+      ],
+      "acceptance": [
+        "AC12"
+      ],
+      "expected": "204, after which the link answers 404; revoking again is 404",
+      "actual": "as expected",
+      "status": "passed"
+    }
+  ]
+}

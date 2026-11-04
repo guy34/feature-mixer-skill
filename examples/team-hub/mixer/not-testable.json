@@ -1,0 +1,4 @@
+[
+  ["Email actually arriving in an inbox", "No email provider is connected in this example; deliveries stop at the outbox", "Connect a provider with your own keys, send one notification, check the inbox"],
+  ["Push actually showing in a browser", "Needs a real web push service and a browser", "Subscribe a browser over HTTPS, trigger an assignment, watch for the push"]
+]

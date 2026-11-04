@@ -1,0 +1,51 @@
+test_account_rules (tests.test_teamhub.AccountsTest.test_account_rules)
+features: M01 ... ok
+test_session_expires_after_idle_timeout (tests.test_teamhub.AccountsTest.test_session_expires_after_idle_timeout)
+features: M01 ... ok
+test_sign_in_and_wrong_password (tests.test_teamhub.AccountsTest.test_sign_in_and_wrong_password)
+features: M01 ... ok
+test_unified_roles_and_approve_permission (tests.test_teamhub.AccountsTest.test_unified_roles_and_approve_permission)
+features: M08, M09 ... ok
+test_approval_journey (tests.test_teamhub.ApprovalsTest.test_approval_journey)
+features: M13, M10, M11 ... ok
+test_approval_rules (tests.test_teamhub.ApprovalsTest.test_approval_rules)
+features: M13, M09 ... ok
+test_pending_approval_blocks_closing (tests.test_teamhub.ApprovalsTest.test_pending_approval_blocks_closing)
+features: M13, M04 ... ok
+test_comment_rules (tests.test_teamhub.CommentsTest.test_comment_rules)
+features: M07 ... ok
+test_threaded_comments_on_tasks_and_approvals (tests.test_teamhub.CommentsTest.test_threaded_comments_on_tasks_and_approvals)
+features: M07, M10 ... ok
+test_workload_counts (tests.test_teamhub.DashboardTest.test_workload_counts)
+features: M14 ... ok
+test_integrity (tests.test_teamhub.DatabaseTest.test_integrity)
+features: M04, M13, M01 ... ok
+test_api_errors (tests.test_teamhub.HttpApiTest.test_api_errors)
+features: M01 ... ok
+test_end_to_end_journey (tests.test_teamhub.HttpApiTest.test_end_to_end_journey)
+features: M01, M04, M05, M07, M08, M09, M10, M11, M13, M14 ... ok
+test_push_subscription_over_http (tests.test_teamhub.HttpApiTest.test_push_subscription_over_http)
+features: M12 ... ok
+test_sign_out (tests.test_teamhub.HttpApiTest.test_sign_out)
+features: M01 ... ok
+test_preferences_choose_channels (tests.test_teamhub.NotificationEngineTest.test_preferences_choose_channels)
+features: M10, M11, M12 ... ok
+test_push_channel_for_opted_in_browsers (tests.test_teamhub.NotificationEngineTest.test_push_channel_for_opted_in_browsers)
+features: M12, M10 ... ok
+test_read_and_privacy (tests.test_teamhub.NotificationEngineTest.test_read_and_privacy)
+features: M10 ... ok
+test_assignee_must_exist (tests.test_teamhub.TasksTest.test_assignee_must_exist)
+features: M05 ... ok
+test_assignment_notifies_on_every_channel_once (tests.test_teamhub.TasksTest.test_assignment_notifies_on_every_channel_once)
+features: M05, M10, M11 ... ok
+test_no_notification_for_assigning_yourself (tests.test_teamhub.TasksTest.test_no_notification_for_assigning_yourself)
+features: M05, M10 ... ok
+test_only_allowed_people_move_tasks (tests.test_teamhub.TasksTest.test_only_allowed_people_move_tasks)
+features: M04, M08 ... ok
+test_task_board_flow (tests.test_teamhub.TasksTest.test_task_board_flow)
+features: M04 ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.599s
+
+OK

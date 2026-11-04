@@ -1,0 +1,254 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Accounts and sign-in",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E02",
+        "A-E10"
+      ],
+      "merge_type": "identical",
+      "rationale": "A and B both had email and password sign-in (identical); A's cookie-session version is kept, B's token version dropped (M02).",
+      "behaviour": "Email and password accounts, PBKDF2 hashes, an http-only session cookie that ends after 30 idle minutes.",
+      "improvements": "",
+      "depends_on": [],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_teamhub.AccountsTest.test_account_rules",
+        "tests.test_teamhub.AccountsTest.test_session_expires_after_idle_timeout",
+        "tests.test_teamhub.AccountsTest.test_sign_in_and_wrong_password",
+        "tests.test_teamhub.DatabaseTest.test_integrity",
+        "tests.test_teamhub.HttpApiTest.test_api_errors",
+        "tests.test_teamhub.HttpApiTest.test_end_to_end_journey",
+        "tests.test_teamhub.HttpApiTest.test_sign_out"
+      ]
+    },
+    {
+      "id": "U02",
+      "name": "Unified roles and permissions",
+      "menu_ids": [
+        "M08",
+        "M09"
+      ],
+      "source_features": [
+        "A-F07",
+        "B-F05"
+      ],
+      "evidence": [
+        "A-E02",
+        "B-E03",
+        "B-E05"
+      ],
+      "merge_type": "similar",
+      "rationale": "A (owner/member) and B (requester/approver/admin) model access differently; combined into one role set rather than keeping two.",
+      "behaviour": "Roles owner, admin and member, plus an approve permission; one function answers every permission question.",
+      "improvements": "Approving becomes a permission instead of a role, so a member can approve without becoming an admin.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_teamhub.AccountsTest.test_unified_roles_and_approve_permission",
+        "tests.test_teamhub.ApprovalsTest.test_approval_rules",
+        "tests.test_teamhub.HttpApiTest.test_end_to_end_journey",
+        "tests.test_teamhub.TasksTest.test_only_allowed_people_move_tasks"
+      ]
+    },
+    {
+      "id": "U03",
+      "name": "Notification engine",
+      "menu_ids": [
+        "M10",
+        "M11",
+        "M12"
+      ],
+      "source_features": [
+        "A-F05",
+        "B-F04",
+        "C-F02"
+      ],
+      "evidence": [
+        "A-E06",
+        "B-E07",
+        "C-E03",
+        "C-E04"
+      ],
+      "merge_type": "complementary",
+      "rationale": "In-app (A), email (B) and push (C) are channels of one capability; one engine avoids three notification systems.",
+      "behaviour": "Every event creates one in-app notification; email and push deliveries are queued according to each user's preferences; a dedupe key stops double sends.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_teamhub.ApprovalsTest.test_approval_journey",
+        "tests.test_teamhub.CommentsTest.test_threaded_comments_on_tasks_and_approvals",
+        "tests.test_teamhub.HttpApiTest.test_end_to_end_journey",
+        "tests.test_teamhub.HttpApiTest.test_push_subscription_over_http",
+        "tests.test_teamhub.NotificationEngineTest.test_preferences_choose_channels",
+        "tests.test_teamhub.NotificationEngineTest.test_push_channel_for_opted_in_browsers",
+        "tests.test_teamhub.NotificationEngineTest.test_read_and_privacy",
+        "tests.test_teamhub.TasksTest.test_assignment_notifies_on_every_channel_once",
+        "tests.test_teamhub.TasksTest.test_no_notification_for_assigning_yourself"
+      ]
+    },
+    {
+      "id": "U04",
+      "name": "Task board",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E03",
+        "A-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only A has it.",
+      "behaviour": "Create tasks and move them between todo, doing and done; only the creator, assignee, owners and admins may move a task.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_teamhub.ApprovalsTest.test_pending_approval_blocks_closing",
+        "tests.test_teamhub.DatabaseTest.test_integrity",
+        "tests.test_teamhub.HttpApiTest.test_end_to_end_journey",
+        "tests.test_teamhub.TasksTest.test_only_allowed_people_move_tasks",
+        "tests.test_teamhub.TasksTest.test_task_board_flow"
+      ]
+    },
+    {
+      "id": "U05",
+      "name": "Task assignment",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only A has it; kept separate from the board because it has its own permission and notification rules.",
+      "behaviour": "Assign a task to a person; the assignee is notified once on every channel they chose; assigning yourself notifies nobody.",
+      "improvements": "",
+      "depends_on": [
+        "U04",
+        "U03"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_teamhub.HttpApiTest.test_end_to_end_journey",
+        "tests.test_teamhub.TasksTest.test_assignee_must_exist",
+        "tests.test_teamhub.TasksTest.test_assignment_notifies_on_every_channel_once",
+        "tests.test_teamhub.TasksTest.test_no_notification_for_assigning_yourself"
+      ]
+    },
+    {
+      "id": "U06",
+      "name": "Threaded comments",
+      "menu_ids": [
+        "M07"
+      ],
+      "source_features": [
+        "B-F03"
+      ],
+      "evidence": [
+        "B-E06"
+      ],
+      "merge_type": "similar",
+      "rationale": "A's flat comments (M06) and B's threaded comments were alternatives; B's kept, A's dropped.",
+      "behaviour": "Comments with replies on tasks and on approvals; a reply's parent author is notified.",
+      "improvements": "Works on tasks as well as approvals (B only had requests).",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_teamhub.CommentsTest.test_comment_rules",
+        "tests.test_teamhub.CommentsTest.test_threaded_comments_on_tasks_and_approvals",
+        "tests.test_teamhub.HttpApiTest.test_end_to_end_journey"
+      ]
+    },
+    {
+      "id": "U07",
+      "name": "Approval requests",
+      "menu_ids": [
+        "M13"
+      ],
+      "source_features": [
+        "B-F02"
+      ],
+      "evidence": [
+        "B-E04",
+        "B-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only B has it; attached to tasks in the unified app.",
+      "behaviour": "Ask for sign-off on a task; approvers are notified; only someone with the approve permission decides, never on their own request; a task with a pending approval cannot be closed.",
+      "improvements": "",
+      "depends_on": [
+        "U01",
+        "U04",
+        "U02",
+        "U03"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_teamhub.ApprovalsTest.test_approval_journey",
+        "tests.test_teamhub.ApprovalsTest.test_approval_rules",
+        "tests.test_teamhub.ApprovalsTest.test_pending_approval_blocks_closing",
+        "tests.test_teamhub.DatabaseTest.test_integrity",
+        "tests.test_teamhub.HttpApiTest.test_end_to_end_journey"
+      ]
+    },
+    {
+      "id": "U08",
+      "name": "Workload dashboard",
+      "menu_ids": [
+        "M14"
+      ],
+      "source_features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E01",
+        "C-E02"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only C (closed) has it; rebuilt from its public description.",
+      "behaviour": "Open tasks per person, overdue open tasks (by UTC date) and pending approvals.",
+      "improvements": "",
+      "depends_on": [
+        "U04",
+        "U07"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_teamhub.DashboardTest.test_workload_counts",
+        "tests.test_teamhub.HttpApiTest.test_end_to_end_journey"
+      ]
+    }
+  ]
+}

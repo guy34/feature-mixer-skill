@@ -1,0 +1,40 @@
+{
+  "app": {"id": "B", "name": "Previewer"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/previewer", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/previewer/previewer.py:2", "summary": "TEXT_TYPES = .txt, .md, .csv."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/previewer/previewer.py:6-8", "summary": "Lower-cased name ending in a text type returns kind 'text' with the first 20 lines, decoded as UTF-8 with replacement."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/previewer/previewer.py:3", "summary": "IMAGE_TYPES = .png, .jpg, .gif."},
+    {"id": "B-E04", "source": "B-R01", "basis": "observed", "locator": "sources/previewer/previewer.py:9-10", "summary": "Image types return kind 'image' with thumbnail URL /thumbs/<id>.png; no code generates the thumbnail."},
+    {"id": "B-E05", "source": "B-R01", "basis": "observed", "locator": "sources/previewer/previewer.py:11", "summary": "Any other type returns kind 'none' with reason 'no preview for this type'."}
+  ],
+  "stack": {"backend": ["Python (single function)"], "basis": "observed"},
+  "architecture": {"backend": "one pure function over a file dict with id, name and data", "evidence": ["B-E02", "B-E04"], "basis": "observed"},
+  "features": [
+    {"id": "B-F01", "name": "Text preview", "description": "Show the first lines of a text file.", "observed_behaviour": "For .txt/.md/.csv (case-insensitive) returns {kind: text, first_lines: up to 20 lines}; undecodable bytes are replaced.", "business_logic": "Type decided by file extension only; max 20 lines.", "data": ["File.name", "File.data"], "integration": "needs read access to stored file bytes", "evidence": ["B-E01", "B-E02"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F02", "name": "Image thumbnail preview", "description": "Show a thumbnail for an image file.", "observed_behaviour": "For .png/.jpg/.gif returns {kind: image, thumbnail: /thumbs/<id>.png}. Nothing in the source creates or serves that thumbnail.", "business_logic": "Type decided by file extension only.", "data": ["File.id", "File.name"], "integration": "needs a route that serves the image (or a thumbnail generator)", "evidence": ["B-E03", "B-E04"], "basis": "observed", "confidence": "medium"},
+    {"id": "B-F03", "name": "No-preview fallback", "description": "Tell the user a file type has no preview.", "observed_behaviour": "Returns {kind: none, reason: 'no preview for this type'}.", "data": ["File.name"], "evidence": ["B-E05"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "File", "fields": [{"name": "id", "type": "str"}, {"name": "name", "type": "str"}, {"name": "data", "type": "bytes"}], "features": ["B-F01", "B-F02", "B-F03"], "evidence": ["B-E02", "B-E04"], "basis": "observed"}
+  ],
+  "endpoints": [],
+  "rules": [
+    {"key": "text_preview_extensions", "value": [".txt", ".md", ".csv"], "features": ["B-F01"], "evidence": ["B-E01"]},
+    {"key": "text_preview_max_lines", "value": 20, "features": ["B-F01"], "evidence": ["B-E02"]},
+    {"key": "image_preview_extensions", "value": [".png", ".jpg", ".gif"], "features": ["B-F02"], "evidence": ["B-E03"]}
+  ],
+  "error_handling": [
+    {"case": "unsupported type", "behaviour": "kind none with a reason, no error", "evidence": ["B-E05"]},
+    {"case": "invalid UTF-8 in a text file", "behaviour": "decoded with replacement characters", "evidence": ["B-E02"]}
+  ],
+  "unknowns": [
+    "How /thumbs/<id>.png is produced or served is not in the source; a thumbnail generator would need an imaging library (not available with the standard library only).",
+    "Where the file dict comes from (storage, permissions) is not in the source."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

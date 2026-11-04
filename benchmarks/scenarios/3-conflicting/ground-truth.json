@@ -1,0 +1,27 @@
+{
+  "scenario": "3-conflicting",
+  "mode": "plan",
+  "features": [
+    {"key": "a-accounts", "app": "A", "any": ["sign in", "login", "log in", "account"]},
+    {"key": "a-posts", "app": "A", "any": ["post"], "none": ["moderat"]},
+    {"key": "a-moderation", "app": "A", "any": ["moderat"]},
+    {"key": "b-accounts", "app": "B", "any": ["sign in", "login", "log in", "token", "account"]},
+    {"key": "b-posts", "app": "B", "any": ["post"], "none": ["anonym"]},
+    {"key": "b-anonymous", "app": "B", "any": ["anonym"]}
+  ],
+  "groups": [
+    {"members": ["a-accounts", "b-accounts"], "types": ["identical", "similar"]},
+    {"members": ["a-posts", "b-posts"], "types": ["identical", "similar"]}
+  ],
+  "incompatible_pairs": [["a-moderation", "b-anonymous"]],
+  "conflicts": [
+    {"kind": "primary-key", "subject": "user"},
+    {"kind": "session", "subject": ""},
+    {"kind": "roles", "subject": ""},
+    {"kind": "business-rule", "subject": "length"},
+    {"kind": "contract", "subject": "posts"},
+    {"kind": "route", "subject": "posts"}
+  ],
+  "fabrication": ["upvote", "vote", "badge", "private message", "notification"],
+  "coverage": {"A": "complete", "B": "complete"}
+}

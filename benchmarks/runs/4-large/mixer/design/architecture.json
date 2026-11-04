@@ -1,0 +1,809 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one small sales team, one release cadence",
+      "strong consistency: contact merge must move deals atomically",
+      "low volume; no part needs independent scaling",
+      "the only asynchronous work is one daily reminder job"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "contacts, deals and merge share one transaction; splitting them adds network calls and distributed data with no scaling or team need"
+      },
+      {
+        "style": "event-driven",
+        "fit": "partial",
+        "reason": "reminders are asynchronous, but one scheduled job at low volume does not justify message infrastructure"
+      },
+      {
+        "style": "hybrid",
+        "fit": "partial",
+        "reason": "a monolith plus an event pipeline for reminders would add a second set of rules for a single daily job"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "there are no existing systems that must stay separate; both sources are small and are rebuilt into one"
+      }
+    ],
+    "reason": "The simplest design that meets every driver: one deployable, one database, reminders as a scheduled command inside the same codebase"
+  },
+  "stack": {
+    "frontend": "Server-rendered Django templates with a small amount of vanilla JS for the deal board",
+    "backend": "Python 3.12, Django 5.2 LTS",
+    "database": "PostgreSQL 16 (SQLite for local development and tests)",
+    "jobs": "Django management command send_stale_reminders, run daily by the host's scheduler (cron)",
+    "email": "Django email backend over SMTP (provider chosen by the user)",
+    "hosting": "Any managed Python host with PostgreSQL and a cron feature; not chosen (no constraint given, no deployment in this run)",
+    "reasons": {
+      "backend": "D01: both sources are Python and M01 adapts A's Python logic; Django is boring, well documented and brings auth, sessions, ORM and migrations that neither source has",
+      "frontend": "D02: neither source has a usable UI (A declares React but ships no UI source; B has none); server-rendered pages are the least code for a small internal CRM; react and lodash are dropped (declared but never imported)",
+      "database": "D03: PostgreSQL for transactions (contact merge) and uuid keys; SQLite keeps local tests dependency-free",
+      "jobs": "D04: one daily job does not need a queue; a management command plus cron is the simplest scheduler",
+      "email": "D05: Django's email backend keeps the mailer injectable like B's and testable with the locmem backend"
+    }
+  },
+  "modules": [
+    {
+      "name": "accounts",
+      "responsibility": "Users, sign-in, sessions, roles and the single permission check can(user, action, record)",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": [
+        "User"
+      ]
+    },
+    {
+      "name": "contacts",
+      "responsibility": "Create, edit, list and search contacts",
+      "features": [
+        "M01"
+      ],
+      "depends_on": [
+        "accounts"
+      ],
+      "owns_entities": [
+        "Contact"
+      ]
+    },
+    {
+      "name": "pipeline",
+      "responsibility": "Deals, configurable stages and stage moves (records moved_at)",
+      "features": [
+        "M03",
+        "M04"
+      ],
+      "depends_on": [
+        "accounts",
+        "contacts"
+      ],
+      "owns_entities": [
+        "Deal",
+        "Stage"
+      ]
+    },
+    {
+      "name": "contact-merge",
+      "responsibility": "Transactional merge of a duplicate contact into another, with an audit entry",
+      "features": [
+        "M02"
+      ],
+      "depends_on": [
+        "accounts",
+        "contacts",
+        "pipeline"
+      ],
+      "owns_entities": [
+        "ContactMerge"
+      ]
+    },
+    {
+      "name": "reporting",
+      "responsibility": "CSV export of contacts and deals",
+      "features": [
+        "M05"
+      ],
+      "depends_on": [
+        "accounts",
+        "contacts",
+        "pipeline"
+      ],
+      "owns_entities": []
+    },
+    {
+      "name": "reminders",
+      "responsibility": "Daily stale-deal reminder job and its send log",
+      "features": [
+        "M06"
+      ],
+      "depends_on": [
+        "accounts",
+        "pipeline"
+      ],
+      "owns_entities": [
+        "ReminderLog"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "uuid",
+      "notes": "New: neither source has users. Created from B's distinct Deal.owner_email values at migration.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "from": [
+            "B:Deal.owner_email"
+          ]
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "password",
+          "type": "text"
+        },
+        {
+          "name": "role",
+          "type": "text"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "name": "Contact",
+      "merged_from": [
+        "A:Contact"
+      ],
+      "primary_key": "uuid",
+      "notes": "A's integer id kept in legacy_id.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "legacy_source",
+          "type": "text"
+        },
+        {
+          "name": "legacy_id",
+          "type": "text"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "from": [
+            "A:Contact.name"
+          ]
+        },
+        {
+          "name": "email",
+          "type": "text unique",
+          "from": [
+            "A:Contact.email"
+          ]
+        },
+        {
+          "name": "company",
+          "type": "text",
+          "from": [
+            "A:Contact.company"
+          ]
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "name": "Stage",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "uuid",
+      "notes": "New: replaces A's STAGES constant and B's stages parameter. Seeded lead, qualified, proposal, won (outcome won), lost (outcome lost), closed (outcome unspecified, for B's closed deals).",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "position",
+          "type": "integer"
+        },
+        {
+          "name": "outcome",
+          "type": "text"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "name": "Deal",
+      "merged_from": [
+        "A:Deal",
+        "B:Deal"
+      ],
+      "primary_key": "uuid",
+      "notes": "Union of A's and B's fields; stage text becomes a stage_id FK; owner_email becomes owner_id (User.email keeps the value).",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "legacy_source",
+          "type": "text"
+        },
+        {
+          "name": "legacy_id",
+          "type": "text"
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "from": [
+            "A:Deal.contact_id"
+          ]
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "from": [
+            "A:Deal.title",
+            "B:Deal.title"
+          ]
+        },
+        {
+          "name": "value_cents",
+          "type": "integer",
+          "from": [
+            "A:Deal.value_cents"
+          ]
+        },
+        {
+          "name": "currency",
+          "type": "text"
+        },
+        {
+          "name": "stage_id",
+          "type": "uuid",
+          "from": [
+            "A:Deal.stage",
+            "B:Deal.stage"
+          ]
+        },
+        {
+          "name": "moved_at",
+          "type": "timestamp",
+          "from": [
+            "B:Deal.moved_at"
+          ]
+        },
+        {
+          "name": "owner_id",
+          "type": "uuid",
+          "from": [
+            "B:Deal.owner_email"
+          ]
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "name": "ContactMerge",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "uuid",
+      "notes": "New audit entry for M02.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "kept_contact_id",
+          "type": "uuid"
+        },
+        {
+          "name": "dropped_contact_legacy",
+          "type": "json"
+        },
+        {
+          "name": "deals_moved",
+          "type": "integer"
+        },
+        {
+          "name": "merged_by",
+          "type": "uuid"
+        },
+        {
+          "name": "merged_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "name": "ReminderLog",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "uuid",
+      "notes": "New: dedupe for M06, unique (deal_id, moved_at).",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "deal_id",
+          "type": "uuid"
+        },
+        {
+          "name": "moved_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "sent_to",
+          "type": "uuid"
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp"
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "method": "email and password (Django auth, PBKDF2/Argon2 password hashing)",
+    "session": "server-side session in an http-only, secure, SameSite=Lax cookie; CSRF on every form and unsafe API call",
+    "roles": [
+      "admin",
+      "member"
+    ],
+    "permissions": {
+      "member": [
+        "contacts.read",
+        "contacts.write",
+        "deals.read",
+        "deals.write",
+        "deals.move",
+        "exports.download"
+      ],
+      "admin": [
+        "all member permissions",
+        "contacts.merge",
+        "stages.configure",
+        "users.manage"
+      ]
+    },
+    "role_mapping": {
+      "A: no users or roles in the source": "member (A's deals get one default owner chosen by the user)",
+      "B: deal owner (owner_email)": "member"
+    }
+  },
+  "api": [
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "module": "accounts",
+      "auth": "none (rate limited)",
+      "features": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "module": "accounts",
+      "auth": "session",
+      "features": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "module": "accounts",
+      "auth": "session",
+      "features": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/contacts",
+      "module": "contacts",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/contacts",
+      "module": "contacts",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/contacts/{id}",
+      "module": "contacts",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/contacts/{id}",
+      "module": "contacts",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/contacts/{id}/merge",
+      "module": "contact-merge",
+      "auth": "session + contacts.merge",
+      "features": [
+        "M02"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/deals",
+      "module": "pipeline",
+      "auth": "session",
+      "features": [
+        "M03",
+        "M04"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/deals",
+      "module": "pipeline",
+      "auth": "session",
+      "features": [
+        "M03",
+        "M04"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/deals/{id}",
+      "module": "pipeline",
+      "auth": "session",
+      "features": [
+        "M03",
+        "M04"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/deals/{id}",
+      "module": "pipeline",
+      "auth": "session",
+      "features": [
+        "M03",
+        "M04"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/deals/{id}/move",
+      "module": "pipeline",
+      "auth": "session",
+      "features": [
+        "M03",
+        "M04"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/stages",
+      "module": "pipeline",
+      "auth": "session",
+      "features": [
+        "M04"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/stages",
+      "module": "pipeline",
+      "auth": "session + stages.configure",
+      "features": [
+        "M04"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/stages/{id}",
+      "module": "pipeline",
+      "auth": "session + stages.configure",
+      "features": [
+        "M04"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/exports/contacts.csv",
+      "module": "reporting",
+      "auth": "session + exports.download",
+      "features": [
+        "M05"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/exports/deals.csv",
+      "module": "reporting",
+      "auth": "session + exports.download",
+      "features": [
+        "M05"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reminders/log",
+      "module": "reminders",
+      "auth": "session + admin",
+      "features": [
+        "M06"
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "route": "/login",
+      "screen": "Sign in",
+      "module": "accounts"
+    },
+    {
+      "route": "/contacts",
+      "screen": "Contact list and search",
+      "module": "contacts"
+    },
+    {
+      "route": "/contacts/new",
+      "screen": "New contact",
+      "module": "contacts"
+    },
+    {
+      "route": "/contacts/{id}",
+      "screen": "Contact detail with its deals",
+      "module": "contacts"
+    },
+    {
+      "route": "/contacts/{id}/merge",
+      "screen": "Merge duplicate contact",
+      "module": "contact-merge"
+    },
+    {
+      "route": "/deals",
+      "screen": "Deal board by stage",
+      "module": "pipeline"
+    },
+    {
+      "route": "/deals/{id}",
+      "screen": "Deal detail",
+      "module": "pipeline"
+    },
+    {
+      "route": "/settings/stages",
+      "screen": "Stage settings",
+      "module": "pipeline"
+    },
+    {
+      "route": "/exports",
+      "screen": "Exports",
+      "module": "reporting"
+    },
+    {
+      "route": "/settings/reminders",
+      "screen": "Reminder settings and log",
+      "module": "reminders"
+    }
+  ],
+  "design_system": {
+    "tokens": {
+      "colour_roles": [
+        "bg",
+        "surface",
+        "text",
+        "muted",
+        "accent",
+        "danger",
+        "success",
+        "border"
+      ],
+      "type_scale": "14/16/20/24/32 px, system UI font stack",
+      "spacing": "4px base: 4, 8, 12, 16, 24, 32",
+      "radius": "4px controls, 8px cards"
+    },
+    "components": {
+      "Button": [
+        "primary",
+        "secondary",
+        "danger"
+      ],
+      "TextField": [
+        "default",
+        "error"
+      ],
+      "Table": [
+        "default",
+        "empty"
+      ],
+      "DealCard": [
+        "open",
+        "won",
+        "lost",
+        "closed-unspecified"
+      ],
+      "StageColumn": [
+        "default",
+        "drop-target"
+      ],
+      "Banner": [
+        "info",
+        "error",
+        "success"
+      ]
+    },
+    "fonts": "system font stack (no licensed fonts)",
+    "icons": "Lucide (ISC licence)"
+  },
+  "configuration": {
+    "DATABASE_URL": "database connection (dev default: SQLite file)",
+    "SECRET_KEY": "Django signing key; required in production",
+    "ALLOWED_HOSTS": "host names served",
+    "EMAIL_HOST": "SMTP host",
+    "EMAIL_PORT": "SMTP port (default 587)",
+    "EMAIL_HOST_USER": "SMTP user",
+    "EMAIL_HOST_PASSWORD": "SMTP password (secret)",
+    "DEFAULT_FROM_EMAIL": "sender address for reminders",
+    "REMINDER_STALE_DAYS": "days without a move before a reminder (default 14)",
+    "DEFAULT_CURRENCY": "currency for value_cents (default USD)"
+  },
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Core loop: sign in, add a contact, create a deal, move it through configured stages",
+      "features": [
+        "M01",
+        "M03",
+        "M04"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V2",
+      "name": "Merge duplicate contacts",
+      "features": [
+        "M02"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V3",
+      "name": "CSV export",
+      "features": [
+        "M05"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V4",
+      "name": "Stale-deal reminders",
+      "features": [
+        "M06"
+      ],
+      "status": "pending"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Python 3.12 + Django 5.2 LTS backend",
+      "reason": "both sources are Python; brings auth, sessions, ORM, migrations",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "Server-rendered Django templates; drop React and lodash",
+      "reason": "no UI source exists in either app; the packages are declared but never imported",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "PostgreSQL in production, SQLite in development and tests",
+      "reason": "transactions and uuid keys; dependency-free tests",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "Reminders as a daily management command run by cron",
+      "reason": "one low-volume job; no queue needed",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "Django email backend over SMTP; locmem backend in tests",
+      "reason": "keeps the mailer injectable like B's",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "Modular monolith with six modules (accounts, contacts, pipeline, contact-merge, reporting, reminders)",
+      "reason": "see style; contact-merge is its own module so contacts and pipeline have no dependency cycle",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "uuid primary keys everywhere with legacy_source and legacy_id on imported rows",
+      "reason": "compatibility decision database:primary-key:deal",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "Configurable Stage table with an outcome column, seeded with A's stages plus closed (unspecified)",
+      "reason": "compatibility decisions application:rule:deal-stages and database:field-type:deal.stage",
+      "approved": true
+    },
+    {
+      "id": "D09",
+      "decision": "User entity and required Deal.owner_id; roles admin and member; one can(user, action, record) check",
+      "reason": "compatibility decision application:workflow:deal-owner; neither source has auth",
+      "approved": true
+    },
+    {
+      "id": "D10",
+      "decision": "REST JSON API under /api/v1 with error shape {error: {code, message}}, cursor pagination (?cursor=, limit max 100), session auth on every endpoint except login",
+      "reason": "one API style, one version scheme, one error shape",
+      "approved": true
+    }
+  ]
+}

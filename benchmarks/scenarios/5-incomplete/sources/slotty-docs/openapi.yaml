@@ -1,0 +1,9 @@
+openapi: 3.0.3
+info: {title: Slotty API, version: "1"}
+paths:
+  /bookings:
+    post:
+      summary: Create a booking (optionally recurring)
+  /waitlist:
+    post:
+      summary: Join a waiting list

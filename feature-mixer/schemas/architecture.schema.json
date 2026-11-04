@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/guy34/feature-mixer-skill/blob/main/feature-mixer/schemas/architecture.schema.json",
+  "title": "Feature Mixer unified architecture",
+  "description": "mixer/design/architecture.json: the one design every kept feature is built into.",
+  "type": "object",
+  "required": [
+    "stack",
+    "modules",
+    "entities",
+    "auth",
+    "api",
+    "slices",
+    "decisions"
+  ],
+  "properties": {
+    "stack": {
+      "type": "object",
+      "required": [
+        "reasons"
+      ],
+      "properties": {
+        "reasons": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": [
+          "string",
+          "object"
+        ]
+      }
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "responsibility",
+          "features",
+          "depends_on"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "responsibility": {
+            "type": "string",
+            "minLength": 1
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^M\\d{2,}$"
+            }
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "owns_entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "service": {
+            "type": "string",
+            "description": "the deployable unit this module runs in"
+          }
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "merged_from"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "merged_from": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{1,3}:.+$|^new$"
+            }
+          },
+          "primary_key": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "type"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "required": [
+        "method",
+        "session",
+        "roles"
+      ],
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "session": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "permissions": {
+          "type": "object"
+        },
+        "role_mapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "navigation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "route"
+        ],
+        "properties": {
+          "route": {
+            "type": "string"
+          },
+          "screen": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "api": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "method",
+          "path",
+          "module"
+        ],
+        "properties": {
+          "method": {
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string"
+          },
+          "auth": {
+            "type": "string"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^M\\d{2,}$"
+            }
+          }
+        }
+      }
+    },
+    "design_system": {
+      "type": "object"
+    },
+    "configuration": {
+      "type": "object"
+    },
+    "slices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "features",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^V\\d+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^M\\d{2,}$"
+            }
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "in-progress",
+              "done",
+              "failed"
+            ]
+          },
+          "checkpoint": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^D\\d{2,}$"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "approved": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "style": {
+      "type": "object",
+      "required": [
+        "selected",
+        "drivers",
+        "alternatives",
+        "reason"
+      ],
+      "properties": {
+        "selected": {
+          "enum": [
+            "modular-monolith",
+            "microservices",
+            "service-oriented",
+            "event-driven",
+            "hybrid"
+          ]
+        },
+        "drivers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "style",
+              "fit",
+              "reason"
+            ],
+            "properties": {
+              "style": {
+                "enum": [
+                  "modular-monolith",
+                  "microservices",
+                  "service-oriented",
+                  "event-driven",
+                  "hybrid"
+                ]
+              },
+              "fit": {
+                "enum": [
+                  "good",
+                  "partial",
+                  "poor"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "producer",
+          "consumers"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "producer": {
+            "type": "string"
+          },
+          "consumers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

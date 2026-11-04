@@ -1,0 +1,412 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B",
+    "C"
+  ],
+  "summary": {
+    "critical": 1,
+    "high": 4,
+    "medium": 2,
+    "low": 2,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "application:security:checkout-client-prices",
+      "category": "application",
+      "kind": "security",
+      "subject": "checkout-client-prices",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F02"
+      ],
+      "severity": "critical",
+      "detail": "B's /api/checkout passes request line_items to Stripe unchanged, so a customer can pay any price they choose",
+      "solutions": [
+        "Build line items on the server from the cart and catalog prices",
+        "Drop checkout"
+      ],
+      "recommended": "Server-built line items from the session user's cart and Product.price; the request carries no items or prices",
+      "needs_approval": true,
+      "menu_features": [
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Rebuild checkout so line items come only from the session user's cart and Product.price_minor; the request carries no items or prices (D04)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:auth-gap:no-identity-system",
+      "category": "application",
+      "kind": "auth-gap",
+      "subject": "no-identity-system",
+      "apps": [
+        "A",
+        "B",
+        "C"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01",
+        "C-F02",
+        "C-F04"
+      ],
+      "severity": "high",
+      "detail": "No source has sign-in: A and B carts have a user_id with no User model, and C's reviews need a customer, but no source shows how users authenticate",
+      "solutions": [
+        "Add one minimal accounts module (email + password, slow hash, server session in an http-only cookie)",
+        "Use an external identity provider the user chooses"
+      ],
+      "recommended": "One minimal accounts module (customer and shop-owner roles) built new for the unified app; it is platform, not a source feature",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M04",
+        "M07",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Add a new accounts module: email + password (argon2id), server session in an http-only secure cookie, roles customer and owner, one permission check (D05)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:workflow:purchase-confirmation",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "purchase-confirmation",
+      "apps": [
+        "B",
+        "C"
+      ],
+      "features": [
+        "B-F02",
+        "C-F04"
+      ],
+      "severity": "high",
+      "detail": "C shows reviews only after a confirmed purchase, but B keeps no order and never confirms payment (no webhook)",
+      "solutions": [
+        "Add an Order entity marked paid by a verified Stripe webhook; the review gate reads it",
+        "Drop the verified-purchase gate"
+      ],
+      "recommended": "Order (pending -> paid) written at checkout and confirmed by a signature-verified Stripe webhook; reviews require a paid order containing the product",
+      "needs_approval": true,
+      "menu_features": [
+        "M05",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Add Order/OrderItem; checkout writes a pending Order; a signature-verified Stripe webhook marks it paid; the review gate needs a paid order containing the product (D04, D08)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:field-type:cartitem-quantity",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "cartitem-quantity",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "severity": "high",
+      "detail": "B stores CartItem.quantity as text; A (and any sensible cart) types it as Integer. Unvalidated text quantities can be non-numeric or negative",
+      "solutions": [
+        "Integer quantity with a positive check on the server",
+        "Keep text and parse it on every read"
+      ],
+      "recommended": "Integer quantity >= 1, checked on the server; B's existing cart rows are not migrated (see migration plan)",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "CartItem.quantity is integer with a CHECK quantity >= 1, validated on the server; B's text quantities are not migrated (D06)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:foreign-key:cartitem-product-id",
+      "category": "database",
+      "kind": "foreign-key",
+      "subject": "cartitem-product-id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "severity": "high",
+      "detail": "B stores CartItem.productId as a String with no Product model; the kept catalog is A's, whose Product.id is Integer. B's cart rows cannot point at A's products without conversion",
+      "solutions": [
+        "Integer product_id with a real foreign key to products.id (A's keys kept)",
+        "Re-key A's products to uuid strings to match B"
+      ],
+      "recommended": "Integer product_id foreign key to products.id; A's catalog keeps its ids; B's text product ids are not carried over",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "CartItem.product_id is an integer foreign key to products.id (A's keys kept); B's text product ids are not carried over (D02, D06)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "dependency:framework:backend-framework",
+      "category": "dependency",
+      "kind": "framework",
+      "subject": "backend-framework",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "medium",
+      "detail": "Competing backend frameworks: Express (B); Flask (A)",
+      "solutions": [
+        "Choose one framework for this layer and rebuild the others' features in it",
+        "Run them side by side only as a short, planned migration"
+      ],
+      "recommended": "One backend framework; Express is used by the most sources",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Flask (Python) is the one backend framework; NodeCart's Express endpoints are rebuilt in Flask. The script's 'Express is used by the most sources' is a 1-1 tie, so the choice follows where the adapted code and durable data are (D01)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "dependency:framework:data-layer",
+      "category": "dependency",
+      "kind": "framework",
+      "subject": "data-layer",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "medium",
+      "detail": "Competing data layers: Prisma (B); SQLAlchemy (A)",
+      "solutions": [
+        "Choose one framework for this layer and rebuild the others' features in it",
+        "Run them side by side only as a short, planned migration"
+      ],
+      "recommended": "One data layer; Prisma is used by the most sources",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "SQLAlchemy is the one data layer; Prisma is not used (D01, D02)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "api:api-version:reviews-path",
+      "category": "api",
+      "kind": "api-version",
+      "subject": "reviews-path",
+      "apps": [
+        "C"
+      ],
+      "features": [
+        "C-F01",
+        "C-F02"
+      ],
+      "severity": "low",
+      "detail": "Reviewly documents /v2/products/{productId}/reviews; A and B use unversioned /api/... paths",
+      "solutions": [
+        "Unversioned /api/products/{id}/reviews in the unified API",
+        "Version the whole unified API"
+      ],
+      "recommended": "Unversioned /api/products/{id}/reviews; Reviewly's path is not copied",
+      "needs_approval": false,
+      "menu_features": [
+        "M06",
+        "M07"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Unversioned /api/products/{id}/reviews; Reviewly's /v2 path is not copied (D07)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:naming-style:fields",
+      "category": "database",
+      "kind": "naming-style",
+      "subject": "fields",
+      "apps": [
+        "B",
+        "C"
+      ],
+      "features": [],
+      "severity": "low",
+      "detail": "Field naming styles differ (camelCase: B; snake_case: C)",
+      "solutions": [
+        "Pick one naming style for tables and fields and map the others"
+      ],
+      "recommended": "Use one style (snake_case is usual for SQL)",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "snake_case for every table and field; B's camelCase names map through compat/aliases.json",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:product",
+      "entity": "Product",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "A.Product.price: number to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "price"
+          ]
+        }
+      ],
+      "changes": [
+        "A.Product.price: number to integer can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "price"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:cart",
+      "entity": "Cart",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "B.Cart.id: text to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "id"
+          ]
+        },
+        {
+          "change": "B.Cart.userId: text to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "userId"
+          ]
+        }
+      ],
+      "changes": [
+        "B.Cart.id: text to integer can lose or reject values",
+        "B.Cart.userId: text to integer can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "id",
+        "userId"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:cartitem",
+      "entity": "CartItem",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "B.CartItem.id: text to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "id"
+          ]
+        },
+        {
+          "change": "B.CartItem.cartId: text to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "cartId"
+          ]
+        },
+        {
+          "change": "B.CartItem.productId: text to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "productId"
+          ]
+        },
+        {
+          "change": "B.CartItem.quantity: text to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "quantity"
+          ]
+        }
+      ],
+      "changes": [
+        "B.CartItem.id: text to integer can lose or reject values",
+        "B.CartItem.cartId: text to integer can lose or reject values",
+        "B.CartItem.productId: text to integer can lose or reject values",
+        "B.CartItem.quantity: text to integer can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "cartId",
+        "id",
+        "productId",
+        "quantity"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    }
+  ]
+}

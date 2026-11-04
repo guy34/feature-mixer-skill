@@ -1,0 +1,304 @@
+{
+  "app": {
+    "id": "A",
+    "name": "BookNow"
+  },
+  "coverage": "partial",
+  "size": "S",
+  "sources_used": [
+    {
+      "ref": "A-R01",
+      "kind": "local-directory",
+      "location": "sources/booknow",
+      "accessed": "2026-11-04"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "A-E01",
+      "source": "A-R01",
+      "basis": "documented",
+      "locator": "sources/booknow/README.md:2",
+      "summary": "README: 'Book a slot, cancel up to 24 hours before, and pay by card (Stripe).'"
+    },
+    {
+      "id": "A-E02",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/booknow/bookings.py:5",
+      "summary": "book() loads the slot, raises ValueError('slot taken') if slot.taken, charges the slot price, then inserts a Booking with user_id, slot_id, created_at."
+    },
+    {
+      "id": "A-E03",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/booknow/bookings.py:12",
+      "summary": "cancel() raises PermissionError('too late to cancel') when slot.starts_at minus now is under 24 hours, otherwise hard-deletes the booking."
+    },
+    {
+      "id": "A-E04",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/booknow/bookings.py:3",
+      "summary": "Imports charge from a payments module; the file's own comment says the module is not included in this source."
+    },
+    {
+      "id": "A-E05",
+      "source": "A-R01",
+      "basis": "observed",
+      "locator": "sources/booknow/bookings.py:9",
+      "summary": "charge(user_id, slot['price']) is called before the booking row is written; no refund call exists in cancel()."
+    },
+    {
+      "id": "A-E06",
+      "source": "A-R01",
+      "basis": "inferred",
+      "locator": "sources/booknow/bookings.py:6",
+      "summary": "Storage goes through an injected db object (get/insert/delete); the database engine and schema are not in the folder."
+    }
+  ],
+  "stack": {
+    "backend": [
+      "Python (datetime from the standard library)"
+    ],
+    "database": [
+      "unknown: abstract db object"
+    ],
+    "basis": "observed"
+  },
+  "packages": {
+    "payments": "local module, not included"
+  },
+  "runtimes": {
+    "python": "version not stated"
+  },
+  "architecture": {
+    "backend": "Python functions over an injected db object; payments delegated to a missing payments module",
+    "frontend": "none in the folder",
+    "evidence": [
+      "A-E02",
+      "A-E04",
+      "A-E06"
+    ],
+    "basis": "observed"
+  },
+  "features": [
+    {
+      "id": "A-F01",
+      "name": "Book a slot",
+      "description": "A user books one open slot; the booking is paid at the moment it is made.",
+      "observed_behaviour": "Load slot; if slot.taken raise 'slot taken'; charge the user the slot price; insert a Booking (user_id, slot_id, created_at=utcnow).",
+      "business_logic": "A taken slot cannot be booked. Payment happens before the booking is written. The code never sets slot.taken, so how a slot becomes taken is not visible here.",
+      "data": [
+        "Slot.taken",
+        "Slot.price",
+        "Booking.user_id",
+        "Booking.slot_id",
+        "Booking.created_at"
+      ],
+      "depends_on": [
+        "A-F03"
+      ],
+      "integration": "needs users, slots and payments in the unified app",
+      "evidence": [
+        "A-E01",
+        "A-E02"
+      ],
+      "basis": "observed",
+      "confidence": "high"
+    },
+    {
+      "id": "A-F02",
+      "name": "Cancel a booking up to 24 hours before",
+      "description": "A user cancels a booking if the slot starts 24 hours or more from now.",
+      "observed_behaviour": "Load booking and slot; if starts_at - now < 24h raise 'too late to cancel'; else delete the booking row.",
+      "business_logic": "Cancellation window: at least 24 hours before slot start. Cancel is a hard delete. No refund is issued in this code.",
+      "data": [
+        "Booking",
+        "Slot.starts_at"
+      ],
+      "depends_on": [
+        "A-F01"
+      ],
+      "integration": "refund behaviour must be decided with payments",
+      "evidence": [
+        "A-E01",
+        "A-E03",
+        "A-E05"
+      ],
+      "basis": "observed",
+      "confidence": "high"
+    },
+    {
+      "id": "A-F03",
+      "name": "Pay by card (Stripe)",
+      "description": "The slot price is charged to the user by card through Stripe when booking.",
+      "observed_behaviour": "bookings.py calls charge(user_id, price) before writing the booking. The charge implementation (payments.py) is not in the folder.",
+      "business_logic": "Amount is slot.price. Currency, failure handling, idempotency and refunds are unknown.",
+      "data": [
+        "Slot.price"
+      ],
+      "integration": "Stripe (README); keys would be configuration, never copied",
+      "evidence": [
+        "A-E01",
+        "A-E04",
+        "A-E05"
+      ],
+      "basis": "observed",
+      "confidence": "medium"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Slot",
+      "primary_key": {
+        "name": "id",
+        "type": "unknown"
+      },
+      "fields": [
+        {
+          "name": "taken",
+          "type": "bool (inferred from truthiness check)"
+        },
+        {
+          "name": "price",
+          "type": "unknown (numeric inferred)"
+        },
+        {
+          "name": "starts_at",
+          "type": "datetime"
+        }
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E02",
+        "A-E03"
+      ],
+      "basis": "observed"
+    },
+    {
+      "name": "Booking",
+      "primary_key": {
+        "name": "id",
+        "type": "unknown"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "unknown"
+        },
+        {
+          "name": "slot_id",
+          "type": "unknown"
+        },
+        {
+          "name": "created_at",
+          "type": "datetime (naive UTC)"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "field": "slot_id",
+          "references": "Slot"
+        }
+      ],
+      "features": [
+        "A-F01",
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E02",
+        "A-E03"
+      ],
+      "basis": "observed"
+    }
+  ],
+  "rules": [
+    {
+      "key": "cancellation_window_hours",
+      "value": 24,
+      "features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E03"
+      ]
+    },
+    {
+      "key": "payment_timing",
+      "value": "charge before booking is written",
+      "features": [
+        "A-F01",
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E05"
+      ]
+    },
+    {
+      "key": "cancel_refund",
+      "value": "none in code",
+      "features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E05"
+      ]
+    }
+  ],
+  "integrations": [
+    {
+      "name": "Stripe",
+      "purpose": "card payment at booking",
+      "features": [
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E04"
+      ]
+    }
+  ],
+  "error_handling": [
+    {
+      "case": "slot already taken",
+      "behaviour": "ValueError('slot taken'), nothing charged",
+      "evidence": [
+        "A-E02"
+      ]
+    },
+    {
+      "case": "cancel within 24h",
+      "behaviour": "PermissionError('too late to cancel')",
+      "evidence": [
+        "A-E03"
+      ]
+    },
+    {
+      "case": "payment failure",
+      "behaviour": "unknown: payments.py missing",
+      "evidence": [
+        "A-E04"
+      ]
+    }
+  ],
+  "unknowns": [
+    "payments.py (the charge implementation) is not in the folder: Stripe usage, currency, failure handling, idempotency and refunds are unknown. Providing payments.py would settle it.",
+    "The db layer and schema are not in the folder: database engine, id types and constraints are unknown.",
+    "Nothing marks a slot as taken after booking (bookings.py never updates slot.taken); double-booking protection may live elsewhere or be missing.",
+    "No auth, users, slot creation, API routes or UI are in the folder.",
+    "Charge happens before insert with no rollback: what happens if the insert fails after a successful charge is unknown."
+  ],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": [
+      "(root)"
+    ],
+    "modules_skipped": [],
+    "files_read": 2
+  }
+}

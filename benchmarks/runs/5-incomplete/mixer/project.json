@@ -1,0 +1,170 @@
+{
+  "name": "Unified booking app (BookNow + Slotty features)",
+  "format": 3,
+  "mode": "plan",
+  "audience": "Teams that publish bookable slots and the customers who book and pay for them (assumed from task.md 'one booking app'; the user was not available to confirm)",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "BookNow",
+      "slug": "booknow",
+      "access": "own-code",
+      "licence": "proprietary (the user's own code; no licence file in the folder)",
+      "code_reuse": "allowed",
+      "slice": "core loop: book a slot, pay by card, cancel up to 24 hours before",
+      "local_path": "sources/booknow",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/booknow"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Slotty",
+      "slug": "slotty",
+      "access": "closed",
+      "licence": "proprietary (closed product)",
+      "code_reuse": "not-allowed",
+      "slice": "core loop as described by its public docs: publish slots, book (incl. recurring), waiting list, calendar sync",
+      "inputs": [
+        {
+          "kind": "documentation",
+          "location": "sources/slotty-docs/overview.md"
+        },
+        {
+          "kind": "api-spec",
+          "location": "sources/slotty-docs/openapi.yaml"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "approved by benchmark-operator (pre-approved in task)"
+    },
+    "compatibility": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "approved by benchmark-operator (pre-approved in task)"
+    },
+    "architecture": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "approved by benchmark-operator (pre-approved in task)"
+    },
+    "implementation": {
+      "status": "pending",
+      "note": "not started: mode is plan"
+    },
+    "integration": {
+      "status": "pending",
+      "note": "not started: mode is plan"
+    },
+    "deployment": {
+      "status": "pending",
+      "note": "never automatic"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "mixer/checkpoints/CP1",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after recon (project not in git)"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "mixer/checkpoints/CP2",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after extraction (project not in git)"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "mixer/checkpoints/CP3",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after selection (project not in git)"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "mixer/checkpoints/CP4",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after compatibility (project not in git)"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "mixer/checkpoints/CP5",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after architecture (project not in git)"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "other",
+      "target": "selection checkpoint: auto-picked menu (keep M01,M03,M04,M05,M06,M08; drop M02; later M07) and merge plan U01-U06",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "operator pre-approved recommendations at the selection checkpoint"
+    },
+    {
+      "id": "A02",
+      "action": "other",
+      "target": "compatibility checkpoint: decisions for 5 high and 4 medium conflicts in mixer/compat/resolutions.json",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "operator pre-approved recommendations at the compatibility checkpoint"
+    },
+    {
+      "id": "A03",
+      "action": "migration",
+      "target": "migration:booking and migration:slot (additive, low risk) as plans only in design/migration-plan.md",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plans only; nothing is run. No existing BookNow data was provided"
+    },
+    {
+      "id": "A04",
+      "action": "migration",
+      "target": "migration:booking and migration:slot (re-rated high risk / destructive after the architecture fixed field types) as plans only in design/migration-plan.md",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plans only; running any migration needs a new approval. A03 covered the earlier low-risk rating"
+    },
+    {
+      "id": "A05",
+      "action": "other",
+      "target": "architecture checkpoint: modular monolith, Django/PostgreSQL stack, modules, data model, roles, API, slices V1-V4, decisions D01-D15",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plan mode: run ends here; implementation not started"
+    }
+  ]
+}

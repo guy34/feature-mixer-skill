@@ -1,0 +1,568 @@
+{
+  "stack": {
+    "frontend": "two static HTML pages with vanilla JavaScript, served by the backend",
+    "backend": "Python 3 standard library: WSGI app (wsgiref for serving)",
+    "database": "SQLite (sqlite3 module)",
+    "hosting": "local process (python3 -m fileshare); no deployment planned",
+    "reasons": {
+      "backend": "D01: operator requires Python 3 standard library only; all three sources are Python and adapt strategies keep their logic",
+      "database": "D03: SQLite ships with Python, gives foreign keys and cascades in one file",
+      "frontend": "D08: no build step or installs allowed; two small pages cover the two screens",
+      "server": "D04: a WSGI callable can be tested in-process without sockets; wsgiref serves it locally"
+    }
+  },
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one small team (one developer)",
+      "strong consistency between files and their share links (cascade delete)",
+      "no independent scaling need",
+      "standard library only, one process"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "three tiny capabilities with one shared File record; network calls and distributed data add cost with no benefit"
+      },
+      {
+        "style": "event-driven",
+        "fit": "poor",
+        "reason": "nothing is asynchronous; deletes must cascade to links immediately"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "no existing systems that must stay separate"
+      },
+      {
+        "style": "hybrid",
+        "fit": "poor",
+        "reason": "no part needs a second style"
+      }
+    ],
+    "reason": "Simplest design that meets every driver: one deployable with module boundaries per source capability"
+  },
+  "modules": [
+    {
+      "name": "core",
+      "responsibility": "config, database connection and schema, HTTP request/response helpers, error format, password hashing",
+      "features": [],
+      "depends_on": []
+    },
+    {
+      "name": "accounts",
+      "responsibility": "register, login, logout, sessions; the current-user lookup every owner route uses",
+      "features": [],
+      "depends_on": [
+        "core"
+      ],
+      "owns_entities": [
+        "User",
+        "Session"
+      ]
+    },
+    {
+      "name": "files",
+      "responsibility": "upload, list, delete and serve an owner's files; the one ownership check (get_owned_file)",
+      "features": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "depends_on": [
+        "core",
+        "accounts"
+      ],
+      "owns_entities": [
+        "File",
+        "FileContent"
+      ]
+    },
+    {
+      "name": "preview",
+      "responsibility": "turn a file (name, bytes) into a text, image or none preview",
+      "features": [
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "depends_on": [
+        "core",
+        "files"
+      ]
+    },
+    {
+      "name": "sharing",
+      "responsibility": "create, open and revoke share links with expiry and optional password",
+      "features": [
+        "M07",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "depends_on": [
+        "core",
+        "accounts",
+        "files",
+        "preview"
+      ],
+      "owns_entities": [
+        "ShareLink"
+      ]
+    },
+    {
+      "name": "web",
+      "responsibility": "routing table and the two HTML pages",
+      "features": [],
+      "depends_on": [
+        "core",
+        "accounts",
+        "files",
+        "preview",
+        "sharing"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "id text (uuid4 hex)",
+      "notes": "added by decision application:identity:owner; no source had users",
+      "fields": [
+        {
+          "name": "id",
+          "type": "text"
+        },
+        {
+          "name": "username",
+          "type": "text"
+        },
+        {
+          "name": "password_hash",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "token text",
+      "fields": [
+        {
+          "name": "token",
+          "type": "text"
+        },
+        {
+          "name": "user_id",
+          "type": "text"
+        },
+        {
+          "name": "expires_at",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "name": "File",
+      "merged_from": [
+        "A:File",
+        "B:File"
+      ],
+      "primary_key": "id text (uuid4 hex)",
+      "notes": "B:File.data moves to FileContent",
+      "fields": [
+        {
+          "name": "id",
+          "type": "text",
+          "from": [
+            "A:File.id",
+            "B:File.id"
+          ]
+        },
+        {
+          "name": "owner_id",
+          "type": "text",
+          "from": [
+            "A:File.owner_id"
+          ]
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "from": [
+            "A:File.name",
+            "B:File.name"
+          ]
+        },
+        {
+          "name": "size",
+          "type": "integer",
+          "from": [
+            "A:File.size"
+          ]
+        },
+        {
+          "name": "content_type",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "text (ISO-8601 UTC)",
+          "from": [
+            "A:File.created_at"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FileContent",
+      "merged_from": [
+        "B:File"
+      ],
+      "primary_key": "file_id text",
+      "fields": [
+        {
+          "name": "file_id",
+          "type": "text"
+        },
+        {
+          "name": "data",
+          "type": "blob",
+          "from": [
+            "B:File.data"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ShareLink",
+      "merged_from": [
+        "C:ShareLink"
+      ],
+      "primary_key": "token text",
+      "fields": [
+        {
+          "name": "token",
+          "type": "text",
+          "from": [
+            "C:ShareLink.token"
+          ]
+        },
+        {
+          "name": "file_id",
+          "type": "text",
+          "from": [
+            "C:ShareLink.file_id"
+          ]
+        },
+        {
+          "name": "expires_at",
+          "type": "real (epoch seconds)",
+          "from": [
+            "C:ShareLink.expires_at"
+          ]
+        },
+        {
+          "name": "password_hash",
+          "type": "text (pbkdf2_sha256)",
+          "from": [
+            "C:ShareLink.password_hash"
+          ]
+        },
+        {
+          "name": "created_at",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "method": "username + password (salted PBKDF2-HMAC-SHA256)",
+    "session": "opaque server-side session token in an http-only SameSite=Strict cookie, 7 days",
+    "roles": [
+      "user",
+      "link-holder"
+    ],
+    "permissions": {
+      "user": [
+        "upload",
+        "list own files",
+        "delete own file",
+        "preview own file",
+        "download own file",
+        "create link to own file",
+        "revoke link to own file"
+      ],
+      "link-holder": [
+        "open one shared file (metadata, preview, download) while the link is valid and the password matches"
+      ]
+    },
+    "role_mapping": {
+      "A:owner (caller-supplied owner_id)": "user",
+      "C:token holder": "link-holder",
+      "B:(no roles)": "user"
+    }
+  },
+  "navigation": [
+    {
+      "route": "/",
+      "screen": "My files (sign in, upload, list, preview, share, delete)",
+      "module": "web"
+    },
+    {
+      "route": "/s/{token}",
+      "screen": "Shared file (password prompt, preview, download)",
+      "module": "web"
+    }
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "path": "/api/register",
+      "module": "accounts",
+      "auth": "none",
+      "features": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/login",
+      "module": "accounts",
+      "auth": "none",
+      "features": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/logout",
+      "module": "accounts",
+      "auth": "session",
+      "features": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/files",
+      "module": "files",
+      "auth": "session",
+      "features": [
+        "M02"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/files",
+      "module": "files",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/files/{id}",
+      "module": "files",
+      "auth": "session (owner)",
+      "features": [
+        "M03"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/files/{id}/content",
+      "module": "files",
+      "auth": "session (owner)",
+      "features": [
+        "M05"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/files/{id}/preview",
+      "module": "preview",
+      "auth": "session (owner)",
+      "features": [
+        "M04",
+        "M05",
+        "M06"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/files/{id}/links",
+      "module": "sharing",
+      "auth": "session (owner)",
+      "features": [
+        "M07",
+        "M08"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/links/{token}",
+      "module": "sharing",
+      "auth": "session (owner of file)",
+      "features": [
+        "M10"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/share/{token}",
+      "module": "sharing",
+      "auth": "token (+ X-Link-Password)",
+      "features": [
+        "M08",
+        "M09"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/share/{token}/content",
+      "module": "sharing",
+      "auth": "token (+ X-Link-Password)",
+      "features": [
+        "M09"
+      ]
+    }
+  ],
+  "design_system": {
+    "tokens": {
+      "color": {
+        "bg": "#f7f7f5",
+        "surface": "#ffffff",
+        "text": "#1d1d1b",
+        "muted": "#5c5c57",
+        "accent": "#1f5f8b",
+        "danger": "#a3271b"
+      },
+      "font": "system-ui stack",
+      "type_scale": [
+        14,
+        16,
+        20,
+        28
+      ],
+      "spacing": [
+        4,
+        8,
+        16,
+        24
+      ],
+      "radius": 6
+    },
+    "components": [
+      "button (primary, danger, plain)",
+      "text input",
+      "file input",
+      "file row",
+      "preview panel (text, image, none)",
+      "notice (info, error)"
+    ]
+  },
+  "configuration": {
+    "FILESHARE_DB": "path to the SQLite file (default ./fileshare.sqlite3)",
+    "FILESHARE_HOST": "bind address (default 127.0.0.1)",
+    "FILESHARE_PORT": "port (default 8000)",
+    "FILESHARE_SECURE_COOKIE": "1 to add Secure to cookies behind HTTPS (default 0)"
+  },
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Core loop: sign in, upload, list, preview text and fallback",
+      "features": [
+        "M01",
+        "M02",
+        "M04",
+        "M06"
+      ],
+      "status": "done",
+      "checkpoint": "CP6"
+    },
+    {
+      "id": "V2",
+      "name": "Sharing: create and open links",
+      "features": [
+        "M07",
+        "M09"
+      ],
+      "status": "done",
+      "checkpoint": "CP7"
+    },
+    {
+      "id": "V3",
+      "name": "Should features: delete, image preview, link password, revoke",
+      "features": [
+        "M03",
+        "M05",
+        "M08",
+        "M10"
+      ],
+      "status": "done",
+      "checkpoint": "CP8"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Python 3 standard library only",
+      "reason": "operator constraint (no installs); sources are Python",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "Modular monolith",
+      "reason": "see style; one deployable, strong consistency",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "SQLite with foreign keys on and ON DELETE CASCADE",
+      "reason": "stdlib, cascades for file delete -> links",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "WSGI callable served by wsgiref; tests call it in-process",
+      "reason": "no network needed to test",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "Minimal accounts: PBKDF2 passwords, server-side sessions in http-only cookies",
+      "reason": "compat decision application:identity:owner",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "REST JSON under /api, one error shape, no pagination",
+      "reason": "one client, small lists",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "Upload as raw request body with ?name=; Content-Length checked before reading",
+      "reason": "cgi/multipart parser was removed from the stdlib in 3.13; enforces 10 MB without buffering more",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "Two static pages with vanilla JS, system fonts",
+      "reason": "no build tools or external assets",
+      "approved": true
+    },
+    {
+      "id": "D09",
+      "decision": "Link password via X-Link-Password header, not query string",
+      "reason": "keeps passwords out of URLs and logs",
+      "approved": true
+    }
+  ]
+}

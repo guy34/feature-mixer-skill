@@ -1,0 +1,24 @@
+{
+  "run_id": "20261104T125111798138Z",
+  "runner": "run_tests.py",
+  "command": "python -m unittest discover -s tests -t . (Feature Mixer harness)",
+  "argv": [
+    "<harness>",
+    "tests",
+    "."
+  ],
+  "framework": "unittest",
+  "cwd": "app",
+  "started_at": "2026-11-04T12:51:11+00:00",
+  "finished_at": "2026-11-04T12:51:13+00:00",
+  "exit_code": 0,
+  "log": "test-runs/20261104T125111798138Z/output.log",
+  "log_sha256": "84504762758d279530d614e10bb1c37e724b06e936ad81a6e2ea5c5b320d81a5",
+  "results": "test-runs/20261104T125111798138Z/results.xml",
+  "results_sha256": "8683064de173c151b41fec4f0ded7dc5c6443564d56dbb9cbf915ce646a83af0",
+  "approval": "A04",
+  "unittest": {
+    "start": "tests",
+    "top": "."
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "root": "../../../sources/sharelink",
+  "indexed_at": "2026-11-04T09:15:18+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 19,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "sharelink.py",
+      "size": 881,
+      "sha256": "f5dfdad074f19549858eab87e57f11e0b8041b0b016e3af2844a5ea4eb682b0c",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 19,
+      "imports": [],
+      "packages": [
+        "hashlib"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 19,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": [
+        "hashlib"
+      ]
+    }
+  },
+  "external_imports": {
+    "hashlib": [
+      "sharelink.py"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "C-F01": [
+      "sharelink.py"
+    ],
+    "C-F02": [
+      "sharelink.py"
+    ],
+    "C-F03": [
+      "sharelink.py"
+    ],
+    "C-F04": [
+      "sharelink.py"
+    ]
+  },
+  "changes": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "stale_features": []
+}

@@ -1,0 +1,309 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "File upload",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E02",
+        "A-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only A uploads; kept on its own.",
+      "behaviour": "A signed-in owner uploads a named file; bodies over 10 MB (10485760 bytes) are rejected with 413; otherwise a File row (id, owner_id, name, size, created_at) and its bytes are stored and the file is returned.",
+      "improvements": "",
+      "depends_on": [],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_journey.DependencyTests.test_app_imports_only_the_standard_library",
+        "tests.test_journey.JourneyTests.test_upload_preview_share_open_revoke",
+        "tests.test_v1_core.AccountsTests.test_account_password_is_salted_pbkdf2",
+        "tests.test_v1_core.AccountsTests.test_register_login_logout",
+        "tests.test_v1_core.AccountsTests.test_wrong_password_and_duplicate_username",
+        "tests.test_v1_core.PlatformTests.test_schema_created_from_empty_with_foreign_keys",
+        "tests.test_v1_core.UploadTests.test_file_endpoints_need_sign_in",
+        "tests.test_v1_core.UploadTests.test_upload_limit_is_10_mb",
+        "tests.test_v1_core.UploadTests.test_upload_rejects_oversize_content_length_before_reading",
+        "tests.test_v1_core.UploadTests.test_upload_returns_file",
+        "tests.test_v1_core.UploadTests.test_upload_validation"
+      ]
+    },
+    {
+      "id": "U02",
+      "name": "File list",
+      "menu_ids": [
+        "M02"
+      ],
+      "source_features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E03",
+        "A-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only A lists files; kept on its own.",
+      "behaviour": "A signed-in owner sees only their own files, newest first.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_journey.JourneyTests.test_upload_preview_share_open_revoke",
+        "tests.test_v1_core.AccountsTests.test_register_login_logout",
+        "tests.test_v1_core.AccountsTests.test_session_expires",
+        "tests.test_v1_core.ListTests.test_each_user_sees_only_their_files",
+        "tests.test_v1_core.ListTests.test_empty_list",
+        "tests.test_v1_core.PlatformTests.test_pages_and_unknown_routes",
+        "tests.test_v1_core.UploadTests.test_file_endpoints_need_sign_in",
+        "tests.test_v2_sharing.OpenLinkTests.test_link_gives_access_to_one_file_only"
+      ]
+    },
+    {
+      "id": "U03",
+      "name": "File delete",
+      "menu_ids": [
+        "M03"
+      ],
+      "source_features": [
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only A deletes files; kept on its own.",
+      "behaviour": "A signed-in owner deletes one of their files; its share links are removed with it; a missing or someone else's file returns 404.",
+      "improvements": "Cascade delete of share links (integration with U07).",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_v1_core.UploadTests.test_file_endpoints_need_sign_in",
+        "tests.test_v3_should.DeleteTests.test_cannot_delete_someone_elses_file",
+        "tests.test_v3_should.DeleteTests.test_delete_removes_file_and_its_links"
+      ]
+    },
+    {
+      "id": "U04",
+      "name": "Text preview",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E02"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only B previews; kept on its own, reads files stored by U01.",
+      "behaviour": "For .txt/.md/.csv (case-insensitive) the preview is kind 'text' with up to the first 20 lines, decoded as UTF-8 with replacement.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_journey.DependencyTests.test_app_imports_only_the_standard_library",
+        "tests.test_journey.JourneyTests.test_upload_preview_share_open_revoke",
+        "tests.test_v1_core.TextPreviewTests.test_preview_of_someone_elses_file_is_404",
+        "tests.test_v1_core.TextPreviewTests.test_text_preview_first_20_lines",
+        "tests.test_v1_core.TextPreviewTests.test_text_preview_replaces_invalid_utf8",
+        "tests.test_v1_core.UploadTests.test_file_endpoints_need_sign_in",
+        "tests.test_v2_sharing.OpenLinkTests.test_anonymous_open_shows_metadata_and_preview"
+      ]
+    },
+    {
+      "id": "U05",
+      "name": "Image preview",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "B-F02"
+      ],
+      "evidence": [
+        "B-E03",
+        "B-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only B previews images; kept with an improvement.",
+      "behaviour": "For .png/.jpg/.gif the preview is kind 'image' with a URL to a route that serves the original image with its content type.",
+      "improvements": "B's /thumbs/<id>.png was never generated or served; the URL now points at a real route; no resizing (standard library only).",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_v3_should.ImagePreviewTests.test_image_preview_through_a_share_link",
+        "tests.test_v3_should.ImagePreviewTests.test_image_preview_url_serves_the_image",
+        "tests.test_v3_should.ImagePreviewTests.test_svg_and_html_are_downloads_not_inline"
+      ]
+    },
+    {
+      "id": "U06",
+      "name": "No-preview fallback",
+      "menu_ids": [
+        "M06"
+      ],
+      "source_features": [
+        "B-F03"
+      ],
+      "evidence": [
+        "B-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only B has it; kept on its own.",
+      "behaviour": "Any other type gives kind 'none' with reason 'no preview for this type'.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_v1_core.FallbackPreviewTests.test_other_types_have_no_preview",
+        "tests.test_v3_should.ImagePreviewTests.test_svg_and_html_are_downloads_not_inline"
+      ]
+    },
+    {
+      "id": "U07",
+      "name": "Share link creation",
+      "menu_ids": [
+        "M07"
+      ],
+      "source_features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E01"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only C shares; kept on its own, bound to files from U01.",
+      "behaviour": "The owner of a file creates a link with an unguessable token (16 random bytes, url-safe) that expires after expires_in_hours (default 24, must be > 0).",
+      "improvements": "Owner check added; links persisted.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_journey.DependencyTests.test_app_imports_only_the_standard_library",
+        "tests.test_journey.JourneyTests.test_upload_preview_share_open_revoke",
+        "tests.test_v1_core.PlatformTests.test_invalid_json_is_400",
+        "tests.test_v1_core.UploadTests.test_file_endpoints_need_sign_in",
+        "tests.test_v2_sharing.CreateLinkTests.test_custom_expiry_and_validation",
+        "tests.test_v2_sharing.CreateLinkTests.test_default_expiry_is_24_hours",
+        "tests.test_v2_sharing.CreateLinkTests.test_expired_link_is_404",
+        "tests.test_v2_sharing.CreateLinkTests.test_only_the_owner_can_create_links"
+      ]
+    },
+    {
+      "id": "U08",
+      "name": "Link password",
+      "menu_ids": [
+        "M08"
+      ],
+      "source_features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E02",
+        "C-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only C has it; kept with an improvement.",
+      "behaviour": "A link may carry a password; opening it without the right password gives 403.",
+      "improvements": "Salted PBKDF2-HMAC-SHA256 with a constant-time compare instead of unsalted SHA-256.",
+      "depends_on": [
+        "U07",
+        "U09"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_journey.JourneyTests.test_upload_preview_share_open_revoke",
+        "tests.test_v3_should.PasswordLinkTests.test_invalid_password_value",
+        "tests.test_v3_should.PasswordLinkTests.test_password_required_and_checked",
+        "tests.test_v3_should.PasswordLinkTests.test_password_stored_as_salted_slow_hash"
+      ]
+    },
+    {
+      "id": "U09",
+      "name": "Shared link access",
+      "menu_ids": [
+        "M09"
+      ],
+      "source_features": [
+        "C-F03"
+      ],
+      "evidence": [
+        "C-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only C has it; kept on its own, joined to previews and downloads.",
+      "behaviour": "Anyone with the token opens the link: unknown or expired gives 404, wrong password 403, otherwise the file's name, size and preview, and the bytes can be downloaded through the link.",
+      "improvements": "",
+      "depends_on": [
+        "U07"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_journey.JourneyTests.test_upload_preview_share_open_revoke",
+        "tests.test_v1_core.PlatformTests.test_pages_and_unknown_routes",
+        "tests.test_v2_sharing.CreateLinkTests.test_expired_link_is_404",
+        "tests.test_v2_sharing.OpenLinkTests.test_anonymous_download",
+        "tests.test_v2_sharing.OpenLinkTests.test_anonymous_open_shows_metadata_and_preview",
+        "tests.test_v2_sharing.OpenLinkTests.test_link_gives_access_to_one_file_only",
+        "tests.test_v2_sharing.OpenLinkTests.test_unknown_token_is_404",
+        "tests.test_v3_should.DeleteTests.test_delete_removes_file_and_its_links",
+        "tests.test_v3_should.ImagePreviewTests.test_image_preview_through_a_share_link",
+        "tests.test_v3_should.PasswordLinkTests.test_password_required_and_checked",
+        "tests.test_v3_should.RevokeTests.test_owner_revokes_link"
+      ]
+    },
+    {
+      "id": "U10",
+      "name": "Link revoke",
+      "menu_ids": [
+        "M10"
+      ],
+      "source_features": [
+        "C-F04"
+      ],
+      "evidence": [
+        "C-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only C has it; kept with an improvement.",
+      "behaviour": "The owner of the file revokes a link; it then opens as 404.",
+      "improvements": "Owner-only revoke (C let anyone revoke).",
+      "depends_on": [
+        "U07"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_journey.JourneyTests.test_upload_preview_share_open_revoke",
+        "tests.test_v3_should.RevokeTests.test_other_user_cannot_revoke",
+        "tests.test_v3_should.RevokeTests.test_owner_revokes_link"
+      ]
+    }
+  ]
+}

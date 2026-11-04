@@ -1,0 +1,19 @@
+{
+  "scenario": "2-complementary",
+  "mode": "full",
+  "features": [
+    {"key": "upload", "app": "A", "any": ["upload", "store"]},
+    {"key": "list", "app": "A", "any": ["list", "browse"]},
+    {"key": "delete", "app": "A", "any": ["delete", "remove"]},
+    {"key": "preview", "app": "B", "any": ["preview", "thumbnail"]},
+    {"key": "share", "app": "C", "any": ["share", "link"]},
+    {"key": "revoke", "app": "C", "any": ["revoke"]}
+  ],
+  "groups": [],
+  "dependencies": [["share", "upload"], ["preview", "upload"]],
+  "rules": [{"name": "10 MB upload limit", "any": ["10 mb", "10mb", "10 * 1024", "10485760", "max_bytes"]},
+            {"name": "link expiry", "any": ["expir"]}],
+  "conflicts": [],
+  "fabrication": ["comment", "version history", "collaborat", "virus"],
+  "coverage": {"A": "complete", "B": "complete", "C": "complete"}
+}

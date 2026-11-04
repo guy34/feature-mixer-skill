@@ -1,0 +1,83 @@
+{
+  "app": {"id": "B", "name": "NodeCart"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/nodecart", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/nodecart/server.js:4",
+     "summary": "POST /api/cart/items creates a CartItem from cartId, productId and String(quantity) taken straight from the request body; no validation or permission check in the handler."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/nodecart/server.js:5",
+     "summary": "POST /api/checkout creates a Stripe Checkout session (mode 'payment') with line_items taken unchanged from the request body, and returns the session."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/nodecart/server.js:2",
+     "summary": "The Stripe client is created from the environment variable STRIPE_SECRET (value not in the source)."},
+    {"id": "B-E04", "source": "B-R01", "basis": "observed", "locator": "sources/nodecart/schema.prisma:1-5",
+     "summary": "Prisma model Cart: id String uuid default, userId String, items CartItem[]."},
+    {"id": "B-E05", "source": "B-R01", "basis": "observed", "locator": "sources/nodecart/schema.prisma:6-11",
+     "summary": "Prisma model CartItem: id String uuid default, cartId String, productId String, quantity String (comment: stored as text)."},
+    {"id": "B-E06", "source": "B-R01", "basis": "observed", "locator": "sources/nodecart/package.json:1",
+     "summary": "Node >=20; dependencies express ^4.19.0, @prisma/client ^5.10.0, stripe ^14.0.0."},
+    {"id": "B-E07", "source": "B-R01", "basis": "inferred", "locator": "sources/nodecart/schema.prisma:1-11",
+     "summary": "There is no Product model: productId points at products kept somewhere else, and nothing ties checkout line items to the cart."}
+  ],
+  "stack": {"frontend": [], "backend": ["Node.js >=20", "Express ^4.19.0"], "database": ["Prisma ^5.10.0 (provider not declared in the schema file)"], "infrastructure": ["Stripe Checkout"], "basis": "observed"},
+  "packages": {"express": "^4.19.0", "@prisma/client": "^5.10.0", "stripe": "^14.0.0"},
+  "runtimes": {"node": ">=20"},
+  "architecture": {"frontend": "none in the source (JSON API only)", "backend": "Express route module taking (app, prisma); Prisma client; Stripe SDK", "evidence": ["B-E01", "B-E02", "B-E06"], "basis": "observed"},
+  "features": [
+    {"id": "B-F01", "name": "Add item to cart",
+     "description": "Add a product with a quantity to a cart through POST /api/cart/items.",
+     "observed_behaviour": "Creates a CartItem row with the cartId, productId and quantity from the body (quantity converted to a string) and returns the row.",
+     "business_logic": "No validation: quantity is stored as text, cartId is chosen by the client, and no check that the cart belongs to the caller is visible.",
+     "data": ["Cart.id", "Cart.userId", "CartItem.cartId", "CartItem.productId", "CartItem.quantity"],
+     "evidence": ["B-E01", "B-E04", "B-E05"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F02", "name": "Stripe checkout",
+     "description": "Pay through a Stripe Checkout session created by POST /api/checkout.",
+     "observed_behaviour": "Passes the request's items to Stripe as line_items in payment mode and returns the session object.",
+     "business_logic": "Prices and items come from the client unchecked (client can set its own price); the cart is not read and no order record is written; no webhook confirms payment.",
+     "data": ["request items (Stripe line_items)"],
+     "integration": "Stripe API with the STRIPE_SECRET key",
+     "evidence": ["B-E02", "B-E03"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Cart", "primary_key": {"name": "id", "type": "String"},
+     "fields": [{"name": "id", "type": "String", "required": true}, {"name": "userId", "type": "String"}],
+     "features": ["B-F01"], "evidence": ["B-E04"], "basis": "observed"},
+    {"name": "CartItem", "primary_key": {"name": "id", "type": "String"},
+     "fields": [{"name": "id", "type": "String", "required": true}, {"name": "cartId", "type": "String"}, {"name": "productId", "type": "String"}, {"name": "quantity", "type": "String"}],
+     "foreign_keys": [{"field": "cartId", "references": "Cart"}],
+     "features": ["B-F01"], "evidence": ["B-E05"], "basis": "observed"}
+  ],
+  "endpoints": [
+    {"method": "POST", "path": "/api/cart/items", "auth": "unknown",
+     "request": {"cartId": "string", "productId": "string", "quantity": "string"},
+     "response": {"id": "string", "cartId": "string", "productId": "string", "quantity": "string"},
+     "features": ["B-F01"], "evidence": ["B-E01"], "basis": "observed"},
+    {"method": "POST", "path": "/api/checkout", "auth": "unknown",
+     "request": {"items": "array"}, "response": {"session": "object"},
+     "features": ["B-F02"], "evidence": ["B-E02"], "basis": "observed"}
+  ],
+  "auth": {"provider": "unknown", "methods": [], "session": "unknown", "model": "unknown", "roles": [],
+           "evidence": ["B-E04"], "basis": "inferred"},
+  "rules": [
+    {"key": "cart_item.quantity_type", "value": "string", "features": ["B-F01"], "evidence": ["B-E01", "B-E05"]}
+  ],
+  "integrations": [
+    {"name": "Stripe", "purpose": "Checkout sessions for card payment", "features": ["B-F02"], "evidence": ["B-E02", "B-E03"]}
+  ],
+  "configuration": [
+    {"key": "STRIPE_SECRET", "purpose": "Stripe secret API key (name only; no value in the source)", "evidence": ["B-E03"]}
+  ],
+  "error_handling": [
+    {"case": "Prisma or Stripe call fails", "behaviour": "No try/catch in the handlers; behaviour depends on Express defaults outside this source", "evidence": ["B-E01", "B-E02"]}
+  ],
+  "unknowns": [
+    "No Product model: where products, names and prices come from is not in the source.",
+    "The Express app and Prisma client are created outside server.js; any auth middleware there cannot be seen.",
+    "Schema has no datasource/generator block and no @relation on CartItem.cartId, so the database provider and referential rules are unknown.",
+    "No Stripe webhook or order record: how a payment is confirmed is not in the source.",
+    "No frontend or screens exist in the source; the app is a JSON API only."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 3}
+}

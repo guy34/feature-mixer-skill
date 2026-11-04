@@ -1,0 +1,150 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Slot publishing",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E08"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Slotty documents slot publishing; BookNow assumes slots exist. Rebuilt from docs (closed source).",
+      "behaviour": "A team member creates, edits and withdraws slots (start, end, price, capacity 1). Customers see only published, future, open slots.",
+      "improvements": "",
+      "depends_on": [],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U02",
+      "name": "Card payments (Stripe)",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E04",
+        "A-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only BookNow takes payment. Its charge() implementation is missing, so it is rebuilt.",
+      "behaviour": "Charges the slot price by card through Stripe (test mode in development) with an idempotency key per booking occurrence; refunds on eligible cancellation.",
+      "improvements": "Idempotency key; explicit failure handling; refunds (absent in source).",
+      "depends_on": [],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U03",
+      "name": "Slot booking",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E02"
+      ],
+      "merge_type": "similar",
+      "rationale": "BookNow and Slotty both book slots; BookNow's observed behaviour was chosen over Slotty's one-line API summary (M02 dropped).",
+      "behaviour": "A customer books an open slot: the slot is held atomically, the price is charged, and the booking becomes confirmed; a taken slot is refused with 'slot taken' and nothing is charged; on payment failure the hold is released.",
+      "improvements": "Mark slots taken atomically (source never sets slot.taken); confirm only after a successful charge and release the hold on failure (source charges before insert with no rollback).",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U04",
+      "name": "Booking cancellation (24-hour rule)",
+      "menu_ids": [
+        "M03"
+      ],
+      "source_features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E03",
+        "A-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only BookNow documents cancellation.",
+      "behaviour": "A customer cancels a booking that starts at least 24 hours from now; later cancellations are refused with 'too late to cancel'. The booking becomes cancelled (not deleted), the slot reopens, and a 'slot freed' event is emitted.",
+      "improvements": "Soft cancel instead of hard delete; emits slot-freed for the waiting list; refund rule decided in compatibility.",
+      "depends_on": [
+        "U03",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U05",
+      "name": "Recurring weekly bookings",
+      "menu_ids": [
+        "M06"
+      ],
+      "source_features": [
+        "B-F03"
+      ],
+      "evidence": [
+        "B-E02",
+        "B-E06"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Slotty documents recurring bookings; rebuilt from docs.",
+      "behaviour": "A customer books the same weekly slot for 2 to 12 weeks as one series of individual bookings.",
+      "improvements": "",
+      "depends_on": [
+        "U03"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U06",
+      "name": "Waiting list",
+      "menu_ids": [
+        "M08"
+      ],
+      "source_features": [
+        "B-F05"
+      ],
+      "evidence": [
+        "B-E05",
+        "B-E07"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Slotty documents a waiting list; rebuilt from docs.",
+      "behaviour": "A customer joins the waiting list of a taken slot; when the slot is freed, waiting customers are offered it in join order.",
+      "improvements": "",
+      "depends_on": [
+        "U03",
+        "U04",
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

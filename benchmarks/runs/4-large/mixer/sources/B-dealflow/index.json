@@ -1,0 +1,53 @@
+{
+  "root": "../../../sources/dealflow",
+  "indexed_at": "2026-11-04T09:16:21+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 14,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "deals.py",
+      "size": 733,
+      "sha256": "863b972f74e043db87b8ae32b56c923d5b17525dd0f9cb3223e8219c86bb091c",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 14,
+      "imports": [],
+      "packages": [
+        "datetime"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 14,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": [
+        "datetime"
+      ]
+    }
+  },
+  "external_imports": {
+    "datetime": [
+      "deals.py"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "B-F01": [
+      "deals.py"
+    ],
+    "B-F02": [
+      "deals.py"
+    ]
+  }
+}

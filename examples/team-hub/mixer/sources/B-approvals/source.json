@@ -1,0 +1,633 @@
+{
+  "app": {
+    "id": "B",
+    "name": "Approvals"
+  },
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {
+      "ref": "B-R01",
+      "kind": "local-directory",
+      "location": "sources/approvals",
+      "accessed": "2026-11-04"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "B-E01",
+      "source": "B-R01",
+      "basis": "documented",
+      "locator": "sources/approvals/LICENSE:1",
+      "summary": "Released under the MIT licence"
+    },
+    {
+      "id": "B-E02",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/src/routes.js:7",
+      "summary": "Sign in returns a JWT sent as a bearer token"
+    },
+    {
+      "id": "B-E03",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/db/schema.sql:1",
+      "summary": "users table: serial integer key, email, full_name, role requester/approver/admin"
+    },
+    {
+      "id": "B-E04",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/db/schema.sql:8",
+      "summary": "approval_requests: title, requester, approver, status pending/approved/rejected"
+    },
+    {
+      "id": "B-E05",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/src/routes.js:20",
+      "summary": "Only approvers and admins decide, never on their own request"
+    },
+    {
+      "id": "B-E06",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/db/schema.sql:17",
+      "summary": "Threaded comments: a reply has parent_id"
+    },
+    {
+      "id": "B-E07",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/src/routes.js:26",
+      "summary": "The requester is emailed through an outbox when a decision is made"
+    },
+    {
+      "id": "B-E08",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/src/routes.js:3",
+      "summary": "Tokens expire after 30 minutes"
+    },
+    {
+      "id": "B-E09",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/client/routes.js:2",
+      "summary": "Client routes: /login, /requests, /requests/:id, /settings"
+    },
+    {
+      "id": "B-E10",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/package.json:5",
+      "summary": "Node 16, Express 4, React 17, jsonwebtoken, nodemailer"
+    },
+    {
+      "id": "B-E11",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/approvals/client/routes.js:9",
+      "summary": "Button variants: primary, secondary, danger"
+    }
+  ],
+  "architecture": {
+    "frontend": "React single-page app",
+    "backend": "Express JSON API with JWT bearer auth",
+    "evidence": [
+      "B-E09",
+      "B-E10"
+    ],
+    "basis": "observed"
+  },
+  "stack": {
+    "frontend": [
+      "React 17"
+    ],
+    "backend": [
+      "Node 16",
+      "Express 4"
+    ],
+    "database": [
+      "SQL (serial keys)"
+    ],
+    "basis": "observed"
+  },
+  "features": [
+    {
+      "id": "B-F01",
+      "name": "Sign in with email and password",
+      "description": "Email and password sign in returning a bearer token.",
+      "evidence": [
+        "B-E02",
+        "B-E08"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "data": [
+        "User"
+      ],
+      "business_logic": "Tokens expire after 30 minutes."
+    },
+    {
+      "id": "B-F02",
+      "name": "Approval requests",
+      "description": "Ask for sign-off; an approver approves or rejects it.",
+      "evidence": [
+        "B-E04",
+        "B-E05"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "observed_behaviour": "Requests start pending; a decision sets status, approver and time.",
+      "business_logic": "Only approvers and admins decide; nobody decides their own request.",
+      "data": [
+        "ApprovalRequest"
+      ],
+      "depends_on": [
+        "B-F01",
+        "B-F05"
+      ]
+    },
+    {
+      "id": "B-F03",
+      "name": "Threaded comments",
+      "description": "Discussion on a request, with replies.",
+      "evidence": [
+        "B-E06"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "data": [
+        "Comment"
+      ],
+      "depends_on": [
+        "B-F02"
+      ]
+    },
+    {
+      "id": "B-F04",
+      "name": "Email notifications",
+      "description": "The requester is emailed when their request is decided.",
+      "evidence": [
+        "B-E07"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "data": [
+        "EmailOutbox"
+      ],
+      "depends_on": [
+        "B-F02"
+      ],
+      "integration": "Needs an email provider (nodemailer / SMTP)."
+    },
+    {
+      "id": "B-F05",
+      "name": "Requester, approver and admin roles",
+      "description": "Three roles; approvers and admins can decide.",
+      "evidence": [
+        "B-E03",
+        "B-E05"
+      ],
+      "basis": "observed",
+      "confidence": "high",
+      "data": [
+        "User"
+      ],
+      "depends_on": [
+        "B-F01"
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "id": "B-S01",
+      "name": "Login",
+      "route": "/login",
+      "evidence": [
+        "B-E09"
+      ]
+    },
+    {
+      "id": "B-S02",
+      "name": "Request list",
+      "route": "/requests",
+      "evidence": [
+        "B-E09"
+      ]
+    },
+    {
+      "id": "B-S03",
+      "name": "Request detail",
+      "route": "/requests/:id",
+      "evidence": [
+        "B-E09"
+      ]
+    },
+    {
+      "id": "B-S04",
+      "name": "Settings",
+      "route": "/settings",
+      "evidence": [
+        "B-E09"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "B-W01",
+      "name": "Request and receive a decision",
+      "steps": [
+        "B-S02",
+        "B-S03"
+      ],
+      "edge_cases": [
+        "deciding your own request",
+        "deciding twice"
+      ],
+      "evidence": [
+        "B-E05",
+        "B-E07"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "path": "/login",
+      "screen": "B-S01"
+    },
+    {
+      "path": "/requests",
+      "screen": "B-S02"
+    },
+    {
+      "path": "/requests/:id",
+      "screen": "B-S03"
+    },
+    {
+      "path": "/settings",
+      "screen": "B-S04"
+    }
+  ],
+  "components": [
+    {
+      "name": "Button",
+      "variants": [
+        "primary",
+        "secondary",
+        "danger"
+      ],
+      "used_on": [
+        "B-S03"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "primary_key": {
+        "name": "id",
+        "type": "serial"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer"
+        },
+        {
+          "name": "email",
+          "type": "text"
+        },
+        {
+          "name": "full_name",
+          "type": "text"
+        },
+        {
+          "name": "role",
+          "type": "text"
+        }
+      ],
+      "features": [
+        "B-F01",
+        "B-F05"
+      ],
+      "evidence": [
+        "B-E03"
+      ],
+      "basis": "observed"
+    },
+    {
+      "name": "ApprovalRequest",
+      "primary_key": {
+        "name": "id",
+        "type": "serial"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer"
+        },
+        {
+          "name": "title",
+          "type": "text"
+        },
+        {
+          "name": "requester_id",
+          "type": "integer"
+        },
+        {
+          "name": "approver_id",
+          "type": "integer"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamp"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "field": "requester_id",
+          "references": "User"
+        },
+        {
+          "field": "approver_id",
+          "references": "User"
+        }
+      ],
+      "features": [
+        "B-F02"
+      ],
+      "evidence": [
+        "B-E04"
+      ],
+      "basis": "observed"
+    },
+    {
+      "name": "Comment",
+      "primary_key": {
+        "name": "id",
+        "type": "serial"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer"
+        },
+        {
+          "name": "request_id",
+          "type": "integer"
+        },
+        {
+          "name": "parent_id",
+          "type": "integer"
+        },
+        {
+          "name": "author_id",
+          "type": "integer"
+        },
+        {
+          "name": "body",
+          "type": "text"
+        }
+      ],
+      "foreign_keys": [
+        {
+          "field": "request_id",
+          "references": "ApprovalRequest",
+          "on_delete": "cascade"
+        },
+        {
+          "field": "parent_id",
+          "references": "Comment",
+          "on_delete": "cascade"
+        },
+        {
+          "field": "author_id",
+          "references": "User"
+        }
+      ],
+      "features": [
+        "B-F03"
+      ],
+      "evidence": [
+        "B-E06"
+      ],
+      "basis": "observed"
+    },
+    {
+      "name": "EmailOutbox",
+      "primary_key": {
+        "name": "id",
+        "type": "serial"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer"
+        },
+        {
+          "name": "to_address",
+          "type": "text"
+        },
+        {
+          "name": "subject",
+          "type": "text"
+        },
+        {
+          "name": "body",
+          "type": "text"
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp"
+        }
+      ],
+      "features": [
+        "B-F04"
+      ],
+      "evidence": [
+        "B-E07"
+      ],
+      "basis": "observed"
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/token",
+      "auth": "none",
+      "request": {
+        "email": "text",
+        "password": "text"
+      },
+      "response": {
+        "token": "text"
+      },
+      "errors": [
+        "401"
+      ],
+      "features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E02"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/:id",
+      "auth": "bearer",
+      "response": {
+        "id": "integer",
+        "full_name": "text",
+        "role": "text"
+      },
+      "features": [
+        "B-F05"
+      ],
+      "evidence": [
+        "B-E03"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/requests",
+      "auth": "bearer",
+      "features": [
+        "B-F02"
+      ],
+      "evidence": [
+        "B-E04"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/requests/:id/decision",
+      "auth": "bearer",
+      "request": {
+        "decision": "text"
+      },
+      "errors": [
+        "403"
+      ],
+      "features": [
+        "B-F02",
+        "B-F04"
+      ],
+      "evidence": [
+        "B-E05"
+      ],
+      "basis": "observed"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/requests/:id/comments",
+      "auth": "bearer",
+      "features": [
+        "B-F03"
+      ],
+      "evidence": [
+        "B-E06"
+      ],
+      "basis": "observed"
+    }
+  ],
+  "auth": {
+    "provider": "self",
+    "methods": [
+      "password"
+    ],
+    "session": "jwt-header",
+    "model": "rbac",
+    "roles": [
+      "requester",
+      "approver",
+      "admin"
+    ],
+    "evidence": [
+      "B-E02",
+      "B-E03"
+    ],
+    "basis": "observed"
+  },
+  "rules": [
+    {
+      "key": "session.idle_timeout_minutes",
+      "value": 30,
+      "features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E08"
+      ]
+    },
+    {
+      "key": "approval.self_decision_allowed",
+      "value": false,
+      "features": [
+        "B-F02"
+      ],
+      "evidence": [
+        "B-E05"
+      ]
+    }
+  ],
+  "integrations": [
+    {
+      "name": "SMTP email",
+      "purpose": "decision emails",
+      "features": [
+        "B-F04"
+      ],
+      "evidence": [
+        "B-E07"
+      ]
+    }
+  ],
+  "configuration": [
+    {
+      "key": "JWT_SECRET",
+      "purpose": "signs tokens",
+      "evidence": [
+        "B-E02"
+      ]
+    }
+  ],
+  "error_handling": [
+    {
+      "case": "not an approver",
+      "behaviour": "403 'approvers only'",
+      "evidence": [
+        "B-E05"
+      ]
+    },
+    {
+      "case": "missing token",
+      "behaviour": "401 'token required'",
+      "evidence": [
+        "B-E02"
+      ]
+    }
+  ],
+  "unknowns": [],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": [
+      "(root)",
+      "client",
+      "db",
+      "src"
+    ],
+    "modules_skipped": [],
+    "files_read": 6
+  }
+}

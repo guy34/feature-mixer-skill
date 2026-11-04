@@ -1,0 +1,126 @@
+{
+  "app": {"id": "A", "name": "QuickNotes"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/quicknotes", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "documented", "locator": "sources/quicknotes/README.md:2", "summary": "README: write notes in Markdown, tag them, and search all text."},
+    {"id": "A-E02", "source": "A-R01", "basis": "observed", "locator": "sources/quicknotes/schema.sql:1", "summary": "notes table: integer autoincrement id, title text not null, body text not null, created_at timestamp not null."},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/quicknotes/app.py:4-7", "summary": "list (ordered by created_at desc), create, update and delete note handlers."},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/quicknotes/schema.sql:2-3", "summary": "tags table with unique name; note_tags join table with FKs to notes and tags, both on delete cascade."},
+    {"id": "A-E05", "source": "A-R01", "basis": "observed", "locator": "sources/quicknotes/app.py:9-11", "summary": "tag_note gets or creates a tag by name and inserts a note_tags row."},
+    {"id": "A-E06", "source": "A-R01", "basis": "observed", "locator": "sources/quicknotes/app.py:13-15", "summary": "search matches the text as a LIKE substring against title OR body (comment calls it full-text)."},
+    {"id": "A-E07", "source": "A-R01", "basis": "observed", "locator": "sources/quicknotes/app.py:17-19", "summary": "preview renders the Markdown body to HTML with markdown.render, for a preview pane."},
+    {"id": "A-E08", "source": "A-R01", "basis": "observed", "locator": "sources/quicknotes/app.py:21-23", "summary": "ROUTES map: GET/POST /notes, PUT/DELETE /notes/<id>, POST /notes/<id>/tags, GET /search, GET /notes/<id>/preview."},
+    {"id": "A-E09", "source": "A-R01", "basis": "observed", "locator": "sources/quicknotes/app.py:1-2", "summary": "Header says Flask-style, illustrative handlers; imports render from the markdown package."}
+  ],
+  "stack": {
+    "frontend": [],
+    "backend": ["Python (Flask-style handlers, illustrative)", "markdown package"],
+    "database": ["SQL relational database (autoincrement syntax suggests SQLite; inferred)"],
+    "infrastructure": [],
+    "basis": "observed"
+  },
+  "packages": {"markdown": "unpinned (no manifest)"},
+  "runtimes": {"python": "unknown version"},
+  "architecture": {
+    "frontend": "Not present in the source folder; a preview pane is mentioned in a code comment only.",
+    "backend": "Single Python module of HTTP handlers over a relational schema via a db helper object that is not in the folder.",
+    "evidence": ["A-E08", "A-E09", "A-E02"],
+    "basis": "observed"
+  },
+  "features": [
+    {
+      "id": "A-F01", "name": "Note CRUD",
+      "description": "Create, list, edit and delete notes with a title and a Markdown body.",
+      "observed_behaviour": "GET /notes returns all notes newest first by created_at; POST /notes inserts title and body; PUT /notes/<id> updates title and body; DELETE /notes/<id> deletes.",
+      "business_logic": "title and body are NOT NULL; list order created_at desc; deleting a note cascades its note_tags rows.",
+      "data": ["Note"],
+      "depends_on": [],
+      "integration": "Needs persistent relational storage.",
+      "subfeatures": ["create", "list newest first", "update", "delete"],
+      "evidence": ["A-E02", "A-E03", "A-E08"],
+      "basis": "observed", "confidence": "high"
+    },
+    {
+      "id": "A-F02", "name": "Tags",
+      "description": "Attach named tags to notes; tags are shared, unique by name.",
+      "observed_behaviour": "POST /notes/<id>/tags gets or creates the tag by name and links it to the note.",
+      "business_logic": "tag name unique; many-to-many via note_tags; cascades on note or tag delete. No duplicate check on the note_tags pair (observed: plain insert, no unique constraint).",
+      "data": ["Tag", "NoteTag"],
+      "depends_on": ["A-F01"],
+      "subfeatures": ["tag a note"],
+      "evidence": ["A-E04", "A-E05", "A-E08", "A-E01"],
+      "basis": "observed", "confidence": "high"
+    },
+    {
+      "id": "A-F03", "name": "Search title and body",
+      "description": "Find notes whose title or body contains the search text.",
+      "observed_behaviour": "GET /search runs LIKE '%text%' on title OR body.",
+      "business_logic": "substring match on both fields; case sensitivity depends on the database (SQLite LIKE is case-insensitive for ASCII; inferred).",
+      "data": ["Note"],
+      "depends_on": ["A-F01"],
+      "evidence": ["A-E06", "A-E08", "A-E01"],
+      "basis": "observed", "confidence": "high"
+    },
+    {
+      "id": "A-F04", "name": "Markdown preview",
+      "description": "Render a note's Markdown body to HTML for a preview pane.",
+      "observed_behaviour": "GET /notes/<id>/preview returns markdown.render(body).",
+      "business_logic": "Rendered HTML; no sanitisation step is visible.",
+      "data": ["Note"],
+      "depends_on": ["A-F01"],
+      "integration": "Needs a Markdown renderer; output should be sanitised in the unified app.",
+      "evidence": ["A-E07", "A-E08", "A-E01"],
+      "basis": "observed", "confidence": "high"
+    }
+  ],
+  "entities": [
+    {"name": "Note", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "title", "type": "text", "required": true}, {"name": "body", "type": "text", "required": true}, {"name": "created_at", "type": "timestamp", "required": true}],
+     "features": ["A-F01", "A-F03", "A-F04"], "evidence": ["A-E02"], "basis": "observed"},
+    {"name": "Tag", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "name", "type": "text unique", "required": true}],
+     "features": ["A-F02"], "evidence": ["A-E04"], "basis": "observed"},
+    {"name": "NoteTag", "fields": [{"name": "note_id", "type": "integer"}, {"name": "tag_id", "type": "integer"}],
+     "foreign_keys": [{"field": "note_id", "references": "Note", "on_delete": "cascade"}, {"field": "tag_id", "references": "Tag", "on_delete": "cascade"}],
+     "features": ["A-F02"], "evidence": ["A-E04"], "basis": "observed"}
+  ],
+  "endpoints": [
+    {"method": "GET", "path": "/notes", "auth": "none observed", "response": {"body": "list of Note"}, "features": ["A-F01"], "evidence": ["A-E03", "A-E08"], "basis": "observed"},
+    {"method": "POST", "path": "/notes", "auth": "none observed", "request": {"title": "text", "body": "text"}, "response": {"body": "inserted Note"}, "features": ["A-F01"], "evidence": ["A-E03", "A-E08"], "basis": "observed"},
+    {"method": "PUT", "path": "/notes/<id>", "auth": "none observed", "request": {"title": "text", "body": "text"}, "features": ["A-F01"], "evidence": ["A-E03", "A-E08"], "basis": "observed"},
+    {"method": "DELETE", "path": "/notes/<id>", "auth": "none observed", "features": ["A-F01"], "evidence": ["A-E03", "A-E08"], "basis": "observed"},
+    {"method": "POST", "path": "/notes/<id>/tags", "auth": "none observed", "request": {"tag_name": "text"}, "features": ["A-F02"], "evidence": ["A-E05", "A-E08"], "basis": "observed"},
+    {"method": "GET", "path": "/search", "auth": "none observed", "request": {"text": "text"}, "response": {"body": "list of Note"}, "features": ["A-F03"], "evidence": ["A-E06", "A-E08"], "basis": "observed"},
+    {"method": "GET", "path": "/notes/<id>/preview", "auth": "none observed", "response": {"body": "HTML"}, "features": ["A-F04"], "evidence": ["A-E07", "A-E08"], "basis": "observed"}
+  ],
+  "auth": {"provider": "none", "methods": [], "session": "none observed", "model": "no authentication or authorization in the code", "roles": [], "evidence": ["A-E08"], "basis": "observed"},
+  "rules": [
+    {"key": "note.title.required", "value": true, "features": ["A-F01"], "evidence": ["A-E02"]},
+    {"key": "note.body.required", "value": true, "features": ["A-F01"], "evidence": ["A-E02"]},
+    {"key": "notes.list.order", "value": "created_at desc", "features": ["A-F01"], "evidence": ["A-E03"]},
+    {"key": "tag.name.unique", "value": true, "features": ["A-F02"], "evidence": ["A-E04"]},
+    {"key": "search.fields", "value": ["title", "body"], "features": ["A-F03"], "evidence": ["A-E06"]}
+  ],
+  "integrations": [],
+  "configuration": [],
+  "error_handling": [
+    {"case": "missing note id on update, delete, tag or preview", "behaviour": "not handled in the handlers; depends on the db helper (unknown)", "evidence": ["A-E03"]},
+    {"case": "empty title or body", "behaviour": "rejected by the NOT NULL constraint only for NULL; empty strings are accepted (inferred from schema)", "evidence": ["A-E02"]}
+  ],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": ["(root)"],
+    "modules_skipped": [],
+    "files_read": 3
+  },
+  "unknowns": [
+    "The db helper (db.all, db.insert, db.update, db.delete, db.get_or_create) is not in the folder; how created_at is filled on insert and how missing ids are handled is unknown. Settled by the helper's code.",
+    "No frontend in the folder: the preview pane and any editor screens are unknown. Settled by UI code or screenshots.",
+    "Which markdown package and version (no manifest); whether output is sanitised. Settled by a requirements file.",
+    "Code is labelled illustrative and was not run (running source code not approved), so behaviour is read from code only."
+  ]
+}

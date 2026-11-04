@@ -1,0 +1,148 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Product catalog",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only PyShop has a catalog; nothing to merge.",
+      "behaviour": "Anyone can list products (id, name, price) at GET /api/products.",
+      "improvements": "",
+      "depends_on": [],
+      "compatibility": "compatible",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U02",
+      "name": "Shopping cart",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E04",
+        "B-E05"
+      ],
+      "merge_type": "similar",
+      "rationale": "PyShop and NodeCart both add items to a cart; auto-pick kept NodeCart's best-evidenced version (M04) and dropped PyShop's (M03), taking PyShop's integer quantity typing into the improvement.",
+      "behaviour": "A signed-in customer adds a catalog product with a quantity to their own cart; adding the same product again increases the quantity.",
+      "improvements": "Quantity is a validated positive integer (not text); the cart comes from the session user, never from a client cartId; product_id must reference an existing Product.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U03",
+      "name": "Stripe checkout",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "B-F02"
+      ],
+      "evidence": [
+        "B-E02",
+        "B-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only NodeCart has payment.",
+      "behaviour": "The customer checks out their cart; the server creates a pending Order and a Stripe Checkout session from cart lines and catalog prices; a verified Stripe webhook marks the Order paid.",
+      "improvements": "Line items and prices are built on the server, never taken from the request; Order record added; payment confirmed only by a signature-verified webhook; Stripe test mode.",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U04",
+      "name": "Product reviews",
+      "menu_ids": [
+        "M06"
+      ],
+      "source_features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Reviewly has reviews; rebuilt from its public docs.",
+      "behaviour": "Anyone can list the visible reviews of a product at GET /api/products/{id}/reviews.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "compatible",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U05",
+      "name": "Write a review",
+      "menu_ids": [
+        "M07"
+      ],
+      "source_features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E01",
+        "C-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Reviewly has it; rebuilt from its public docs and spec.",
+      "behaviour": "A signed-in customer posts a rating (integer 1-5, checked on the server) and a comment for a product.",
+      "improvements": "",
+      "depends_on": [
+        "U01",
+        "U04"
+      ],
+      "compatibility": "compatible",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U06",
+      "name": "Verified-purchase gate",
+      "menu_ids": [
+        "M09"
+      ],
+      "source_features": [
+        "C-F04"
+      ],
+      "evidence": [
+        "C-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Reviewly has it; it needs the unified Order from U03.",
+      "behaviour": "A review is accepted only when the author has a paid Order containing that product; otherwise the API answers 403.",
+      "improvements": "Reviewly's exact rule (refuse or hide) is undocumented; the unified app refuses, which is simpler and testable.",
+      "depends_on": [
+        "U03",
+        "U05"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

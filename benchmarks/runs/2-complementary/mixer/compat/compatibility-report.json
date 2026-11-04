@@ -1,0 +1,526 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B",
+    "C"
+  ],
+  "summary": {
+    "critical": 1,
+    "high": 5,
+    "medium": 4,
+    "low": 0,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "database:primary-key:file",
+      "category": "database",
+      "kind": "primary-key",
+      "subject": "file",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "B-F01",
+        "B-F02",
+        "B-F03"
+      ],
+      "severity": "critical",
+      "detail": "File primary keys differ (A: text, B: unknown)",
+      "solutions": [
+        "Pick one key type for the merged entity and re-key the other source's rows",
+        "Keep a legacy_id column holding the old key during migration"
+      ],
+      "recommended": "Use one key type (uuid is usual for merged data) and add a legacy_id column while migrating",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One File table keyed by id TEXT holding a uuid4 hex. B never persisted files (it receives a dict) and A's store is not in the source, so there are no existing rows to re-key; no legacy_id needed.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:identity:owner",
+      "category": "application",
+      "kind": "identity",
+      "subject": "owner",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "C-F01",
+        "C-F04"
+      ],
+      "severity": "high",
+      "detail": "No source authenticates anyone: A takes owner_id from the caller and C has no identity at all, yet the merged app must know who owns a file",
+      "solutions": [
+        "Minimal accounts: username + password (salted PBKDF2), opaque session token in an http-only cookie",
+        "Trust an owner id header (unsafe)"
+      ],
+      "recommended": "Minimal accounts with a salted PBKDF2 password and a server-side session in an http-only cookie (standard library only)",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M07",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Minimal accounts: register/login with username + password hashed by salted PBKDF2-HMAC-SHA256; server-side session token (secrets.token_urlsafe) in an http-only SameSite=Strict cookie.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:permission:file-access",
+      "category": "application",
+      "kind": "permission",
+      "subject": "file-access",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "C-F01",
+        "C-F03",
+        "C-F04"
+      ],
+      "severity": "high",
+      "detail": "A scopes every file action by owner_id; C has no owner concept, so any caller could create or revoke a link for any file_id",
+      "solutions": [
+        "Owner-only link create/revoke; a token grants read-only access to that one file",
+        "Let anyone with the file id share it (weakens A's owner scoping)"
+      ],
+      "recommended": "Owner-only link create/revoke; a valid token (and password, if set) grants read-only metadata, preview and download of that one file",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M07",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Owner-only link create/revoke and owner-only file list/delete/preview/content; a valid unexpired token (plus password if set) grants read-only metadata, preview and download of that one file.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:security:link-password-hash",
+      "category": "application",
+      "kind": "security",
+      "subject": "link-password-hash",
+      "apps": [
+        "C"
+      ],
+      "features": [
+        "C-F02",
+        "C-F03"
+      ],
+      "severity": "high",
+      "detail": "C stores link passwords as unsalted SHA-256 and compares with !=; the unified app's rule is a slow salted hash and constant-time compare",
+      "solutions": [
+        "Salted PBKDF2-HMAC-SHA256 with hmac.compare_digest",
+        "Keep C's unsalted SHA-256"
+      ],
+      "recommended": "Salted PBKDF2-HMAC-SHA256 (hashlib.pbkdf2_hmac) with hmac.compare_digest",
+      "needs_approval": true,
+      "menu_features": [
+        "M08",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Salted PBKDF2-HMAC-SHA256 with hmac.compare_digest for link passwords.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:field-type:file.id",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "file.id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "B-F01",
+        "B-F02",
+        "B-F03"
+      ],
+      "severity": "high",
+      "detail": "File.id types differ (A: text, B: str)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "id is TEXT in SQLite and str in Python; A's text and B's str are the same value type.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:field-type:file.name",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "file.name",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "B-F01",
+        "B-F02",
+        "B-F03"
+      ],
+      "severity": "high",
+      "detail": "File.name types differ (A: text, B: str)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "name is TEXT in SQLite and str in Python; no conversion needed.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:route:thumbnail-url",
+      "category": "application",
+      "kind": "route",
+      "subject": "thumbnail-url",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "B returns /thumbs/<id>.png but nothing creates or serves it, and resizing needs an imaging library the standard library lacks",
+      "solutions": [
+        "Preview URL points at a route that serves the original image (owner route or link route)",
+        "Defer image preview"
+      ],
+      "recommended": "Serve the original image with its content type at /api/files/<id>/content (owner) or /s/<token>/content (link)",
+      "needs_approval": false,
+      "menu_features": [
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Image preview URL points at /api/files/<id>/content (owner) or /s/<token>/content (link); no resizing.",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:file",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "file",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "B-F01",
+        "B-F02",
+        "B-F03"
+      ],
+      "severity": "medium",
+      "detail": "File exists in A:File, B:File; fields not shared: created_at (only A), data (only B), owner_id (only A), size (only A)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge into one File entity with A's fields (id, owner_id, name, size, created_at); B's data field lives in file_content (see database:storage:file-bytes).",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:lifecycle:file-delete-links",
+      "category": "database",
+      "kind": "lifecycle",
+      "subject": "file-delete-links",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "features": [
+        "A-F03",
+        "C-F01",
+        "C-F03"
+      ],
+      "severity": "medium",
+      "detail": "Deleting a file in A would leave C's links pointing at a missing file_id",
+      "solutions": [
+        "Delete a file's share links with it (foreign key ON DELETE CASCADE)",
+        "Keep links and return 404 when opened"
+      ],
+      "recommended": "ON DELETE CASCADE from share_links.file_id to files.id",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M07",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "share_links.file_id REFERENCES files(id) ON DELETE CASCADE (foreign keys enabled per connection).",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:storage:file-bytes",
+      "category": "database",
+      "kind": "storage",
+      "subject": "file-bytes",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "A's files table has no column for the file's bytes, but B's preview needs them",
+      "solutions": [
+        "Store bytes in a separate SQLite BLOB table keyed by file id (max 10 MB each)",
+        "Store bytes on disk under a data folder"
+      ],
+      "recommended": "Separate file_content table (file_id primary key, data BLOB) so listing never loads bytes",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "file_content(file_id PK REFERENCES files ON DELETE CASCADE, data BLOB).",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:file",
+      "entity": "File",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "re-key rows to one primary key type (A: text, B: unknown) and rewrite foreign keys that point at them",
+          "risk": "high",
+          "data_loss": [],
+          "note": "old ids and anything outside that stores them stop matching"
+        },
+        {
+          "change": "convert id to one type (A: text, B: str)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "convert name to one type (A: text, B: str)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "add fields that only some sources have: created_at (only A), data (only B), owner_id (only A), size (only A)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "A.File.created_at: timestamp to text keeps every value",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "re-key rows to one primary key type (A: text, B: unknown) and rewrite foreign keys that point at them",
+        "convert id to one type (A: text, B: str)",
+        "convert name to one type (A: text, B: str)",
+        "add fields that only some sources have: created_at (only A), data (only B), owner_id (only A), size (only A)",
+        "A.File.created_at: timestamp to text keeps every value"
+      ],
+      "risk": "high",
+      "data_loss": [],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:filecontent",
+      "entity": "FileContent",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "B.File fields not kept in FileContent: id, name",
+          "risk": "high",
+          "data_loss": [
+            "id",
+            "name"
+          ]
+        },
+        {
+          "change": "B.File.data: bytes to blob can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "data"
+          ]
+        }
+      ],
+      "changes": [
+        "B.File fields not kept in FileContent: id, name",
+        "B.File.data: bytes to blob can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "data",
+        "id",
+        "name"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:sharelink",
+      "entity": "ShareLink",
+      "apps": [
+        "C"
+      ],
+      "steps": [
+        {
+          "change": "C.ShareLink.token: str to text can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "token"
+          ]
+        },
+        {
+          "change": "C.ShareLink.file_id: str to text can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "file_id"
+          ]
+        },
+        {
+          "change": "C.ShareLink.password_hash: str | none to text can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "password_hash"
+          ]
+        }
+      ],
+      "changes": [
+        "C.ShareLink.token: str to text can lose or reject values",
+        "C.ShareLink.file_id: str to text can lose or reject values",
+        "C.ShareLink.password_hash: str | none to text can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "file_id",
+        "password_hash",
+        "token"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    }
+  ]
+}

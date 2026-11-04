@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FileShare</title>
+<style>
+:root { --bg:#f7f7f5; --surface:#fff; --text:#1d1d1b; --muted:#5c5c57; --accent:#1f5f8b; --danger:#a3271b; --r:6px; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width:760px; margin:0 auto; padding:24px 16px; }
+h1 { font-size:28px; margin:0 0 16px; } h2 { font-size:20px; margin:24px 0 8px; }
+.card { background:var(--surface); border-radius:var(--r); padding:16px; margin-bottom:16px; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+input[type=text], input[type=password], input[type=number] { font:inherit; padding:8px; border:1px solid #ccc; border-radius:var(--r); width:100%; margin-bottom:8px; }
+button { font:inherit; padding:8px 16px; border-radius:var(--r); border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; margin:4px 4px 0 0; }
+button.plain { background:transparent; color:var(--accent); } button.danger { background:var(--danger); border-color:var(--danger); }
+.row { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding:8px 0; border-top:1px solid #eee; }
+.muted { color:var(--muted); font-size:14px; } .notice { padding:8px; border-radius:var(--r); background:#e8f0f6; margin:8px 0; }
+.notice.error { background:#f8e3e0; color:var(--danger); }
+pre { white-space:pre-wrap; background:var(--bg); padding:8px; border-radius:var(--r); font-size:14px; }
+img.preview { max-width:100%; max-height:320px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>FileShare</h1>
+  <div id="msg" role="status"></div>
+  <section id="auth" class="card" hidden>
+    <h2>Sign in</h2>
+    <input id="username" type="text" placeholder="Username" autocomplete="username">
+    <input id="password" type="password" placeholder="Password (8+ characters)" autocomplete="current-password">
+    <button id="login">Sign in</button><button id="register" class="plain">Create account</button>
+  </section>
+  <section id="home" hidden>
+    <div class="card">
+      <h2>Upload</h2>
+      <input id="file" type="file"> <button id="upload">Upload</button>
+      <p class="muted">Up to 10 MB. <button id="logout" class="plain">Sign out</button></p>
+    </div>
+    <div class="card"><h2>My files</h2><div id="list"></div></div>
+    <div class="card" id="panel" hidden><h2 id="panel-title"></h2><div id="panel-body"></div></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+function el(tag, text, cls) { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
+function say(text, isError) { const m = $("msg"); m.replaceChildren(); if (text) m.append(el("div", text, "notice" + (isError ? " error" : ""))); }
+async function api(method, path, body, headers) {
+  const opts = { method, headers: headers || {}, credentials: "same-origin" };
+  if (body instanceof Blob || body instanceof ArrayBuffer) opts.body = body;
+  else if (body !== undefined) { opts.body = JSON.stringify(body); opts.headers["Content-Type"] = "application/json"; }
+  const r = await fetch(path, opts);
+  if (r.status === 204) return null;
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((data.error && data.error.message) || r.statusText);
+  return data;
+}
+async function auth(kind) {
+  try { await api("POST", "/api/" + kind, { username: $("username").value, password: $("password").value }); say(""); load(); }
+  catch (e) { say(e.message, true); }
+}
+function showPreview(f, p) {
+  $("panel").hidden = false; $("panel-title").textContent = f.name; const b = $("panel-body"); b.replaceChildren();
+  if (p.kind === "text") b.append(el("pre", p.first_lines.join("\n")));
+  else if (p.kind === "image") { const i = el("img", null, "preview"); i.src = p.url; i.alt = f.name; b.append(i); }
+  else b.append(el("p", p.reason, "muted"));
+}
+async function share(f) {
+  const hours = prompt("Link expires after how many hours?", "24"); if (hours === null) return;
+  const pw = prompt("Password (leave empty for none)", "");
+  const body = { expires_in_hours: Number(hours) }; if (pw) body.password = pw;
+  try {
+    const l = await api("POST", `/api/files/${f.id}/links`, body);
+    $("panel").hidden = false; $("panel-title").textContent = "Share link for " + f.name; const b = $("panel-body"); b.replaceChildren();
+    b.append(el("pre", location.origin + l.url), el("p", "Expires " + new Date(l.expires_at * 1000).toLocaleString() + (l.has_password ? " · password set" : ""), "muted"));
+    const rv = el("button", "Revoke link", "danger");
+    rv.onclick = async () => { try { await api("DELETE", "/api/links/" + l.token); say("Link revoked"); $("panel").hidden = true; } catch (e) { say(e.message, true); } };
+    b.append(rv);
+  } catch (e) { say(e.message, true); }
+}
+async function load() {
+  try {
+    const data = await api("GET", "/api/files");
+    $("auth").hidden = true; $("home").hidden = false;
+    const list = $("list"); list.replaceChildren();
+    if (!data.files.length) list.append(el("p", "No files yet.", "muted"));
+    for (const f of data.files) {
+      const row = el("div", null, "row"), left = el("div");
+      left.append(el("strong", f.name), el("div", (f.size / 1024).toFixed(1) + " KB · " + f.content_type, "muted"));
+      const right = el("div");
+      const pv = el("button", "Preview", "plain"); pv.onclick = async () => { try { showPreview(f, await api("GET", `/api/files/${f.id}/preview`)); } catch (e) { say(e.message, true); } };
+      const dl = el("a", "Download"); dl.href = `/api/files/${f.id}/content`;
+      const sh = el("button", "Share"); sh.onclick = () => share(f);
+      const del = el("button", "Delete", "danger"); del.onclick = async () => { if (!confirm("Delete " + f.name + "? Its share links stop working.")) return; try { await api("DELETE", "/api/files/" + f.id); load(); } catch (e) { say(e.message, true); } };
+      right.append(pv, sh, del, dl); row.append(left, right); list.append(row);
+    }
+  } catch (e) { $("home").hidden = true; $("auth").hidden = false; }
+}
+$("login").onclick = () => auth("login");
+$("register").onclick = () => auth("register");
+$("logout").onclick = async () => { await api("POST", "/api/logout").catch(() => {}); load(); };
+$("upload").onclick = async () => {
+  const f = $("file").files[0]; if (!f) return say("Choose a file first", true);
+  if (f.size > 10 * 1024 * 1024) return say("File too large (limit 10 MB)", true);
+  try { await api("POST", "/api/files?name=" + encodeURIComponent(f.name), f); say("Uploaded " + f.name); $("file").value = ""; load(); }
+  catch (e) { say(e.message, true); }
+};
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Email sign-in with cookie session",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E03",
+        "A-E08",
+        "A-E10"
+      ],
+      "merge_type": "similar",
+      "rationale": "Both apps sign users in by email; A's server session was chosen over B's JWT (B's key is hard-coded and tokens never expire). One identity system for both user bases.",
+      "behaviour": "POST /api/session with email and password; on success an http-only, secure, same-site session cookie holds the user id; wrong credentials return 401; DELETE /api/session signs out.",
+      "improvements": "401 on failed sign-in (A dereferenced a null user); slow password hash; session secret from configuration only.",
+      "depends_on": [],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U02",
+      "name": "Read a post",
+      "menu_ids": [
+        "M03",
+        "M04"
+      ],
+      "source_features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "evidence": [
+        "A-E04",
+        "B-E03",
+        "B-E06"
+      ],
+      "merge_type": "similar",
+      "rationale": "Same job with different access rules; combined deliberately: B's public reading for published posts, A's status model for everything else.",
+      "behaviour": "GET /api/posts/:id returns a published post to anyone; a pending or rejected post only to its author or a moderator, otherwise 404.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U03",
+      "name": "Create a post held for moderation",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E02",
+        "A-E05",
+        "A-E09"
+      ],
+      "merge_type": "similar",
+      "rationale": "A's version chosen from the create-post group because every post must reach the moderation queue; B's immediate publishing (M06) was dropped.",
+      "behaviour": "A signed-in member submits a body (length limit decided in compatibility); the post is stored with status pending and the author's id; 201 with the post.",
+      "improvements": "Server-side length validation with a 422 response instead of relying on the DB constraint.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U04",
+      "name": "Moderation queue",
+      "menu_ids": [
+        "M07"
+      ],
+      "source_features": [
+        "A-F04"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E06",
+        "A-E07",
+        "A-E09",
+        "A-E10",
+        "A-E11"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only A has it; it is the core of A's loop.",
+      "behaviour": "Moderators list pending posts (oldest first) and publish or reject each; others get 403.",
+      "improvements": "Decision validated to publish|reject (422 otherwise); moderated_by and moderated_at recorded.",
+      "depends_on": [
+        "U01",
+        "U03"
+      ],
+      "compatibility": "compatible",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U05",
+      "name": "Post list",
+      "menu_ids": [
+        "M09"
+      ],
+      "source_features": [
+        "A-F05"
+      ],
+      "evidence": [
+        "A-E10"
+      ],
+      "merge_type": "identical",
+      "rationale": "Both apps have a /posts screen; one is kept. Neither source shows a list endpoint, so it is designed fresh.",
+      "behaviour": "GET /api/posts lists published posts, newest first, paginated; the /posts screen shows them and links to each post.",
+      "improvements": "",
+      "depends_on": [
+        "U02"
+      ],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

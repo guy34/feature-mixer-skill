@@ -1,0 +1,74 @@
+{
+  "database:primary-key:deal": {
+    "decision": "uuid (stored as text) for every unified Deal; each imported row keeps legacy_source ('A' or 'B') and legacy_id (A's integer id; B's id as text, type unknown) during and after migration; Contact is re-keyed the same way so Deal.contact_id is uuid",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:field-type:deal.stage": {
+    "decision": "Deal.stage becomes stage_id (uuid, FK to Stage); A's text values map 1:1 to the seeded stages; B's values map new->lead, contacted->qualified, negotiating->proposal, closed->'closed' (outcome unspecified); any other B value is imported as an extra configured stage, never dropped",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:field-type:deal.title": {
+    "decision": "Deal.title is text, not null, max 200; B's values (type unknown, used as text) are cast with str() on import and the dry run reports any that are empty or not strings",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:rule:deal-stages": {
+    "decision": "Accept the recommendation: configurable Stage table seeded with lead, qualified, proposal, won, lost plus closed (outcome unspecified) for B's closed deals",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:workflow:deal-owner": {
+    "decision": "Add User and required Deal.owner_id; create users from B's distinct owner_email values; A's existing deals get a default owner the user names before migration",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:data:deal-contact": {
+    "decision": "Deal.contact_id stays nullable; B's deals import with no contact",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:rule:reminders-on-closed-deals": {
+    "decision": "Reminders skip stages with a closed outcome and dedupe on (deal_id, moved_at)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:duplicate-entity:deal": {
+    "decision": "Merge A:Deal and B:Deal into one Deal entity; field origins listed in architecture.json",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:data:moved-at-timezone": {
+    "decision": "Store timezone-aware UTC; B's naive values are read as UTC on import; A's deals get moved_at = import time",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:workflow:merge-vs-moved-at": {
+    "decision": "Contact merge changes only contact_id on deals; moved_at changes only on stage moves",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:deal": {
+    "decision": "Approved as a plan only (design/migration-plan.md): re-key to uuid with legacy ids, map stages, add owner/moved_at/value fields; backup and dry run on a copy first; nothing is run in this plan-mode run",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:contact": {
+    "decision": "Approved as a plan only: re-key A's contacts from integer to uuid keeping legacy_id, rewrite Deal.contact_id through the legacy_id map; email stays text unique (case-insensitive); nothing is run in this plan-mode run",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  }
+}

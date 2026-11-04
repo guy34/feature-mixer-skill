@@ -1,0 +1,264 @@
+{
+  "app": {
+    "id": "C",
+    "name": "Pulse"
+  },
+  "coverage": "partial",
+  "size": "M",
+  "sources_used": [
+    {
+      "ref": "C-R01",
+      "kind": "documentation",
+      "location": "sources/pulse-docs/docs/overview.md",
+      "accessed": "2026-11-04"
+    },
+    {
+      "ref": "C-R02",
+      "kind": "documentation",
+      "location": "sources/pulse-docs/docs/push.md",
+      "accessed": "2026-11-04"
+    },
+    {
+      "ref": "C-R03",
+      "kind": "api-spec",
+      "location": "sources/pulse-docs/openapi.yaml",
+      "accessed": "2026-11-04"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "C-E01",
+      "source": "C-R01",
+      "basis": "documented",
+      "locator": "sources/pulse-docs/docs/overview.md:5",
+      "summary": "Dashboard: open items per person, overdue items, waiting approvals; done items not open"
+    },
+    {
+      "id": "C-E02",
+      "source": "C-R03",
+      "basis": "documented",
+      "locator": "sources/pulse-docs/openapi.yaml:8",
+      "summary": "GET /v2/dashboard/workload returns open_by_person, overdue, pending_approvals"
+    },
+    {
+      "id": "C-E03",
+      "source": "C-R02",
+      "basis": "documented",
+      "locator": "sources/pulse-docs/docs/push.md:3",
+      "summary": "Push: opt in per browser; HTTPS endpoints; no push without opting in"
+    },
+    {
+      "id": "C-E04",
+      "source": "C-R03",
+      "basis": "documented",
+      "locator": "sources/pulse-docs/openapi.yaml:21",
+      "summary": "POST /v2/push/subscriptions registers an endpoint and returns a PushSubscription"
+    },
+    {
+      "id": "C-E05",
+      "source": "C-R01",
+      "basis": "documented",
+      "locator": "sources/pulse-docs/docs/overview.md:14",
+      "summary": "A weekly digest email every Monday"
+    },
+    {
+      "id": "C-E06",
+      "source": "C-R01",
+      "basis": "documented",
+      "locator": "sources/pulse-docs/docs/overview.md:16",
+      "summary": "Template gallery of boards shared by the Pulse community"
+    },
+    {
+      "id": "C-E07",
+      "source": "C-R01",
+      "basis": "documented",
+      "locator": "sources/pulse-docs/docs/overview.md:22",
+      "summary": "Sign in with Google; workspaces have admins and members"
+    },
+    {
+      "id": "C-E08",
+      "source": "C-R03",
+      "basis": "documented",
+      "locator": "sources/pulse-docs/openapi.yaml:51",
+      "summary": "API uses OAuth 2 with Google as the authorization server"
+    }
+  ],
+  "architecture": {
+    "backend": "Not documented beyond a public JSON API",
+    "evidence": [
+      "C-E08"
+    ],
+    "basis": "documented"
+  },
+  "features": [
+    {
+      "id": "C-F01",
+      "name": "Workload dashboard",
+      "description": "Open items per person, overdue items and waiting approvals.",
+      "evidence": [
+        "C-E01",
+        "C-E02"
+      ],
+      "basis": "documented",
+      "confidence": "medium",
+      "business_logic": "Done items are not counted as open. How overdue is judged across time zones is not documented.",
+      "data": [
+        "Task",
+        "ApprovalRequest"
+      ],
+      "integration": "Needs tasks with assignees and due dates, and approvals."
+    },
+    {
+      "id": "C-F02",
+      "name": "Push notifications",
+      "description": "Browser push notifications people opt into per browser.",
+      "evidence": [
+        "C-E03",
+        "C-E04"
+      ],
+      "basis": "documented",
+      "confidence": "medium",
+      "business_logic": "No push without opting in; endpoints must be HTTPS.",
+      "data": [
+        "PushSubscription"
+      ],
+      "integration": "Needs a notification source and a web push service."
+    },
+    {
+      "id": "C-F03",
+      "name": "Weekly digest email",
+      "description": "A Monday email summarising the past week.",
+      "evidence": [
+        "C-E05"
+      ],
+      "basis": "documented",
+      "confidence": "medium",
+      "integration": "Needs email delivery and a scheduler."
+    },
+    {
+      "id": "C-F04",
+      "name": "Template gallery",
+      "description": "Board templates shared by the Pulse community.",
+      "evidence": [
+        "C-E06"
+      ],
+      "basis": "documented",
+      "confidence": "high",
+      "business_logic": "The templates are other people's content."
+    },
+    {
+      "id": "C-F05",
+      "name": "Sign in with Google",
+      "description": "Google accounts sign in to Pulse.",
+      "evidence": [
+        "C-E07",
+        "C-E08"
+      ],
+      "basis": "documented",
+      "confidence": "high"
+    }
+  ],
+  "entities": [
+    {
+      "name": "PushSubscription",
+      "primary_key": {
+        "name": "id",
+        "type": "uuid"
+      },
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "endpoint",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        }
+      ],
+      "features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E04"
+      ],
+      "basis": "documented"
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/v2/dashboard/workload",
+      "auth": "oauth",
+      "response": {
+        "open_by_person": "array",
+        "overdue": "integer",
+        "pending_approvals": "integer"
+      },
+      "features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E02"
+      ],
+      "basis": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/push/subscriptions",
+      "auth": "oauth",
+      "request": {
+        "endpoint": "text"
+      },
+      "response": {
+        "id": "uuid",
+        "endpoint": "text"
+      },
+      "features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E04"
+      ],
+      "basis": "documented"
+    }
+  ],
+  "auth": {
+    "provider": "google",
+    "methods": [
+      "google-oauth"
+    ],
+    "session": "unknown",
+    "model": "unknown",
+    "roles": [
+      "admin",
+      "member"
+    ],
+    "evidence": [
+      "C-E07",
+      "C-E08"
+    ],
+    "basis": "documented"
+  },
+  "integrations": [
+    {
+      "name": "Web Push",
+      "purpose": "browser notifications",
+      "features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E03"
+      ]
+    }
+  ],
+  "unknowns": [
+    "How Pulse keeps sessions: not in the public docs (would need Pulse's security docs).",
+    "How overdue is judged across time zones: not documented.",
+    "What the two Pulse roles may each do: only their names are documented.",
+    "The look of Pulse's screens: no screenshots were provided, so no screens are listed."
+  ]
+}

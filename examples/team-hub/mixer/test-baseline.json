@@ -1,0 +1,28 @@
+{
+  "run_id": "20261104T090459705214Z",
+  "tests": {
+    "tests.test_teamhub.AccountsTest.test_account_rules": "passed",
+    "tests.test_teamhub.AccountsTest.test_session_expires_after_idle_timeout": "passed",
+    "tests.test_teamhub.AccountsTest.test_sign_in_and_wrong_password": "passed",
+    "tests.test_teamhub.AccountsTest.test_unified_roles_and_approve_permission": "passed",
+    "tests.test_teamhub.ApprovalsTest.test_approval_journey": "passed",
+    "tests.test_teamhub.ApprovalsTest.test_approval_rules": "passed",
+    "tests.test_teamhub.ApprovalsTest.test_pending_approval_blocks_closing": "passed",
+    "tests.test_teamhub.CommentsTest.test_comment_rules": "passed",
+    "tests.test_teamhub.CommentsTest.test_threaded_comments_on_tasks_and_approvals": "passed",
+    "tests.test_teamhub.DashboardTest.test_workload_counts": "passed",
+    "tests.test_teamhub.DatabaseTest.test_integrity": "passed",
+    "tests.test_teamhub.HttpApiTest.test_api_errors": "passed",
+    "tests.test_teamhub.HttpApiTest.test_end_to_end_journey": "passed",
+    "tests.test_teamhub.HttpApiTest.test_push_subscription_over_http": "passed",
+    "tests.test_teamhub.HttpApiTest.test_sign_out": "passed",
+    "tests.test_teamhub.NotificationEngineTest.test_preferences_choose_channels": "passed",
+    "tests.test_teamhub.NotificationEngineTest.test_push_channel_for_opted_in_browsers": "passed",
+    "tests.test_teamhub.NotificationEngineTest.test_read_and_privacy": "passed",
+    "tests.test_teamhub.TasksTest.test_assignee_must_exist": "passed",
+    "tests.test_teamhub.TasksTest.test_assignment_notifies_on_every_channel_once": "passed",
+    "tests.test_teamhub.TasksTest.test_no_notification_for_assigning_yourself": "passed",
+    "tests.test_teamhub.TasksTest.test_only_allowed_people_move_tasks": "passed",
+    "tests.test_teamhub.TasksTest.test_task_board_flow": "passed"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "database:primary-key:note": {
+    "decision": "uuid (text) primary key for Note and Tag in the unified app; A's integer ids kept in legacy_id during migration, B's uuids kept as-is",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:api:note-update-semantics": {
+    "decision": "Update whitelists title and body; unknown fields rejected with 400; pin/unpin and tags have their own endpoints",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:business-rule:notes.list.order": {
+    "decision": "One order everywhere: pinned first, then created_at descending (keeps A's order for unpinned notes, adds B's pinning); not configurable",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:database:jotter-data-in-memory": {
+    "decision": "B has no stored data; import only from a JSON dump of GET /api/notes if the user supplies one, otherwise nothing to migrate",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:database:labels-to-tags": {
+    "decision": "Map each distinct trimmed, case-folded label to one tag and link it; log merged variants",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:duplicate-entity:note": {
+    "decision": "Merge into one Note table: id, legacy_id, title, body (B content), pinned, created_at, updated_at; field origins listed in architecture.json",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "dependency:runtime-mix:backend-runtime": {
+    "decision": "One backend runtime: Python (A's runtime); B's features rebuilt in Python",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "application:application:export-filenames": {
+    "decision": "File name = slugified title + '-' + first 8 characters of the uuid + '.md'",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "database:naming-style:fields": {
+    "decision": "snake_case for all tables and fields; B's camelCase mapped (updatedAt -> updated_at)",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:note": {
+    "decision": "PLAN ONLY (approved as a plan, not for execution): re-key A's notes and tags to uuid with legacy_id, rewrite note_tags FKs, import B's optional JSON dump; backup, dry run, checks and rollback in design/migration-plan.md. Running it needs a separate migration approval.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:notetag": {
+    "decision": "PLAN ONLY (approved as a plan, not for execution): rewrite A's note_tags integer FKs to the new uuids through legacy_id, then drop duplicate pairs; checks in design/migration-plan.md. Running it needs a separate migration approval.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  },
+  "migration:tag": {
+    "decision": "PLAN ONLY: re-key A's tags to uuid with legacy_id; case-variant names merge (logged). Not for execution without a migration approval.",
+    "approved": true,
+    "by": "benchmark-operator (pre-approved in task)",
+    "date": "2026-11-04"
+  }
+}

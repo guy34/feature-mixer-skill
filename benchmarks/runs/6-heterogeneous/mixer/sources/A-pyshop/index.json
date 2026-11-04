@@ -1,0 +1,87 @@
+{
+  "root": "../../../sources/pyshop",
+  "indexed_at": "2026-11-04T09:17:49+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 3,
+    "lines": 22,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "app.py",
+      "size": 309,
+      "sha256": "7d694812ba9c22fead845c4affb4532df904f88c458f2dce11917fd103d742c3",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 9,
+      "imports": [],
+      "packages": [
+        "flask"
+      ]
+    },
+    {
+      "path": "models.py",
+      "size": 525,
+      "sha256": "b67075b953dd2064dc6a6d21041627f638ec4a1d82f54780fc0f3a5502c7e0ba",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 11,
+      "imports": [],
+      "packages": [
+        "sqlalchemy"
+      ]
+    },
+    {
+      "path": "requirements.txt",
+      "size": 32,
+      "sha256": "070621c973f9f54e0195fd58af472ad1799d813ef3eb62c2c19e3c5007296f50",
+      "language": "other",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 2
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 22,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": [
+        "flask",
+        "sqlalchemy"
+      ]
+    }
+  },
+  "external_imports": {
+    "flask": [
+      "app.py"
+    ],
+    "sqlalchemy": [
+      "models.py"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "app.py",
+      "models.py"
+    ],
+    "A-F02": [
+      "app.py",
+      "models.py"
+    ],
+    "A-F03": [
+      "app.py",
+      "models.py"
+    ]
+  }
+}

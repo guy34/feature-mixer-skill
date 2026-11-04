@@ -1,0 +1,23 @@
+{
+  "1-overlapping": {
+    "compatibility_recall": 1.0,
+    "missed": []
+  },
+  "3-conflicting": {
+    "compatibility_recall": 1.0,
+    "missed": []
+  },
+  "6-heterogeneous": {
+    "compatibility_recall": 0.667,
+    "missed": [
+      {
+        "kind": "duplicate-entity",
+        "subject": "cart"
+      },
+      {
+        "kind": "primary-key",
+        "subject": "cart"
+      }
+    ]
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one small product, one release cadence",
+      "strong consistency between posts and moderation decisions",
+      "low, uniform load; no part needs independent scaling",
+      "one data migration from two sources into one database"
+    ],
+    "alternatives": [
+      {"style": "microservices", "fit": "poor", "reason": "five small features; network calls and distributed data with no scaling or team-independence need"},
+      {"style": "event-driven", "fit": "poor", "reason": "the moderation flow is synchronous request/response; no fan-out or async work in the kept features"},
+      {"style": "service-oriented", "fit": "poor", "reason": "no existing system has to stay separate; both sources are merged into one"},
+      {"style": "hybrid", "fit": "partial", "reason": "could add an async notification pipeline later, but no kept feature needs it now"}
+    ],
+    "reason": "Simplest design that meets every driver: one deployable with identity, posts and moderation modules and one database"
+  },
+  "stack": {
+    "frontend": "Server-rendered HTML pages (Express + EJS templates), progressive enhancement only",
+    "backend": "Node.js 22 LTS, Express 4",
+    "database": "PostgreSQL 16",
+    "sessions": "express-session with a PostgreSQL session store (connect-pg-simple)",
+    "password_hashing": "argon2id",
+    "hosting": "a single managed Node host plus managed PostgreSQL (user's choice; not deployed by Feature Mixer)",
+    "reasons": {
+      "backend": "D01: A (own code, kept features M01/M05/M07 adapted or improved from it) is Node/Express; B's Python code is not reused, so one runtime",
+      "database": "D02: A's schema is PostgreSQL-style (uuid, timestamptz); uuid keys are the compatibility decision",
+      "frontend": "D03: neither source's frontend framework is known; five screens need no SPA; server rendering keeps the cookie session simple",
+      "sessions": "D04: compatibility decision application:session:session (http-only cookie session, no bearer tokens)",
+      "password_hashing": "D05: slow hash required by the security engine; source hashing unknown, so unsupported B hashes force a reset"
+    }
+  },
+  "modules": [
+    {"name": "config", "responsibility": "read every environment variable once and expose typed settings", "features": [], "depends_on": [], "owns_entities": []},
+    {"name": "identity", "responsibility": "accounts, sign-in and sign-out, sessions, roles and the single can(user, action, resource) permission check", "features": ["M01"], "depends_on": ["config"], "owns_entities": ["User", "Session"]},
+    {"name": "posts", "responsibility": "create posts (always pending), read a post with status-based visibility, list published posts", "features": ["M03", "M04", "M05", "M09"], "depends_on": ["identity", "config"], "owns_entities": ["Post"]},
+    {"name": "moderation", "responsibility": "moderators list pending posts and publish or reject them through the posts module's API", "features": ["M07"], "depends_on": ["posts", "identity"], "owns_entities": []}
+  ],
+  "entities": [
+    {"name": "User", "merged_from": ["A:User", "B:User"], "primary_key": "id uuid",
+     "notes": "B users re-keyed to uuid with legacy_id; same-email accounts merged into A's record; reserved system account for legacy anonymous posts",
+     "fields": [
+       {"name": "id", "type": "uuid"},
+       {"name": "legacy_id", "type": "integer", "from": ["B:User.id"]},
+       {"name": "email", "type": "text", "from": ["A:User.email", "B:User.email"]},
+       {"name": "display_name", "type": "text", "from": ["A:User.display_name", "B:User.name"]},
+       {"name": "role", "type": "text", "from": ["A:User.role", "B:User.role"]},
+       {"name": "password_hash", "type": "text"},
+       {"name": "password_reset_required", "type": "boolean"},
+       {"name": "sign_in_disabled", "type": "boolean"},
+       {"name": "created_at", "type": "timestamptz"}
+     ]},
+    {"name": "Post", "merged_from": ["A:Post", "B:Post"], "primary_key": "id uuid",
+     "notes": "status from A; B rows migrate as published; body limit 10000; author_id not null (legacy anonymous -> system account)",
+     "fields": [
+       {"name": "id", "type": "uuid"},
+       {"name": "legacy_id", "type": "integer", "from": ["B:Post.id"]},
+       {"name": "author_id", "type": "uuid", "from": ["A:Post.author_id", "B:Post.author_id"]},
+       {"name": "body", "type": "text", "from": ["A:Post.body", "B:Post.body"]},
+       {"name": "status", "type": "text", "from": ["A:Post.status"]},
+       {"name": "created_at", "type": "timestamptz", "from": ["A:Post.created_at", "B:Post.created_at"]},
+       {"name": "moderated_by", "type": "uuid"},
+       {"name": "moderated_at", "type": "timestamptz"}
+     ]},
+    {"name": "Session", "merged_from": ["new"], "primary_key": "sid text", "notes": "session store table for express-session",
+     "fields": [{"name": "sid", "type": "text"}, {"name": "sess", "type": "jsonb"}, {"name": "expire", "type": "timestamptz"}]}
+  ],
+  "auth": {
+    "method": "email + password (argon2id)",
+    "session": "server-side session, http-only secure same-site=lax cookie; idle timeout 7 days",
+    "roles": ["member", "moderator"],
+    "permissions": {
+      "member": ["post.create", "post.read_published", "post.read_own_unpublished"],
+      "moderator": ["post.create", "post.read_published", "post.read_any_unpublished", "moderation.list", "moderation.decide"],
+      "anonymous visitor": ["post.read_published"]
+    },
+    "role_mapping": {
+      "A:member": "member",
+      "A:moderator": "moderator",
+      "B:user": "member",
+      "B:admin": "member (least privilege; listed for the user to promote)"
+    }
+  },
+  "api": [
+    {"method": "POST", "path": "/api/session", "module": "identity", "auth": "none", "features": ["M01"]},
+    {"method": "DELETE", "path": "/api/session", "module": "identity", "auth": "session", "features": ["M01"]},
+    {"method": "GET", "path": "/api/session", "module": "identity", "auth": "session", "features": ["M01"]},
+    {"method": "GET", "path": "/api/posts", "module": "posts", "auth": "public (published only)", "features": ["M09"]},
+    {"method": "POST", "path": "/api/posts", "module": "posts", "auth": "session (post.create)", "features": ["M05"]},
+    {"method": "GET", "path": "/api/posts/:id", "module": "posts", "auth": "public if published; author or moderator otherwise", "features": ["M03", "M04"]},
+    {"method": "GET", "path": "/api/moderation/queue", "module": "moderation", "auth": "session (moderation.list)", "features": ["M07"]},
+    {"method": "POST", "path": "/api/moderation/posts/:id/decision", "module": "moderation", "auth": "session (moderation.decide)", "features": ["M07"]}
+  ],
+  "navigation": [
+    {"route": "/login", "screen": "Login", "module": "identity"},
+    {"route": "/posts", "screen": "Post list", "module": "posts"},
+    {"route": "/posts/new", "screen": "New post", "module": "posts"},
+    {"route": "/posts/:id", "screen": "Post", "module": "posts"},
+    {"route": "/moderation", "screen": "Moderation queue", "module": "moderation"}
+  ],
+  "design_system": {
+    "tokens": {"colour_roles": ["surface", "text", "muted", "accent", "danger", "success", "border"], "type_scale": [14, 16, 20, 28], "spacing": [4, 8, 12, 16, 24, 32], "radius": [4, 8]},
+    "components": {"Button": ["primary", "secondary", "danger"], "TextField": ["default", "error"], "TextArea": ["default", "error", "with counter"], "PostCard": ["published", "pending", "rejected"], "StatusBadge": ["pending", "published", "rejected"], "EmptyState": [], "Alert": ["error", "success"]},
+    "fonts": "system font stack (no licensed fonts)",
+    "icons": "none required; an open set (e.g. Lucide, ISC) if added"
+  },
+  "configuration": {
+    "DATABASE_URL": "PostgreSQL connection string (secret)",
+    "SESSION_SECRET": "signs the session cookie (secret, required in production)",
+    "PORT": "HTTP port, default 3000",
+    "NODE_ENV": "development | production; production enables secure cookies",
+    "MAX_POST_LENGTH": "default 10000 (compatibility decision)",
+    "SESSION_IDLE_DAYS": "default 7"
+  },
+  "slices": [
+    {"id": "V1", "name": "Core loop: sign in, write a post (pending), read posts with status-based visibility", "features": ["M01", "M05", "M03", "M04"], "status": "pending"},
+    {"id": "V2", "name": "Moderation queue: publish or reject pending posts", "features": ["M07"], "status": "pending"},
+    {"id": "V3", "name": "Post list of published posts", "features": ["M09"], "status": "pending"}
+  ],
+  "decisions": [
+    {"id": "D01", "decision": "Node.js 22 + Express 4 backend", "reason": "A is Node/Express and its code may be reused; one runtime", "approved": true},
+    {"id": "D02", "decision": "PostgreSQL 16 with uuid keys; legacy_id for B rows", "reason": "compatibility decision database:primary-key:post", "approved": true},
+    {"id": "D03", "decision": "Server-rendered pages with EJS", "reason": "five screens; no known source frontend to reuse", "approved": true},
+    {"id": "D04", "decision": "http-only cookie session, no bearer tokens", "reason": "compatibility decision application:session:session", "approved": true},
+    {"id": "D05", "decision": "argon2id password hashing; reset for unsupported B hashes", "reason": "security engine s6; source hashing unknown", "approved": true},
+    {"id": "D06", "decision": "Modular monolith with config, identity, posts, moderation modules", "reason": "style comparison above", "approved": true},
+    {"id": "D07", "decision": "Roles member and moderator; B admin -> member", "reason": "compatibility decision application:roles:roles (least privilege)", "approved": true},
+    {"id": "D08", "decision": "REST JSON under /api, error shape {error: {code, message}}, cursor pagination", "reason": "one API style", "approved": true},
+    {"id": "D09", "decision": "Body limit 10000; every new post pending; B posts migrate as published", "reason": "compatibility decisions max-post-length and publish-policy", "approved": true}
+  ]
+}

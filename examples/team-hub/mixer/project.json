@@ -1,0 +1,172 @@
+{
+  "name": "Team Hub",
+  "format": 3,
+  "mode": "full",
+  "audience": "A small team that plans work, gets sign-off and wants one place to see workload",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "TaskBoard",
+      "slug": "taskboard",
+      "access": "own-code",
+      "licence": "own code",
+      "code_reuse": "allowed",
+      "slice": "tasks, assignment, comments, in-app notifications",
+      "local_path": "sources/taskboard",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/taskboard"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Approvals",
+      "slug": "approvals",
+      "access": "open-source",
+      "licence": "MIT",
+      "code_reuse": "allowed",
+      "slice": "approval requests, threaded comments, email notifications, roles",
+      "local_path": "sources/approvals",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/approvals"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Pulse",
+      "slug": "pulse",
+      "access": "closed",
+      "licence": "proprietary",
+      "code_reuse": "not-allowed",
+      "slice": "workload dashboard, push notifications",
+      "inputs": [
+        {
+          "kind": "documentation",
+          "location": "sources/pulse-docs/docs"
+        },
+        {
+          "kind": "api-spec",
+          "location": "sources/pulse-docs/openapi.yaml"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "Approved by the user with M03 and M15 deferred"
+    },
+    "compatibility": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04"
+    },
+    "architecture": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04"
+    },
+    "implementation": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "integration": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "deployment": {
+      "status": "pending"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "git:mixer-cp1-recon",
+      "date": "2026-11-04"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "git:mixer-cp2-extraction",
+      "date": "2026-11-04"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "git:mixer-cp3-selection",
+      "date": "2026-11-04"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "git:mixer-cp4-compatibility",
+      "date": "2026-11-04"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "git:mixer-cp5-architecture",
+      "date": "2026-11-04"
+    },
+    {
+      "id": "CP6",
+      "phase": "implementation",
+      "ref": "git:mixer-cp6-v4",
+      "date": "2026-11-04",
+      "note": "one tag per slice: cp6-v1 to cp6-v4"
+    },
+    {
+      "id": "CP7",
+      "phase": "integration",
+      "ref": "git:mixer-cp7-integration",
+      "date": "2026-11-04"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "run-tests",
+      "target": "app/ unittest suite (Team Hub's own code; no source app code runs)",
+      "approved": true,
+      "by": "user",
+      "date": "2026-11-04"
+    },
+    {
+      "id": "A02",
+      "action": "migration",
+      "target": "migration:user",
+      "approved": true,
+      "by": "user",
+      "date": "2026-11-04",
+      "note": "only when importing B's users; dry run on a copy first. The example starts from an empty database."
+    },
+    {
+      "id": "A03",
+      "action": "migration",
+      "target": "migration:approval",
+      "approved": true,
+      "by": "user",
+      "date": "2026-11-04",
+      "note": "B's request title moves to the linked task's title on import; dry run first."
+    }
+  ]
+}

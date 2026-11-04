@@ -1,0 +1,584 @@
+{
+  "stack": {
+    "language": "Python 3.8+ (standard library only)",
+    "web": "http.server JSON API",
+    "database": "SQLite",
+    "auth": "Own accounts, PBKDF2 password hashes, http-only cookie sessions",
+    "reasons": {
+      "language": "D01: the example must run anywhere with nothing to install; a production build would weigh Node and React, which A and B already use",
+      "database": "D01: SQLite ships with Python; the schema is plain SQL that moves to PostgreSQL unchanged apart from types",
+      "auth": "D02: cookie sessions from A, chosen in the compatibility phase"
+    }
+  },
+  "modules": [
+    {
+      "name": "accounts",
+      "responsibility": "Users, sign-in, sessions, roles and the permission check",
+      "features": [
+        "M01",
+        "M08",
+        "M09"
+      ],
+      "depends_on": [],
+      "owns_entities": [
+        "User",
+        "Session"
+      ]
+    },
+    {
+      "name": "notifications",
+      "responsibility": "One engine: every event creates one notification, delivered in-app, by email and by push according to preferences",
+      "features": [
+        "M10",
+        "M11",
+        "M12"
+      ],
+      "depends_on": [
+        "accounts"
+      ],
+      "owns_entities": [
+        "Notification",
+        "Delivery",
+        "PushSubscription"
+      ]
+    },
+    {
+      "name": "tasks",
+      "responsibility": "Task board, status changes and assignment; lets other modules veto status changes",
+      "features": [
+        "M04",
+        "M05"
+      ],
+      "depends_on": [
+        "accounts",
+        "notifications"
+      ],
+      "owns_entities": [
+        "Task"
+      ]
+    },
+    {
+      "name": "approvals",
+      "responsibility": "Approval requests on tasks and decisions; blocks closing a task with a pending approval",
+      "features": [
+        "M13"
+      ],
+      "depends_on": [
+        "accounts",
+        "tasks",
+        "notifications"
+      ],
+      "owns_entities": [
+        "Approval"
+      ]
+    },
+    {
+      "name": "comments",
+      "responsibility": "Threaded comments on tasks and approvals",
+      "features": [
+        "M07"
+      ],
+      "depends_on": [
+        "accounts",
+        "notifications"
+      ],
+      "owns_entities": [
+        "Comment"
+      ]
+    },
+    {
+      "name": "dashboard",
+      "responsibility": "Workload: open tasks per person, overdue tasks, pending approvals",
+      "features": [
+        "M14"
+      ],
+      "depends_on": [
+        "accounts",
+        "tasks",
+        "approvals"
+      ],
+      "owns_entities": []
+    },
+    {
+      "name": "api",
+      "responsibility": "HTTP routes, JSON in and out, one error format",
+      "features": [],
+      "depends_on": [
+        "accounts",
+        "notifications",
+        "tasks",
+        "approvals",
+        "comments",
+        "dashboard"
+      ],
+      "owns_entities": []
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "merged_from": [
+        "A:User",
+        "B:User"
+      ],
+      "primary_key": "uuid",
+      "notes": "B's full_name becomes name; B's integer ids go to legacy_id on import (D03)",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "email",
+          "type": "text"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "from": [
+            "A:User.name",
+            "B:User.full_name"
+          ]
+        },
+        {
+          "name": "password_hash",
+          "type": "text"
+        },
+        {
+          "name": "role",
+          "type": "text"
+        },
+        {
+          "name": "can_approve",
+          "type": "boolean"
+        },
+        {
+          "name": "notify_email",
+          "type": "boolean"
+        },
+        {
+          "name": "notify_push",
+          "type": "boolean"
+        },
+        {
+          "name": "legacy_id",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "token"
+    },
+    {
+      "name": "Task",
+      "merged_from": [
+        "A:Task"
+      ],
+      "primary_key": "uuid"
+    },
+    {
+      "name": "Approval",
+      "merged_from": [
+        "B:ApprovalRequest"
+      ],
+      "primary_key": "uuid",
+      "notes": "Now attached to a task. B's request title is not kept here: on import it becomes the linked task's title (approved as A03).",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "task_id",
+          "type": "uuid"
+        },
+        {
+          "name": "requester_id",
+          "type": "uuid"
+        },
+        {
+          "name": "approver_id",
+          "type": "uuid"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        },
+        {
+          "name": "note",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "name": "Comment",
+      "merged_from": [
+        "B:Comment"
+      ],
+      "primary_key": "uuid",
+      "notes": "subject_type task or approval; parent_id for replies"
+    },
+    {
+      "name": "Notification",
+      "merged_from": [
+        "A:Notification"
+      ],
+      "primary_key": "uuid",
+      "notes": "Adds event and a unique dedupe_key"
+    },
+    {
+      "name": "Delivery",
+      "merged_from": [
+        "B:EmailOutbox"
+      ],
+      "primary_key": "uuid",
+      "notes": "One row per email or push delivery"
+    },
+    {
+      "name": "PushSubscription",
+      "merged_from": [
+        "C:PushSubscription"
+      ],
+      "primary_key": "uuid",
+      "notes": "Rebuilt from Pulse's published API schema"
+    }
+  ],
+  "auth": {
+    "method": "email and password",
+    "session": "http-only cookie, 30 minutes idle",
+    "roles": [
+      "owner",
+      "admin",
+      "member"
+    ],
+    "permissions": {
+      "approve": "can_approve flag",
+      "manage users": "owner, admin",
+      "manage any task": "owner, admin"
+    },
+    "role_mapping": {
+      "A:owner": "owner",
+      "A:member": "member",
+      "B:admin": "admin",
+      "B:requester": "member",
+      "B:approver": "member + approve",
+      "C:admin": "admin",
+      "C:member": "member"
+    }
+  },
+  "navigation": [],
+  "api": [
+    {
+      "method": "POST",
+      "path": "/api/session",
+      "module": "accounts",
+      "auth": "none",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/session",
+      "module": "accounts",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "module": "accounts",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/users",
+      "module": "accounts",
+      "auth": "session",
+      "features": [
+        "M08",
+        "M09"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/me/notification-settings",
+      "module": "notifications",
+      "auth": "session",
+      "features": [
+        "M10",
+        "M11",
+        "M12"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks",
+      "module": "tasks",
+      "auth": "session",
+      "features": [
+        "M04"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/tasks",
+      "module": "tasks",
+      "auth": "session",
+      "features": [
+        "M04",
+        "M05"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/tasks/{id}",
+      "module": "tasks",
+      "auth": "session",
+      "features": [
+        "M04",
+        "M05"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/tasks/{id}/approvals",
+      "module": "approvals",
+      "auth": "session",
+      "features": [
+        "M13"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/approvals",
+      "module": "approvals",
+      "auth": "session",
+      "features": [
+        "M13"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/approvals/{id}/decision",
+      "module": "approvals",
+      "auth": "session",
+      "features": [
+        "M13"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/{tasks|approvals}/{id}/comments",
+      "module": "comments",
+      "auth": "session",
+      "features": [
+        "M07"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/{tasks|approvals}/{id}/comments",
+      "module": "comments",
+      "auth": "session",
+      "features": [
+        "M07"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "module": "notifications",
+      "auth": "session",
+      "features": [
+        "M10"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/{id}/read",
+      "module": "notifications",
+      "auth": "session",
+      "features": [
+        "M10"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/push-subscriptions",
+      "module": "notifications",
+      "auth": "session",
+      "features": [
+        "M12"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard",
+      "module": "dashboard",
+      "auth": "session",
+      "features": [
+        "M14"
+      ]
+    }
+  ],
+  "design_system": {
+    "note": "The example ships the API only. A UI would use one token set and one component library (one Button with primary, secondary, ghost and danger)."
+  },
+  "configuration": {
+    "TEAMHUB_DB": "database file",
+    "TEAMHUB_SESSION_IDLE_MINUTES": "idle timeout, default 30",
+    "TEAMHUB_PASSWORD_ITERATIONS": "PBKDF2 iterations, default 200000",
+    "TEAMHUB_HOST": "bind address",
+    "TEAMHUB_PORT": "port",
+    "TEAMHUB_SECURE_COOKIE": "1 behind HTTPS"
+  },
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Core loop: sign in, roles, tasks, assignment",
+      "features": [
+        "M01",
+        "M08",
+        "M09",
+        "M04",
+        "M05"
+      ],
+      "status": "done",
+      "checkpoint": "CP6"
+    },
+    {
+      "id": "V2",
+      "name": "Notification engine: in-app, email, push",
+      "features": [
+        "M10",
+        "M11",
+        "M12"
+      ],
+      "status": "done",
+      "checkpoint": "CP6"
+    },
+    {
+      "id": "V3",
+      "name": "Approvals and threaded comments",
+      "features": [
+        "M13",
+        "M07"
+      ],
+      "status": "done",
+      "checkpoint": "CP6"
+    },
+    {
+      "id": "V4",
+      "name": "Workload dashboard",
+      "features": [
+        "M14"
+      ],
+      "status": "done",
+      "checkpoint": "CP6"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Python standard library and SQLite",
+      "reason": "The example must run with nothing to install. No source code is reused, so every kept feature is rebuilt or combined.",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "http-only cookie sessions, 30 minutes idle, for every endpoint",
+      "reason": "Resolves the session and endpoint-auth conflicts; 30 minutes because approvals are sign-off actions",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "uuid primary keys everywhere; B's ids kept in legacy_id on import",
+      "reason": "Resolves the critical primary key conflict",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "Roles owner, admin, member plus an approve permission",
+      "reason": "Resolves the role conflict without multiplying roles",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "One unversioned /api with one user shape and one error format",
+      "reason": "No outside clients yet; resolves contract and version conflicts",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "Timestamps stored in UTC; overdue means due before today's UTC date",
+      "reason": "Pulse does not document its rule (an unknown in C's report)",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "All settings from environment variables in one config module",
+      "reason": "One configuration strategy",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "Modular monolith",
+      "reason": "See style: one team, strong consistency, low load",
+      "approved": true
+    }
+  ],
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one small team and one release cadence",
+      "tasks, approvals and notifications must stay consistent in one transaction",
+      "low load, no part needs to scale on its own",
+      "the example must run with nothing to install (D01)"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "Seven small modules with shared data would become seven deployables and distributed transactions for no scaling or team benefit"
+      },
+      {
+        "style": "event-driven",
+        "fit": "partial",
+        "reason": "Notifications are naturally asynchronous, but at this volume a queued deliveries table does the job without a message broker"
+      },
+      {
+        "style": "hybrid",
+        "fit": "partial",
+        "reason": "Worth revisiting if notification volume grows: move delivery to an event-driven worker and keep the core as is"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "There is no existing system that must stay a separate service"
+      }
+    ],
+    "reason": "The simplest design that meets every driver; module boundaries (and the status-guard callback) keep a later split possible."
+  }
+}

@@ -1,0 +1,648 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 1,
+    "high": 12,
+    "medium": 4,
+    "low": 0,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "database:primary-key:post",
+      "category": "database",
+      "kind": "primary-key",
+      "subject": "post",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05"
+      ],
+      "severity": "critical",
+      "detail": "Post primary keys differ (A: uuid, B: integer)",
+      "solutions": [
+        "Pick one key type for the merged entity and re-key the other source's rows",
+        "Keep a legacy_id column holding the old key during migration"
+      ],
+      "recommended": "Use one key type (uuid is usual for merged data) and add a legacy_id column while migrating",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "uuid primary key for every post; B's integer ids kept in legacy_id (unique, nullable) during and after migration",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "api:contract:GET /api/posts/{} response",
+      "category": "api",
+      "kind": "contract",
+      "subject": "GET /api/posts/{} response",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "GET /api/posts/{} response fields disagree (body: A text, B str; id: A uuid, B integer)",
+      "solutions": [
+        "Define one request and response shape and convert at the edges",
+        "Version the endpoint if existing clients need the old shape"
+      ],
+      "recommended": "One contract per endpoint, written into the API spec",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One contract: {id: uuid, body: text, status: pending|published|rejected, author: {id: uuid, display_name: text}, created_at}. No integer-id compatibility layer (no B API clients are known)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "api:endpoint-auth:GET /api/posts/{}",
+      "category": "api",
+      "kind": "endpoint-auth",
+      "subject": "GET /api/posts/{}",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "GET /api/posts/{} uses different auth (A: cookie session, B: none)",
+      "solutions": [
+        "Put every endpoint behind the one auth system the architecture chooses"
+      ],
+      "recommended": "Same auth scheme for every endpoint",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One cookie-session auth; GET /api/posts/:id is public for published posts, author or moderator only for pending/rejected (404 otherwise)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:authorization-model:model",
+      "category": "application",
+      "kind": "authorization-model",
+      "subject": "model",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Authorization models differ (A: role-based: member, moderator; requiresession / requiremoderator guards; B: roles user, admin carried in the token; no role checks seen in the api)",
+      "solutions": [
+        "Choose one authorization model and express the others' rules in it"
+      ],
+      "recommended": "One authorization model with one permission check function",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Role-based model with one can(user, action, resource) check used by every handler; actions: post.create, post.read_unpublished, moderation.list, moderation.decide",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:business-rule:max-post-length",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "max-post-length",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "A limits a post body to 5000 characters (constant and DB check); B allows 10000. B posts between 5001 and 10000 characters would be rejected by A's constraint during migration.",
+      "solutions": [
+        "Unified limit 10000 (widen A's check; no existing post rejected)",
+        "Unified limit 5000 and truncate or reject longer B posts (data loss)",
+        "5000 for new posts, longer legacy posts allowed through a legacy flag"
+      ],
+      "recommended": "Unified limit 10000: widening loses nothing and moderators review every new post anyway",
+      "needs_approval": true,
+      "menu_features": [
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Unified limit 10000 characters (server validation and DB check)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:roles:roles",
+      "category": "application",
+      "kind": "roles",
+      "subject": "roles",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Role sets differ (A: member, moderator; B: admin, user)",
+      "solutions": [
+        "Map every source role to a unified role set and write the mapping down",
+        "Model special powers (such as approving) as permissions, not extra roles"
+      ],
+      "recommended": "One role set plus explicit permissions; map every source role",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Unified roles member and moderator. Map A member->member, A moderator->moderator, B user->member, B admin->member (least privilege: admin had no observed powers); former B admins are listed for the user to promote by hand",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:route:/login",
+      "category": "application",
+      "kind": "route",
+      "subject": "/login",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Route /login is used by A: A-S03, B: B-S02",
+      "solutions": [
+        "Merge both screens into one page with sections",
+        "Move one to a different path"
+      ],
+      "recommended": "One route per screen in the unified navigation",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One /login screen for everyone",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:route:/posts",
+      "category": "application",
+      "kind": "route",
+      "subject": "/posts",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Route /posts is used by A: A-S01, B: B-S01",
+      "solutions": [
+        "Merge both screens into one page with sections",
+        "Move one to a different path"
+      ],
+      "recommended": "One route per screen in the unified navigation",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One /posts screen listing published posts",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:session:session",
+      "category": "application",
+      "kind": "session",
+      "subject": "session",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Session mechanisms differ (A: server-side cookie session (req.session.userid); B: stateless jwt bearer token (no expiry seen))",
+      "solutions": [
+        "Choose one session mechanism (http-only cookie sessions are the safer default for web apps)",
+        "Use tokens only where a client cannot hold cookies"
+      ],
+      "recommended": "One session mechanism for the whole app",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Server-side session in an http-only, secure, same-site cookie; no bearer tokens",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:workflow:publish-policy",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "publish-policy",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "A-F04",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "A holds every new post as pending until a moderator publishes it; B publishes every post immediately. B's existing posts were never moderated.",
+      "solutions": [
+        "Pre-moderate every new post; migrate B's existing posts as published (grandfathered)",
+        "Pre-moderate every new post and push B's existing posts into the moderation queue",
+        "Publish immediately and moderate afterwards (drops A's rule)"
+      ],
+      "recommended": "Pre-moderate every new post; migrate B's existing posts as published, since they are already public",
+      "needs_approval": true,
+      "menu_features": [
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Every new post is pending until a moderator decides; B's existing posts migrate as published",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:data-migration:user-accounts",
+      "category": "database",
+      "kind": "data-migration",
+      "subject": "user-accounts",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "B's users (integer ids, 'name', roles user/admin) author B's posts and must be merged into A's users (uuid, 'display_name', roles member/moderator). The same email may exist in both apps. Password hashing in both sources is unknown, so B's stored credentials may not verify in the unified app.",
+      "solutions": [
+        "Re-key B users to uuid with legacy_id; name -> display_name; link accounts with the same email into A's record; force a password reset where hashes cannot be verified",
+        "Keep B users as separate accounts even when emails match (email must stay unique, so this fails)"
+      ],
+      "recommended": "Re-key with legacy_id, map name to display_name, merge same-email accounts into A's record, and require a password reset for B accounts whose hash format is not supported",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Re-key B users to uuid with legacy_id; name -> display_name; same-email accounts merged into A's record; password reset required where B's hash format cannot be verified. Approved as a plan only; running it needs a separate approval",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:field-type:post.author_id",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "post.author_id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05"
+      ],
+      "severity": "high",
+      "detail": "Post.author_id types differ (A: uuid, B: integer)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "author_id is uuid referencing users.id; B's integer author ids are rewritten through the user legacy_id map",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:nullability:post.author_id",
+      "category": "database",
+      "kind": "nullability",
+      "subject": "post.author_id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "A requires an author (author_id not null); B allows null author_id for anonymous posts. Anonymous posting (M08) was dropped, but B's existing anonymous posts still have no author.",
+      "solutions": [
+        "Assign legacy anonymous posts to one reserved, sign-in-disabled system account and keep author_id not null",
+        "Make author_id nullable for legacy rows only",
+        "Do not migrate anonymous posts (data loss)"
+      ],
+      "recommended": "Reserved system account 'Anonymous (OpenForum archive)' with sign-in disabled; author_id stays not null",
+      "needs_approval": true,
+      "menu_features": [
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Legacy anonymous B posts are assigned to a reserved sign-in-disabled system account; author_id stays not null",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "api:duplicate-endpoint:GET /api/posts/{}",
+      "category": "api",
+      "kind": "duplicate-endpoint",
+      "subject": "GET /api/posts/{}",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "GET /api/posts/{} exists in A: /api/posts/:id, B: /api/posts/<int:post_id>",
+      "solutions": [
+        "Keep one endpoint and adapt clients of the other",
+        "Keep both under different paths if they serve different needs"
+      ],
+      "recommended": "One endpoint per job in the unified API",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One GET /api/posts/:id (uuid)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:auth-methods:methods",
+      "category": "application",
+      "kind": "auth-methods",
+      "subject": "methods",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "medium",
+      "detail": "Sign-in methods differ (A: email + credentials; B: email + password)",
+      "solutions": [
+        "Offer the union of kept sign-in methods through one identity system",
+        "Drop sign-in methods no kept feature needs"
+      ],
+      "recommended": "One identity system that offers the sign-in methods kept features need",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Email + password only, through the one identity system",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:security:b-token-signing-key",
+      "category": "application",
+      "kind": "security",
+      "subject": "b-token-signing-key",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "B signs JWTs with a hard-coded literal key and no expiry. B's token sign-in was dropped; any B tokens in the wild must stop working.",
+      "solutions": [
+        "Do not reuse B's token code; B tokens become invalid at cut-over",
+        "Keep a temporary token bridge (would keep the weak key alive)"
+      ],
+      "recommended": "No reuse of B's token code; B tokens are invalid after cut-over; the unified session secret comes only from configuration",
+      "needs_approval": false,
+      "menu_features": [
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "B's token code is not reused; B tokens are invalid at cut-over; session secret from configuration only",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:post",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "post",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05"
+      ],
+      "severity": "medium",
+      "detail": "Post exists in A:Post, B:Post; fields not shared: status (only A)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One posts table; status from A; B rows get status published (see publish-policy)",
+        "approved": true,
+        "by": "benchmark-operator (pre-approved in task)",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:post",
+      "entity": "Post",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "re-key rows to one primary key type (A: uuid, B: integer) and rewrite foreign keys that point at them",
+          "risk": "high",
+          "data_loss": [],
+          "note": "old ids and anything outside that stores them stop matching"
+        },
+        {
+          "change": "convert author_id to one type (A: uuid, B: integer)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "add fields that only some sources have: status (only A)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "B.Post.author_id: integer to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "author_id"
+          ]
+        }
+      ],
+      "changes": [
+        "re-key rows to one primary key type (A: uuid, B: integer) and rewrite foreign keys that point at them",
+        "convert author_id to one type (A: uuid, B: integer)",
+        "add fields that only some sources have: status (only A)",
+        "B.Post.author_id: integer to uuid can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "author_id"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:user",
+      "entity": "User",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": true,
+      "needs_approval": false
+    }
+  ]
+}

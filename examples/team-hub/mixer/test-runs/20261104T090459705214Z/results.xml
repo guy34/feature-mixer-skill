@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuite name="unittest" tests="23">
+  <testcase classname="tests.test_teamhub.AccountsTest" name="test_account_rules" time="0.002">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="bad emails, short passwords, unknown roles and duplicate emails are rejected"/>
+      <property name="level" value="form"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.AccountsTest" name="test_session_expires_after_idle_timeout" time="0.002">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="a session unused for more than 30 minutes is ended"/>
+      <property name="level" value="auth"/>
+      <property name="acceptance" value="AC02"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.AccountsTest" name="test_sign_in_and_wrong_password" time="0.002">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="the right password starts a session for that user; a wrong one is refused with 401"/>
+      <property name="level" value="auth"/>
+      <property name="acceptance" value="AC01"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.AccountsTest" name="test_unified_roles_and_approve_permission" time="0.002">
+    <properties>
+      <property name="features" value="M08, M09"/>
+      <property name="expect" value="owners and admins manage users; members do not; approving needs the approve permission"/>
+      <property name="level" value="authorization"/>
+      <property name="acceptance" value="AC10"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.ApprovalsTest" name="test_approval_journey" time="0.002">
+    <properties>
+      <property name="features" value="M13, M10, M11"/>
+      <property name="expect" value="approvers are told about a request, the decision is recorded, and the requester is told"/>
+      <property name="level" value="journey"/>
+      <property name="acceptance" value="AC05"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.ApprovalsTest" name="test_approval_rules" time="0.002">
+    <properties>
+      <property name="features" value="M13, M09"/>
+      <property name="expect" value="members without the permission cannot decide, nobody decides their own request, and a decision is final"/>
+      <property name="level" value="authorization"/>
+      <property name="acceptance" value="AC05, AC10"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.ApprovalsTest" name="test_pending_approval_blocks_closing" time="0.002">
+    <properties>
+      <property name="features" value="M13, M04"/>
+      <property name="expect" value="a task cannot be moved to done while its approval is pending, and can once it is decided"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC06"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.CommentsTest" name="test_comment_rules" time="0.002">
+    <properties>
+      <property name="features" value="M07"/>
+      <property name="expect" value="empty comments, replies across items and comments on missing items are rejected"/>
+      <property name="level" value="form"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.CommentsTest" name="test_threaded_comments_on_tasks_and_approvals" time="0.003">
+    <properties>
+      <property name="features" value="M07, M10"/>
+      <property name="expect" value="replies nest under their parent, the parent's author is notified, and approvals take comments too"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC07"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.DashboardTest" name="test_workload_counts" time="0.002">
+    <properties>
+      <property name="features" value="M14"/>
+      <property name="expect" value="open tasks per person exclude done ones, overdue counts open tasks due before today (UTC), pending approvals are counted"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC09"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.DatabaseTest" name="test_integrity" time="0.002">
+    <properties>
+      <property name="features" value="M04, M13, M01"/>
+      <property name="expect" value="foreign keys and checks hold: no approval for a missing task, deleting a task removes its approvals, no unknown roles"/>
+      <property name="level" value="database"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.HttpApiTest" name="test_api_errors" time="0.026">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="no session gives 401, bad JSON gives 400, an unknown path gives 404, a wrong method gives 405, all in one error format"/>
+      <property name="level" value="api"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.HttpApiTest" name="test_end_to_end_journey" time="0.023">
+    <properties>
+      <property name="features" value="M01, M04, M05, M07, M08, M09, M10, M11, M13, M14"/>
+      <property name="expect" value="an owner adds people, a member creates and assigns a task, asks for approval, an approver approves after a threaded discussion, the task closes, and every step shows up in notifications and the dashboard"/>
+      <property name="level" value="journey"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.HttpApiTest" name="test_push_subscription_over_http" time="0.003">
+    <properties>
+      <property name="features" value="M12"/>
+      <property name="expect" value="a signed-in user can register an https push endpoint over the API"/>
+      <property name="level" value="api"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.HttpApiTest" name="test_sign_out" time="0.003">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="after signing out the old session cookie no longer works"/>
+      <property name="level" value="auth"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.NotificationEngineTest" name="test_preferences_choose_channels" time="0.002">
+    <properties>
+      <property name="features" value="M10, M11, M12"/>
+      <property name="expect" value="turning email off stops email deliveries; in-app always arrives"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.NotificationEngineTest" name="test_push_channel_for_opted_in_browsers" time="0.002">
+    <properties>
+      <property name="features" value="M12, M10"/>
+      <property name="expect" value="after opting in, a notification also queues a push to each subscribed browser; http endpoints are refused"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC08"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.NotificationEngineTest" name="test_read_and_privacy" time="0.003">
+    <properties>
+      <property name="features" value="M10"/>
+      <property name="expect" value="a user can mark their own notification read, and cannot see or touch anyone else's"/>
+      <property name="level" value="auth"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.TasksTest" name="test_assignee_must_exist" time="0.002">
+    <properties>
+      <property name="features" value="M05"/>
+      <property name="expect" value="assigning to an unknown user is rejected"/>
+      <property name="level" value="error"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.TasksTest" name="test_assignment_notifies_on_every_channel_once" time="0.002">
+    <properties>
+      <property name="features" value="M05, M10, M11"/>
+      <property name="expect" value="the assignee gets one in-app notification and one queued email, even if assigned twice"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.TasksTest" name="test_no_notification_for_assigning_yourself" time="0.001">
+    <properties>
+      <property name="features" value="M05, M10"/>
+      <property name="expect" value="assigning a task to yourself sends nothing"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.TasksTest" name="test_only_allowed_people_move_tasks" time="0.001">
+    <properties>
+      <property name="features" value="M04, M08"/>
+      <property name="expect" value="someone who is not the creator, assignee, owner or admin cannot move a task"/>
+      <property name="level" value="authorization"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_teamhub.TasksTest" name="test_task_board_flow" time="0.001">
+    <properties>
+      <property name="features" value="M04"/>
+      <property name="expect" value="a task starts in todo, moves to doing and done, and rejects unknown statuses and bad titles"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC03"/>
+    </properties>
+  </testcase>
+</testsuite>

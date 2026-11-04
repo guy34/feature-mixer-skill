@@ -1,0 +1,156 @@
+{
+  "name": "Unified online shop",
+  "format": 3,
+  "mode": "plan",
+  "audience": "Shoppers buying products online, and the shop owner who manages the catalog and answers reviews",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "PyShop",
+      "slug": "pyshop",
+      "access": "own-code",
+      "licence": "proprietary (user's own code; no licence file)",
+      "code_reuse": "allowed",
+      "slice": "catalog and cart (core loop)",
+      "local_path": "sources/pyshop",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/pyshop"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "NodeCart",
+      "slug": "nodecart",
+      "access": "own-code",
+      "licence": "proprietary (user's own code; no licence file)",
+      "code_reuse": "allowed",
+      "slice": "cart and Stripe checkout (core loop)",
+      "local_path": "sources/nodecart",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/nodecart"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Reviewly",
+      "slug": "reviewly",
+      "access": "closed",
+      "licence": "proprietary (closed product)",
+      "code_reuse": "not-allowed",
+      "slice": "product reviews (core loop)",
+      "inputs": [
+        {
+          "kind": "documentation",
+          "location": "sources/reviewly-docs/overview.md"
+        },
+        {
+          "kind": "api-spec",
+          "location": "sources/reviewly-docs/openapi.yaml"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "auto-pick; approved by benchmark-operator (pre-approved in task)"
+    },
+    "compatibility": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "approved by benchmark-operator (pre-approved in task); migrations approved as plans only"
+    },
+    "architecture": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "approved by benchmark-operator (pre-approved in task); plan mode stops here"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "checkpoints/CP1-recon",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after recon (project is not in git)"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "checkpoints/CP2-extraction",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after extraction (project is not in git)"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "checkpoints/CP3-selection",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after selection (project is not in git)"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "checkpoints/CP4-compatibility",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after compatibility (project is not in git)"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "checkpoints/CP5-architecture",
+      "date": "2026-11-04",
+      "note": "snapshot of mixer/ after architecture (project is not in git)"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "install-dependencies",
+      "target": "any dependency install for sources or the unified app",
+      "approved": false,
+      "by": "benchmark-operator (not approved in task)",
+      "date": "2026-11-04",
+      "note": "Explicitly NOT approved by the operator; nothing was installed."
+    },
+    {
+      "id": "A02",
+      "action": "network",
+      "target": "any network access (audits, cloning, calling Reviewly's API)",
+      "approved": false,
+      "by": "benchmark-operator (not approved in task)",
+      "date": "2026-11-04",
+      "note": "Explicitly NOT approved by the operator; no network was used."
+    },
+    {
+      "id": "A03",
+      "action": "run-source-code",
+      "target": "running PyShop or NodeCart code",
+      "approved": false,
+      "by": "benchmark-operator (not approved in task)",
+      "date": "2026-11-04",
+      "note": "Explicitly NOT approved by the operator; source code was only read."
+    }
+  ]
+}

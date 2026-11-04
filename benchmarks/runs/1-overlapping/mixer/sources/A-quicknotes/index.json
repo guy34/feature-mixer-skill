@@ -1,0 +1,86 @@
+{
+  "root": "../../../sources/quicknotes",
+  "indexed_at": "2026-11-04T09:15:38+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 3,
+    "lines": 28,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "size": 88,
+      "sha256": "09423b82c329a111c0b371cc38656dd35fa2f4da6d160a9f7c362a18ad72a469",
+      "language": "markdown",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 2
+    },
+    {
+      "path": "app.py",
+      "size": 1095,
+      "sha256": "e290397f0d099cc6763fe7eef7b211ef1873bdaf0cb38e7d6516e9273331e05d",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 23,
+      "imports": [],
+      "packages": [
+        "markdown"
+      ]
+    },
+    {
+      "path": "schema.sql",
+      "size": 351,
+      "sha256": "fcb01a9684744ba6b3c239d19e9ba45f9d4849c3240308f5824ce42df54d5158",
+      "language": "sql",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 3
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 28,
+      "languages": [
+        "markdown",
+        "python",
+        "sql"
+      ],
+      "depends_on": [],
+      "external": [
+        "markdown"
+      ]
+    }
+  },
+  "external_imports": {
+    "markdown": [
+      "app.py"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "app.py",
+      "schema.sql"
+    ],
+    "A-F02": [
+      "README.md",
+      "app.py",
+      "schema.sql"
+    ],
+    "A-F03": [
+      "README.md",
+      "app.py"
+    ],
+    "A-F04": [
+      "README.md",
+      "app.py"
+    ]
+  }
+}

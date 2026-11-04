@@ -1,0 +1,154 @@
+{
+  "name": "Unified CRM",
+  "format": 3,
+  "mode": "plan",
+  "audience": "The user's own sales team: one CRM combining MegaCRM and DealFlow (no further audience or stack constraints were given)",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "MegaCRM",
+      "slug": "megacrm",
+      "access": "own-code",
+      "licence": "none in repository; user's own code",
+      "code_reuse": "allowed",
+      "slice": "core CRM loop: contacts, deals pipeline, CSV reports",
+      "local_path": "sources/megacrm",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/megacrm"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "DealFlow",
+      "slug": "dealflow",
+      "access": "own-code",
+      "licence": "none in repository; user's own code",
+      "code_reuse": "allowed",
+      "slice": "deals pipeline with custom stages and stale-deal email reminders",
+      "local_path": "sources/dealflow",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/dealflow"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "auto-pick per the operator; mode stays plan",
+      "approved": true
+    },
+    "compatibility": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true
+    },
+    "architecture": {
+      "status": "done",
+      "date": "2026-11-04",
+      "approved": true,
+      "note": "plan mode: the run ends after this phase"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "mixer/checkpoints/CP1",
+      "date": "2026-11-04",
+      "note": "A and B scanned, indexed and reported"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "mixer/checkpoints/CP2",
+      "date": "2026-11-04",
+      "note": "menu M01-M06 classified"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "mixer/checkpoints/CP3",
+      "date": "2026-11-04",
+      "note": "auto-pick: keep M01-M06; U01-U05"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "mixer/checkpoints/CP4",
+      "date": "2026-11-04",
+      "note": "10 conflicts resolved; migration:deal approved as plan only"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "mixer/checkpoints/CP5",
+      "date": "2026-11-04",
+      "note": "architecture approved; plan mode ends here"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "other",
+      "target": "selection checkpoint: auto-picked menu M01-M06 all keep; merge plan U01-U05",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "operator pre-approved Claude's recommendations at the selection checkpoint"
+    },
+    {
+      "id": "A02",
+      "action": "migration",
+      "target": "migration:deal",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plan only: approves design/migration-plan.md, not running it; running any migration needs a new approval"
+    },
+    {
+      "id": "A03",
+      "action": "other",
+      "target": "compatibility checkpoint: decisions in compat/resolutions.json",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "operator pre-approved Claude's recommendations"
+    },
+    {
+      "id": "A04",
+      "action": "migration",
+      "target": "migration:contact",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plan only: approves the Contact re-key in design/migration-plan.md, not running it"
+    },
+    {
+      "id": "A05",
+      "action": "other",
+      "target": "architecture checkpoint: design/architecture.json, architecture.md, prd.md, schema.sql, api.md (modular monolith, Django, D01-D10, slices V1-V4)",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "operator pre-approved Claude's recommendations"
+    }
+  ]
+}

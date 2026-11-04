@@ -1,0 +1,305 @@
+{
+  "app": {
+    "id": "B",
+    "name": "Slotty"
+  },
+  "coverage": "partial",
+  "size": "M",
+  "sources_used": [
+    {
+      "ref": "B-R01",
+      "kind": "documentation",
+      "location": "sources/slotty-docs/overview.md",
+      "accessed": "2026-11-04"
+    },
+    {
+      "ref": "B-R02",
+      "kind": "api-spec",
+      "location": "sources/slotty-docs/openapi.yaml",
+      "accessed": "2026-11-04"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "B-E01",
+      "source": "B-R01",
+      "basis": "documented",
+      "locator": "sources/slotty-docs/overview.md:3",
+      "summary": "Teams publish open slots and customers book them."
+    },
+    {
+      "id": "B-E02",
+      "source": "B-R01",
+      "basis": "documented",
+      "locator": "sources/slotty-docs/overview.md:5",
+      "summary": "Recurring bookings: the same slot every week for up to 12 weeks."
+    },
+    {
+      "id": "B-E03",
+      "source": "B-R01",
+      "basis": "documented",
+      "locator": "sources/slotty-docs/overview.md:6",
+      "summary": "Calendar sync keeps bookings in step with your calendar; details are in calendar.md."
+    },
+    {
+      "id": "B-E04",
+      "source": "B-R01",
+      "basis": "unknown",
+      "locator": "sources/slotty-docs/calendar.md",
+      "summary": "The linked calendar.md is not among the provided docs, so how calendar sync works (providers, direction, conflicts) could not be read."
+    },
+    {
+      "id": "B-E05",
+      "source": "B-R01",
+      "basis": "documented",
+      "locator": "sources/slotty-docs/overview.md:7",
+      "summary": "Waiting list: join a waiting list when a slot is full."
+    },
+    {
+      "id": "B-E06",
+      "source": "B-R02",
+      "basis": "documented",
+      "locator": "sources/slotty-docs/openapi.yaml#/paths/~1bookings/post",
+      "summary": "POST /bookings: 'Create a booking (optionally recurring)'; no request, response, auth or error schema given."
+    },
+    {
+      "id": "B-E07",
+      "source": "B-R02",
+      "basis": "documented",
+      "locator": "sources/slotty-docs/openapi.yaml#/paths/~1waitlist/post",
+      "summary": "POST /waitlist: 'Join a waiting list'; no schema, auth or errors given."
+    },
+    {
+      "id": "B-E08",
+      "source": "B-R02",
+      "basis": "inferred",
+      "locator": "sources/slotty-docs/openapi.yaml#/paths",
+      "summary": "The spec lists only two POST paths: no slot publishing, cancellation, listing or calendar endpoints are published, so their contracts are inferred or unknown."
+    }
+  ],
+  "stack": {
+    "basis": "unknown"
+  },
+  "architecture": {
+    "backend": "unknown (closed product; HTTP API version 1 documented)",
+    "evidence": [
+      "B-E06",
+      "B-E07"
+    ],
+    "basis": "documented"
+  },
+  "features": [
+    {
+      "id": "B-F01",
+      "name": "Publish open slots",
+      "description": "A team publishes open slots that customers can book.",
+      "business_logic": "Not documented beyond the sentence.",
+      "data": [
+        "Slot"
+      ],
+      "integration": "needs team/staff role distinct from customers",
+      "evidence": [
+        "B-E01",
+        "B-E08"
+      ],
+      "basis": "documented",
+      "confidence": "medium"
+    },
+    {
+      "id": "B-F02",
+      "name": "Book a slot",
+      "description": "A customer books an open slot.",
+      "business_logic": "Via POST /bookings; validation, payment and errors not documented.",
+      "data": [
+        "Booking",
+        "Slot"
+      ],
+      "depends_on": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E06"
+      ],
+      "basis": "documented",
+      "confidence": "medium"
+    },
+    {
+      "id": "B-F03",
+      "name": "Recurring bookings",
+      "description": "Book the same slot every week, for up to 12 weeks.",
+      "business_logic": "Weekly recurrence; maximum 12 occurrences. Behaviour when one occurrence is taken, and how cancellation of a series works, are not documented.",
+      "data": [
+        "Booking (recurrence)"
+      ],
+      "depends_on": [
+        "B-F02"
+      ],
+      "subfeatures": [
+        "weekly recurrence",
+        "12-week cap"
+      ],
+      "evidence": [
+        "B-E02",
+        "B-E06"
+      ],
+      "basis": "documented",
+      "confidence": "medium"
+    },
+    {
+      "id": "B-F04",
+      "name": "Calendar sync",
+      "description": "Keeps bookings in step with the user's calendar.",
+      "business_logic": "Unknown: provider(s), one-way or two-way, conflict handling are in calendar.md, which was not provided.",
+      "data": [
+        "Booking",
+        "calendar link (unknown)"
+      ],
+      "depends_on": [
+        "B-F02"
+      ],
+      "integration": "an external calendar provider (unknown which)",
+      "evidence": [
+        "B-E03",
+        "B-E04"
+      ],
+      "basis": "documented",
+      "confidence": "low"
+    },
+    {
+      "id": "B-F05",
+      "name": "Waiting list",
+      "description": "Join a waiting list when a slot is full.",
+      "business_logic": "Via POST /waitlist. What happens when a place frees up (notify vs. auto-book), ordering and expiry are not documented.",
+      "data": [
+        "WaitlistEntry (inferred)",
+        "Slot"
+      ],
+      "depends_on": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E05",
+        "B-E07"
+      ],
+      "basis": "documented",
+      "confidence": "medium"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Slot",
+      "fields": [],
+      "features": [
+        "B-F01",
+        "B-F02",
+        "B-F05"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E08"
+      ],
+      "basis": "inferred"
+    },
+    {
+      "name": "Booking",
+      "fields": [
+        {
+          "name": "recurring",
+          "type": "unknown"
+        }
+      ],
+      "features": [
+        "B-F02",
+        "B-F03",
+        "B-F04"
+      ],
+      "evidence": [
+        "B-E06"
+      ],
+      "basis": "inferred"
+    },
+    {
+      "name": "WaitlistEntry",
+      "fields": [],
+      "features": [
+        "B-F05"
+      ],
+      "evidence": [
+        "B-E07"
+      ],
+      "basis": "inferred"
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/bookings",
+      "version": "1",
+      "features": [
+        "B-F02",
+        "B-F03"
+      ],
+      "evidence": [
+        "B-E06"
+      ],
+      "basis": "documented"
+    },
+    {
+      "method": "POST",
+      "path": "/waitlist",
+      "version": "1",
+      "features": [
+        "B-F05"
+      ],
+      "evidence": [
+        "B-E07"
+      ],
+      "basis": "documented"
+    }
+  ],
+  "rules": [
+    {
+      "key": "recurrence_interval",
+      "value": "weekly",
+      "features": [
+        "B-F03"
+      ],
+      "evidence": [
+        "B-E02"
+      ]
+    },
+    {
+      "key": "recurrence_max_weeks",
+      "value": 12,
+      "features": [
+        "B-F03"
+      ],
+      "evidence": [
+        "B-E02"
+      ]
+    }
+  ],
+  "integrations": [
+    {
+      "name": "Calendar provider (unspecified)",
+      "purpose": "keep bookings in step with a calendar",
+      "features": [
+        "B-F04"
+      ],
+      "evidence": [
+        "B-E03",
+        "B-E04"
+      ]
+    }
+  ],
+  "unknowns": [
+    "calendar.md (linked from overview.md) was not provided: calendar providers, sync direction, conflict handling and auth for calendar sync are unknown. The doc page or a screenshot of the settings would settle it.",
+    "openapi.yaml has summaries only: no request/response schemas, auth scheme or error responses for /bookings and /waitlist.",
+    "No endpoints for publishing slots, listing slots, cancelling bookings or managing the waiting list are published.",
+    "Payment, cancellation policy and refunds are not mentioned anywhere in Slotty's docs.",
+    "Waiting-list behaviour when a place frees up (notify vs. auto-book, ordering, expiry) is not documented.",
+    "Recurring bookings: behaviour when one week is already taken, and cancelling one occurrence vs. the series, are not documented.",
+    "Auth, roles and stack are not documented. Closed product: no code inspected, none may be reused."
+  ]
+}

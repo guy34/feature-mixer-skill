@@ -1,0 +1,144 @@
+{
+  "root": "../../../sources/approvals",
+  "indexed_at": "2026-11-04T09:04:04+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 6,
+    "lines": 113,
+    "modules": 4
+  },
+  "files": [
+    {
+      "path": "LICENSE",
+      "size": 718,
+      "sha256": "08ea801c3ea560c455a41afae4df6d80cf94eed33309df765d0494420b3fcd37",
+      "language": "other",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 15
+    },
+    {
+      "path": "README.md",
+      "size": 243,
+      "sha256": "495aa0d57d388e8053cd3a7128e4a1e44178a86a769b4aad70db472149df92b6",
+      "language": "markdown",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 5
+    },
+    {
+      "path": "client/routes.js",
+      "size": 301,
+      "sha256": "86ca8565e98e372c70ee5a38ccfcb73eed04e110c88d23d878fc81a1f9807f40",
+      "language": "javascript",
+      "module": "client",
+      "binary": false,
+      "generated": false,
+      "lines": 9,
+      "imports": [],
+      "packages": []
+    },
+    {
+      "path": "db/schema.sql",
+      "size": 902,
+      "sha256": "fbb83df23cccf70e7a249dba8e28b6e23aef4439bb693986959c605ee5ea7d36",
+      "language": "sql",
+      "module": "db",
+      "binary": false,
+      "generated": false,
+      "lines": 31
+    },
+    {
+      "path": "package.json",
+      "size": 311,
+      "sha256": "2cb3f26f45a12e57d2a634fa139407831abbeb009a3dc81a513563aa69ca9eed",
+      "language": "json",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 15
+    },
+    {
+      "path": "src/routes.js",
+      "size": 2241,
+      "sha256": "18101730a4307a9a976ca2f96f421c11750acb0e93933ded7251b57fb3f8a762",
+      "language": "javascript",
+      "module": "src",
+      "binary": false,
+      "generated": false,
+      "lines": 38,
+      "imports": [],
+      "packages": [
+        "jsonwebtoken"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 35,
+      "languages": [
+        "json",
+        "markdown"
+      ],
+      "depends_on": [],
+      "external": []
+    },
+    "client": {
+      "files": 1,
+      "lines": 9,
+      "languages": [
+        "javascript"
+      ],
+      "depends_on": [],
+      "external": []
+    },
+    "db": {
+      "files": 1,
+      "lines": 31,
+      "languages": [
+        "sql"
+      ],
+      "depends_on": [],
+      "external": []
+    },
+    "src": {
+      "files": 1,
+      "lines": 38,
+      "languages": [
+        "javascript"
+      ],
+      "depends_on": [],
+      "external": [
+        "jsonwebtoken"
+      ]
+    }
+  },
+  "external_imports": {
+    "jsonwebtoken": [
+      "src/routes.js"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "B-F01": [
+      "src/routes.js"
+    ],
+    "B-F02": [
+      "db/schema.sql",
+      "src/routes.js"
+    ],
+    "B-F03": [
+      "db/schema.sql"
+    ],
+    "B-F04": [
+      "src/routes.js"
+    ],
+    "B-F05": [
+      "db/schema.sql",
+      "src/routes.js"
+    ]
+  }
+}

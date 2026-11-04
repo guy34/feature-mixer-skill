@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/guy34/feature-mixer-skill/blob/main/feature-mixer/schemas/capabilities.schema.json",
+  "title": "Feature Mixer capabilities",
+  "description": "mixer/capabilities.json: what this session can really do, recorded before reconnaissance.",
+  "type": "object",
+  "required": [
+    "checked_at",
+    "checked_by",
+    "capabilities"
+  ],
+  "properties": {
+    "checked_at": {
+      "type": "string"
+    },
+    "checked_by": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "object",
+      "required": [
+        "terminal",
+        "filesystem_write",
+        "test_execution",
+        "browser",
+        "web_fetch",
+        "repository_access",
+        "external_api"
+      ],
+      "properties": {
+        "terminal": {
+          "$ref": "#/$defs/cap"
+        },
+        "filesystem_write": {
+          "$ref": "#/$defs/cap"
+        },
+        "test_execution": {
+          "$ref": "#/$defs/cap"
+        },
+        "browser": {
+          "$ref": "#/$defs/cap"
+        },
+        "web_fetch": {
+          "$ref": "#/$defs/cap"
+        },
+        "repository_access": {
+          "$ref": "#/$defs/cap"
+        },
+        "external_api": {
+          "$ref": "#/$defs/cap"
+        },
+        "isolation": {
+          "$ref": "#/$defs/cap"
+        },
+        "vulnerability_audit": {
+          "$ref": "#/$defs/cap"
+        },
+        "network": {
+          "$ref": "#/$defs/cap"
+        },
+        "tools": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/cap"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "cap": {
+      "type": "object",
+      "required": [
+        "status",
+        "detail"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "available",
+            "unavailable",
+            "partial",
+            "not-needed",
+            "not-checked"
+          ],
+          "description": "not-needed: no input in this run requires it (treated as unavailable if one does)."
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

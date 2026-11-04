@@ -1,0 +1,42 @@
+{
+  "app": {"id": "C", "name": "ShareLink"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "C-R01", "kind": "local-directory", "location": "sources/sharelink", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "C-E01", "source": "C-R01", "basis": "observed", "locator": "sources/sharelink/sharelink.py:4-8", "summary": "create_link() makes a token_urlsafe(16) token and stores file_id and expires_at = now + expires_in_hours (default 24) in a links dict."},
+    {"id": "C-E02", "source": "C-R01", "basis": "observed", "locator": "sources/sharelink/sharelink.py:7", "summary": "Optional password stored as an unsalted SHA-256 hex digest."},
+    {"id": "C-E03", "source": "C-R01", "basis": "observed", "locator": "sources/sharelink/sharelink.py:10-16", "summary": "open_link() raises LookupError for unknown or expired tokens, PermissionError for a wrong password, else returns file_id."},
+    {"id": "C-E04", "source": "C-R01", "basis": "observed", "locator": "sources/sharelink/sharelink.py:18-19", "summary": "revoke_link() removes the token; no ownership check, silent if unknown."},
+    {"id": "C-E05", "source": "C-R01", "basis": "observed", "locator": "sources/sharelink/sharelink.py:2", "summary": "Imports hashlib, secrets, time only (standard library)."}
+  ],
+  "stack": {"backend": ["Python (standard library: hashlib, secrets, time)"], "database": ["in-memory dict passed by caller"], "basis": "observed"},
+  "architecture": {"backend": "plain functions over a caller-supplied links dict", "evidence": ["C-E01", "C-E05"], "basis": "observed"},
+  "features": [
+    {"id": "C-F01", "name": "Create share link with expiry", "description": "Create an unguessable link to a file that expires after N hours.", "observed_behaviour": "Returns a 16-byte url-safe token; link expires expires_in_hours (default 24) after creation.", "business_logic": "Default expiry 24 h; expiry checked with expires_at < now.", "data": ["ShareLink.token", "ShareLink.file_id", "ShareLink.expires_at"], "integration": "needs a file to exist and (in the unified app) its owner to create the link", "evidence": ["C-E01"], "basis": "observed", "confidence": "high"},
+    {"id": "C-F02", "name": "Password-protected link", "description": "Optionally require a password to open a link.", "observed_behaviour": "Password hashed with unsalted SHA-256 at creation; compared on open.", "business_logic": "No password set means no password needed.", "data": ["ShareLink.password_hash"], "depends_on": ["C-F01", "C-F03"], "evidence": ["C-E02", "C-E03"], "basis": "observed", "confidence": "high"},
+    {"id": "C-F03", "name": "Open shared link", "description": "Anyone with the token opens the shared file.", "observed_behaviour": "Unknown or expired -> LookupError; wrong password -> PermissionError; otherwise returns file_id.", "business_logic": "Expired and unknown tokens are not distinguished to the caller.", "data": ["ShareLink"], "depends_on": ["C-F01"], "integration": "needs file download/preview for the returned file_id", "evidence": ["C-E03"], "basis": "observed", "confidence": "high"},
+    {"id": "C-F04", "name": "Revoke share link", "description": "Remove a link so it no longer opens.", "observed_behaviour": "Token popped from the dict; no error if missing; no check of who revokes.", "data": ["ShareLink"], "depends_on": ["C-F01"], "evidence": ["C-E04"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "ShareLink", "primary_key": {"name": "token", "type": "str"}, "fields": [{"name": "token", "type": "str", "required": true}, {"name": "file_id", "type": "str", "required": true}, {"name": "expires_at", "type": "float (epoch seconds)", "required": true}, {"name": "password_hash", "type": "str | None", "required": false}], "features": ["C-F01", "C-F02", "C-F03", "C-F04"], "evidence": ["C-E01", "C-E02"], "basis": "observed"}
+  ],
+  "endpoints": [],
+  "rules": [
+    {"key": "default_link_expiry_hours", "value": 24, "features": ["C-F01"], "evidence": ["C-E01"]},
+    {"key": "link_token_bytes", "value": 16, "features": ["C-F01"], "evidence": ["C-E01"]},
+    {"key": "link_password_hash", "value": "sha256 unsalted", "features": ["C-F02"], "evidence": ["C-E02"]}
+  ],
+  "error_handling": [
+    {"case": "unknown or expired token", "behaviour": "LookupError('link expired or unknown')", "evidence": ["C-E03"]},
+    {"case": "wrong password", "behaviour": "PermissionError('wrong password')", "evidence": ["C-E03"]},
+    {"case": "revoke unknown token", "behaviour": "silently ignored", "evidence": ["C-E04"]}
+  ],
+  "unknowns": [
+    "Persistence: links live in a caller-supplied dict; no database schema in the source.",
+    "Who may create or revoke a link is not checked in the source (no owner concept)."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

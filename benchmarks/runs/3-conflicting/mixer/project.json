@@ -1,0 +1,157 @@
+{
+  "name": "Unified Community Forum",
+  "format": 3,
+  "mode": "plan",
+  "audience": "one community forum combining Boardly and OpenForum (audience not further specified in the task)",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Boardly",
+      "slug": "boardly",
+      "access": "own-code",
+      "licence": "proprietary (user's own code)",
+      "code_reuse": "allowed",
+      "slice": "core loop: sign in, post, read posts, moderation queue",
+      "local_path": "sources/boardly",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/boardly"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "OpenForum",
+      "slug": "openforum",
+      "access": "open-source",
+      "licence": "MIT (LICENSE file in the folder, checked)",
+      "code_reuse": "allowed",
+      "slice": "core loop: sign in, post (including anonymous), read posts",
+      "local_path": "sources/openforum",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/openforum"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "both sources scanned, indexed, reported"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "10 menu rows from 10 source features"
+    },
+    "selection": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "auto-pick: 6 kept, 4 dropped; 5 unified features",
+      "approved": true
+    },
+    "compatibility": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "all conflicts resolved; migrations approved as plans only",
+      "approved": true
+    },
+    "architecture": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "design complete; plan mode ends here",
+      "approved": true
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "mixer/checkpoints/CP1-recon",
+      "date": "2026-11-04",
+      "note": "snapshot copy of mixer/ (project not in git)"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "mixer/checkpoints/CP2-extraction",
+      "date": "2026-11-04",
+      "note": "snapshot copy of mixer/ (project not in git)"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "mixer/checkpoints/CP3-selection",
+      "date": "2026-11-04",
+      "note": "snapshot copy of mixer/ (project not in git)"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "mixer/checkpoints/CP4-compatibility",
+      "date": "2026-11-04",
+      "note": "snapshot copy of mixer/ (project not in git)"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "mixer/checkpoints/CP5-architecture",
+      "date": "2026-11-04",
+      "note": "snapshot copy of mixer/ (project not in git)"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "other",
+      "target": "selection checkpoint: auto-pick keep M01,M03,M04,M05,M07,M09; drop M02,M06,M08,M10",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "auto-pick mode chosen by operator; pre-approved recommendations"
+    },
+    {
+      "id": "A02",
+      "action": "migration",
+      "target": "migration:post",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plan only (design/migration-plan.md); running it needs a separate approval"
+    },
+    {
+      "id": "A03",
+      "action": "migration",
+      "target": "migration:user",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plan only (design/migration-plan.md); running it needs a separate approval"
+    },
+    {
+      "id": "A04",
+      "action": "other",
+      "target": "compatibility checkpoint: decisions in compat/resolutions.json (1 critical, 12 high, 4 medium)",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "pre-approved recommendations"
+    },
+    {
+      "id": "A05",
+      "action": "other",
+      "target": "architecture checkpoint: modular monolith, Node 22/Express/PostgreSQL, modules config/identity/posts/moderation, slices V1-V3, decisions D01-D09",
+      "approved": true,
+      "by": "benchmark-operator (pre-approved in task)",
+      "date": "2026-11-04",
+      "note": "plan mode: run ends after this approval"
+    }
+  ]
+}

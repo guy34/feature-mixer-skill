@@ -1,0 +1,123 @@
+{
+  "app": {"id": "B", "name": "OpenForum"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/openforum", "accessed": "2026-11-04"}
+  ],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": ["(root)"],
+    "modules_skipped": [],
+    "files_read": 3
+  },
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/api.py:1", "summary": "Header comment states JWT bearer tokens, posts publish immediately, anonymous posting allowed."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/api.py:4", "summary": "login checks email/password and returns a JWT with sub and role claims, signed with a hard-coded literal key."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/api.py:8", "summary": "GET /api/posts/<int:post_id> returns {id: int, body: str, author_id: int or None}; no auth check."},
+    {"id": "B-E04", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/api.py:11", "summary": "POST /api/posts: without a token the post is anonymous and published at once."},
+    {"id": "B-E05", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/api.py:12", "summary": "create_post raises ValueError when body exceeds 10000 characters."},
+    {"id": "B-E06", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/api.py:17", "summary": "ROUTES map: GET /api/posts/<int:post_id>, POST /api/posts, POST /api/token."},
+    {"id": "B-E07", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/api.py:18", "summary": "CLIENT_ROUTES: /posts and /login."},
+    {"id": "B-E08", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/models.py:2", "summary": "users: integer id, email, name, role in (user, admin)."},
+    {"id": "B-E09", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/models.py:3", "summary": "posts: integer id, nullable author_id (null = anonymous), body max 10000, created_at; no status column."},
+    {"id": "B-E10", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/models.py:4", "summary": "MAX_POST_LENGTH = 10000 and ROLES = (user, admin)."},
+    {"id": "B-E11", "source": "B-R01", "basis": "observed", "locator": "sources/openforum/LICENSE:1", "summary": "MIT licence text permitting use without restriction."}
+  ],
+  "stack": {
+    "frontend": ["unknown (only a list of client routes)"],
+    "backend": ["Python with PyJWT (import jwt); web framework not shown"],
+    "database": ["SQL-style tables documented in comments; engine unknown"],
+    "infrastructure": [],
+    "basis": "inferred"
+  },
+  "packages": {"jwt": "PyJWT (version unknown, no manifest)"},
+  "architecture": {
+    "frontend": "client routes listed only",
+    "backend": "plain functions mapped to routes in a ROUTES dict; db helper not in the folder",
+    "evidence": ["B-E06", "B-E07"],
+    "basis": "inferred"
+  },
+  "features": [
+    {"id": "B-F01", "name": "Token sign-in (JWT bearer)", "description": "A user signs in with email and password and receives a JWT bearer token carrying user id and role.",
+     "observed_behaviour": "POST /api/token calls db.check(email, password) and returns {token}.",
+     "business_logic": "Token claims: sub, role. Signing key is a hard-coded literal (security weakness; no expiry claim).",
+     "data": ["User"], "integration": "needs a signing secret from configuration, not code",
+     "evidence": ["B-E01", "B-E02", "B-E06"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F02", "name": "Read a post (public)", "description": "Anyone opens a single post by integer id.",
+     "observed_behaviour": "GET /api/posts/<int> returns {id, body, author_id}; no token needed.",
+     "data": ["Post"],
+     "evidence": ["B-E03", "B-E06"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F03", "name": "Create a post (published immediately)", "description": "A user writes a post of up to 10000 characters; it is visible at once.",
+     "observed_behaviour": "POST /api/posts inserts the post; no status or review step.",
+     "business_logic": "Body max 10000 chars, ValueError above that; no moderation.",
+     "data": ["Post"], "depends_on": ["B-F01"],
+     "evidence": ["B-E01", "B-E04", "B-E05", "B-E09", "B-E10"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F04", "name": "Anonymous posting", "description": "Posting without signing in; the post has no author.",
+     "observed_behaviour": "With no token, author_id is None and the post is published at once.",
+     "business_logic": "author_id nullable; null means anonymous.",
+     "data": ["Post"], "depends_on": ["B-F03"],
+     "evidence": ["B-E01", "B-E04", "B-E09"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F05", "name": "Post list screen", "description": "A /posts client route.",
+     "observed_behaviour": "Only the client route is listed; no list endpoint in ROUTES.",
+     "data": ["Post"], "depends_on": ["B-F02"],
+     "evidence": ["B-E07"], "basis": "observed", "confidence": "low"}
+  ],
+  "screens": [
+    {"id": "B-S01", "name": "Posts", "route": "/posts", "evidence": ["B-E07"]},
+    {"id": "B-S02", "name": "Login", "route": "/login", "evidence": ["B-E07"]}
+  ],
+  "workflows": [
+    {"id": "B-W01", "name": "Post anonymously", "steps": ["B-S01"], "edge_cases": ["body over 10000 characters raises ValueError"], "evidence": ["B-E04", "B-E05"]},
+    {"id": "B-W02", "name": "Sign in and post", "steps": ["B-S02", "B-S01"], "edge_cases": ["invalid token on create (decode error, handling unknown)"], "evidence": ["B-E02", "B-E04"]}
+  ],
+  "routes": [
+    {"path": "/posts", "screen": "B-S01"},
+    {"path": "/login", "screen": "B-S02"}
+  ],
+  "entities": [
+    {"name": "User", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "email", "type": "text"}, {"name": "name", "type": "text"}, {"name": "role", "type": "text"}],
+     "features": ["B-F01"], "evidence": ["B-E08"], "basis": "observed"},
+    {"name": "Post", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "author_id", "type": "integer", "required": false}, {"name": "body", "type": "text", "required": true}, {"name": "created_at", "type": "timestamp"}],
+     "foreign_keys": [{"field": "author_id", "references": "User"}],
+     "features": ["B-F02", "B-F03", "B-F04", "B-F05"], "evidence": ["B-E09"], "basis": "observed"}
+  ],
+  "endpoints": [
+    {"method": "POST", "path": "/api/token", "auth": "none", "request": {"email": "str", "password": "str"}, "response": {"token": "JWT"}, "features": ["B-F01"], "evidence": ["B-E02", "B-E06"], "basis": "observed"},
+    {"method": "GET", "path": "/api/posts/<int:post_id>", "auth": "none", "response": {"id": "int", "body": "str", "author_id": "int|None"}, "features": ["B-F02"], "evidence": ["B-E03", "B-E06"], "basis": "observed"},
+    {"method": "POST", "path": "/api/posts", "auth": "optional bearer JWT", "request": {"body": "str"}, "response": {"post": "inserted row"}, "errors": ["ValueError too long"], "features": ["B-F03", "B-F04"], "evidence": ["B-E04", "B-E05", "B-E06"], "basis": "observed"}
+  ],
+  "auth": {
+    "provider": "own (users table)",
+    "methods": ["email + password"],
+    "session": "stateless JWT bearer token (no expiry seen)",
+    "model": "roles user, admin carried in the token; no role checks seen in the API",
+    "roles": ["user", "admin"],
+    "evidence": ["B-E01", "B-E02", "B-E08", "B-E10"],
+    "basis": "observed"
+  },
+  "rules": [
+    {"key": "max_post_length", "value": 10000, "features": ["B-F03"], "evidence": ["B-E05", "B-E10"]},
+    {"key": "new_post_status", "value": "published immediately (no status field)", "features": ["B-F03"], "evidence": ["B-E01", "B-E09"]},
+    {"key": "author_required", "value": false, "features": ["B-F04"], "evidence": ["B-E09"]},
+    {"key": "roles", "value": ["user", "admin"], "features": ["B-F01"], "evidence": ["B-E10"]}
+  ],
+  "integrations": [],
+  "configuration": [
+    {"key": "JWT signing key", "purpose": "signs tokens; currently a hard-coded literal in api.py and must move to configuration (value not copied)", "evidence": ["B-E02"]}
+  ],
+  "error_handling": [
+    {"case": "post too long", "behaviour": "ValueError('too long'); HTTP mapping unknown", "evidence": ["B-E05"]},
+    {"case": "invalid or expired token on create", "behaviour": "jwt.decode raises; handling unknown", "evidence": ["B-E04"]}
+  ],
+  "unknowns": [
+    "Web framework and HTTP error mapping are not shown; db helper (db.check, db.get, db.insert) not in the folder.",
+    "Password storage and hashing are unknown.",
+    "What the admin role can do: no admin endpoints or checks exist in the folder.",
+    "No list endpoint for /posts; how the list is loaded is unknown.",
+    "No package manifest; PyJWT version unknown.",
+    "Source code was read only, never run (running not approved)."
+  ]
+}

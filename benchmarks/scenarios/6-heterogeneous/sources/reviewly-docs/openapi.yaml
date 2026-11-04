@@ -1,0 +1,7 @@
+openapi: 3.0.3
+info: {title: Reviewly API, version: "2"}
+paths:
+  /v2/products/{productId}/reviews:
+    get: {summary: List reviews for a product}
+    post:
+      summary: Leave a review (rating 1-5 and comment)
