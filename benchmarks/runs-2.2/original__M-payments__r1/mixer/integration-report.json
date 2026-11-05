@@ -1,0 +1,449 @@
+{
+  "app": "Unified Billing (Scenario M: billing, subscriptions and orders)",
+  "command": "python -m unittest discover -s tests -t . (Feature Mixer harness)",
+  "framework": "unittest",
+  "date": "2026-11-05",
+  "execution": {
+    "run_id": "20261105T130725609331Z",
+    "runner": "run_tests.py",
+    "cwd": "app",
+    "started_at": "2026-11-05T13:07:25+00:00",
+    "finished_at": "2026-11-05T13:07:25+00:00",
+    "exit_code": 0,
+    "log": "test-runs/20261105T130725609331Z/output.log",
+    "log_sha256": "9c6dccdc7fafdf682da3b0d98d63374d12abc4d2c2d40d351d1d3eb89410f849",
+    "results": "test-runs/20261105T130725609331Z/results.xml",
+    "results_sha256": "494e21cabb2ac5de17bda754ec7c5523329aab991a582201c7c76de43fe16826",
+    "approval": "A01"
+  },
+  "summary": {
+    "total": 31,
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0,
+    "not_executed": 0,
+    "unverified": 0
+  },
+  "tests": [
+    {
+      "name": "tests.test_v1_orders_payments.OrdersTest.test_create_order_is_pending",
+      "level": "unit",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC01"
+      ],
+      "expected": "a new order is pending with its amount and no charge",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.OrdersTest.test_create_order_write_failure_creates_nothing",
+      "level": "database",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC01"
+      ],
+      "expected": "a failed write raises StoreError and no order exists afterwards",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.OrdersTest.test_invalid_amounts_and_missing_order",
+      "level": "unit",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC01"
+      ],
+      "expected": "non-positive, non-integer and bool amounts are refused; unknown ids raise OrderNotFound",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_default_store_exposed",
+      "level": "unit",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC04"
+      ],
+      "expected": "create_app without a store exposes app.store with fail_next_write False",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_foreign_store_object_controls_failures",
+      "level": "database",
+      "features": [
+        "M02",
+        "M01"
+      ],
+      "acceptance": [
+        "AC04"
+      ],
+      "expected": "any object with fail_next_write works as the store; its flag makes the next write fail once",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_key_reused_for_other_order_refused",
+      "level": "unit",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "a key already used for order 1 is refused for order 2, which stays pending and uncharged",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_missing_key_refused",
+      "level": "unit",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "pay without an idempotency key is refused before any charge",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_paid_order_with_new_key_not_charged",
+      "level": "unit",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "paying an already paid order with a different key does not charge again",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_pay_marks_paid_and_ledgers_once",
+      "level": "unit",
+      "features": [
+        "M02",
+        "M01"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "paying charges the gateway once, order paid with the charge id, one ledger charge",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_retry_same_key_never_charges_twice",
+      "level": "unit",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "three pays with the same key give one gateway charge and one ledger entry",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_timeout_exception_importable_from_module",
+      "level": "unit",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC03"
+      ],
+      "expected": "billing re-exports the gateway's GatewayTimeout",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_timeout_then_retry_other_key_charges_once",
+      "level": "interaction",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC03"
+      ],
+      "expected": "after a timeout, a retry with a new key reuses the first gateway key, so no second charge",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_timeout_then_retry_same_key_charges_once",
+      "level": "interaction",
+      "features": [
+        "M02",
+        "M01"
+      ],
+      "acceptance": [
+        "AC03"
+      ],
+      "expected": "a timeout after a successful charge leaves the order pending; the retry gets the same charge",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_write_failure_after_charge_retry_collects_same_charge",
+      "level": "database",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC04"
+      ],
+      "expected": "if the write after a successful charge fails, the order stays pending and a retry with any key does not charge again",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v1_orders_payments.PaymentsTest.test_write_failure_during_pay_leaves_order_unchanged",
+      "level": "database",
+      "features": [
+        "M02",
+        "M01"
+      ],
+      "acceptance": [
+        "AC04"
+      ],
+      "expected": "StoreError, order unchanged and no ledger entry; the retry charges exactly once",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_webhooks.WebhookTest.test_duplicate_delivery_applied_once",
+      "level": "unit",
+      "features": [
+        "M03"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "the same event delivered three times is applied once",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_webhooks.WebhookTest.test_ignored_events",
+      "level": "unit",
+      "features": [
+        "M03"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "unknown orders, unknown types, wrong charge ids and refunds of pending orders change nothing",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_webhooks.WebhookTest.test_refunded_webhook_refunds_paid_order_once",
+      "level": "unit",
+      "features": [
+        "M03",
+        "M01"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "charge.refunded moves a paid order to refunded with one ledger refund; redelivery does nothing",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_webhooks.WebhookTest.test_succeeded_webhook_marks_pending_order_paid",
+      "level": "unit",
+      "features": [
+        "M03",
+        "M01"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "charge.succeeded moves a pending order to paid with the event's charge id and one ledger charge",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_webhooks.WebhookTest.test_webhook_after_pay_adds_nothing",
+      "level": "interaction",
+      "features": [
+        "M03",
+        "M02"
+      ],
+      "acceptance": [
+        "AC06"
+      ],
+      "expected": "pay then charge.succeeded for the same charge leaves one ledger charge; pay again does not charge",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_webhooks.WebhookTest.test_webhook_after_timeout_then_retry",
+      "level": "interaction",
+      "features": [
+        "M03",
+        "M02"
+      ],
+      "acceptance": [
+        "AC06"
+      ],
+      "expected": "timeout, then the webhook confirms the charge, then the client retry neither charges nor ledgers again",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v2_webhooks.WebhookTest.test_write_failure_leaves_order_unchanged_and_redelivery_applies",
+      "level": "database",
+      "features": [
+        "M03"
+      ],
+      "acceptance": [
+        "AC07"
+      ],
+      "expected": "StoreError while applying an event leaves the order pending; the redelivered event applies once",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_cancel.CancelTest.test_cancel_paid_refunds_exactly_once",
+      "level": "interaction",
+      "features": [
+        "M04",
+        "M02"
+      ],
+      "acceptance": [
+        "AC08"
+      ],
+      "expected": "cancelling a paid order twice refunds once, status refunded, ledger charge then refund",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_cancel.CancelTest.test_cancel_pending_no_refund",
+      "level": "unit",
+      "features": [
+        "M04",
+        "M01"
+      ],
+      "acceptance": [
+        "AC09"
+      ],
+      "expected": "a pending order becomes cancelled, no gateway refund, no ledger entry, cannot be paid after",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_cancel.CancelTest.test_cancel_then_refund_webhook_not_applied_twice",
+      "level": "interaction",
+      "features": [
+        "M04",
+        "M03"
+      ],
+      "acceptance": [
+        "AC08"
+      ],
+      "expected": "the gateway's charge.refunded webhook after a cancel adds no second refund",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_cancel.CancelTest.test_late_charge_on_cancelled_order_is_refunded_once",
+      "level": "interaction",
+      "features": [
+        "M04",
+        "M03",
+        "M02"
+      ],
+      "acceptance": [
+        "AC08"
+      ],
+      "expected": "pay times out, the order is cancelled, then charge.succeeded arrives: the charge is refunded once",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_cancel.CancelTest.test_write_failure_after_refund_never_refunds_again",
+      "level": "database",
+      "features": [
+        "M04"
+      ],
+      "acceptance": [
+        "AC10"
+      ],
+      "expected": "if the write after the gateway refund fails, the order stays paid and a retry completes without a second refund",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v3_cancel.CancelTest.test_write_failure_before_refund",
+      "level": "database",
+      "features": [
+        "M04"
+      ],
+      "acceptance": [
+        "AC10"
+      ],
+      "expected": "StoreError on cancel leaves the paid order unchanged; the retry refunds exactly once",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v4_renewals.RenewalTest.test_renew_creates_order",
+      "level": "unit",
+      "features": [
+        "M05",
+        "M01"
+      ],
+      "acceptance": [
+        "AC11"
+      ],
+      "expected": "a renewal creates a pending order for the customer at the subscription price",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v4_renewals.RenewalTest.test_renewal_journey_pay_and_cancel",
+      "level": "journey",
+      "features": [
+        "M05",
+        "M02",
+        "M04",
+        "M03"
+      ],
+      "acceptance": [
+        "AC11"
+      ],
+      "expected": "renewal order is paid once with retries, confirmed by webhook, and refunded once on cancel",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_v4_renewals.RenewalTest.test_same_period_renewed_once",
+      "level": "unit",
+      "features": [
+        "M05"
+      ],
+      "acceptance": [
+        "AC11"
+      ],
+      "expected": "renewing the same period twice returns the same order; a new period makes a new order",
+      "actual": "as expected",
+      "status": "passed"
+    }
+  ]
+}

@@ -1,0 +1,220 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Idempotent order payment",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E02",
+        "A-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "A single payment path for orders. The source's pay() is kept for its job but rebuilt, because its fallback key and missing timeout handling can charge twice or leave a charged order unpaid.",
+      "behaviour": "pay(order_id, key) charges the order's amount_cents through the gateway adapter. The key is required and bound to one order; the first attempt's key is recorded before the gateway is called and reused on every retry, so one order produces at most one gateway charge. A paid order is never charged again. A gateway timeout is retried once with the same key; if still unknown the order stays pending and the error is raised. Paid state, charge id and the ledger charge entry are written in one atomic write.",
+      "improvements": "No str(id(order)) fallback key; key-to-order binding; attempt key persisted before the call; timeout retry with the same key; integer cents; atomic write",
+      "depends_on": [
+        "U04",
+        "U06",
+        "U07"
+      ],
+      "compatibility": "adaptable",
+      "validation": "verified",
+      "tests": [
+        "tests.test_billing.V1CoreLoop.test_default_store_and_store_flag",
+        "tests.test_billing.V1CoreLoop.test_failed_commit_after_charge_is_recovered_without_second_charge",
+        "tests.test_billing.V1CoreLoop.test_failed_write_on_pay_leaves_order_unchanged",
+        "tests.test_billing.V1CoreLoop.test_key_is_required_and_bound_to_one_order",
+        "tests.test_billing.V1CoreLoop.test_paid_order_with_new_key_is_not_charged_again",
+        "tests.test_billing.V1CoreLoop.test_pay_marks_order_paid",
+        "tests.test_billing.V1CoreLoop.test_retry_with_same_key_charges_once",
+        "tests.test_billing.V1CoreLoop.test_timeout_after_success_charges_once_and_order_is_paid",
+        "tests.test_billing.V1CoreLoop.test_timeout_then_retry_with_new_key_still_charges_once",
+        "tests.test_billing.V2Webhooks.test_webhook_after_pay_adds_nothing",
+        "tests.test_billing.V3Cancel.test_journey_pay_webhook_cancel_ledger",
+        "tests.test_billing.V4Renewals.test_journey_renewal_then_payment"
+      ]
+    },
+    {
+      "id": "U02",
+      "name": "Exactly-once gateway webhooks",
+      "menu_ids": [
+        "M02"
+      ],
+      "source_features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E03",
+        "A-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Webhooks keep orders in step with the gateway; the source applied every delivery again and ignored the event type.",
+      "behaviour": "handle_webhook(event) records the event id in the same atomic write as its effect, so a redelivery does nothing. charge.succeeded moves a pending order to paid (and refunds a charge that lands on an order cancelled meanwhile); charge.refunded moves a paid order to refunded. Unknown types and unknown orders are ignored; duplicates of an effect already applied (same charge already recorded, order already refunded) change nothing.",
+      "improvements": "Event-id dedupe; type-aware handling; no backwards moves; ledger entry at most once per money movement",
+      "depends_on": [
+        "U01",
+        "U04",
+        "U06"
+      ],
+      "compatibility": "adaptable",
+      "validation": "verified",
+      "tests": [
+        "tests.test_billing.V2Webhooks.test_failed_write_on_webhook_leaves_order_unchanged",
+        "tests.test_billing.V2Webhooks.test_late_charge_on_cancelled_order_is_refunded_once",
+        "tests.test_billing.V2Webhooks.test_redelivered_webhook_is_applied_once",
+        "tests.test_billing.V2Webhooks.test_refund_webhook_applied_once",
+        "tests.test_billing.V2Webhooks.test_unknown_events_are_ignored",
+        "tests.test_billing.V2Webhooks.test_webhook_after_pay_adds_nothing",
+        "tests.test_billing.V3Cancel.test_journey_pay_webhook_cancel_ledger"
+      ]
+    },
+    {
+      "id": "U03",
+      "name": "Subscription renewal",
+      "menu_ids": [
+        "M03"
+      ],
+      "source_features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E02"
+      ],
+      "merge_type": "unique",
+      "rationale": "B's core loop; it creates orders through the unified order service instead of an injected callback.",
+      "behaviour": "renew(subscription, period) creates one pending order for the subscription's customer and price_cents; renewing the same subscription id for the same period returns the existing order. The monthly trigger stays outside the module.",
+      "improvements": "Per-period duplicate check (one order per subscription per period)",
+      "depends_on": [
+        "U07"
+      ],
+      "compatibility": "adaptable",
+      "validation": "verified",
+      "tests": [
+        "tests.test_billing.V4Renewals.test_journey_renewal_then_payment",
+        "tests.test_billing.V4Renewals.test_renewing_same_period_creates_one_order"
+      ]
+    },
+    {
+      "id": "U04",
+      "name": "Order lifecycle",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E01",
+        "C-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "C's four states become the single order status, replacing A's paid flag.",
+      "behaviour": "status is one of pending, paid, cancelled, refunded; allowed moves: pending to paid, pending to cancelled, paid to refunded, cancelled to refunded (a late charge refunded). refunded is final. Any other move is refused.",
+      "improvements": "Explicit transition table enforced on every write",
+      "depends_on": [],
+      "compatibility": "adaptable",
+      "validation": "verified",
+      "tests": [
+        "tests.test_billing.V1CoreLoop.test_create_and_read_order",
+        "tests.test_billing.V1CoreLoop.test_invalid_transitions_are_refused",
+        "tests.test_billing.V3Cancel.test_cancel_pending_order",
+        "tests.test_billing.V3Cancel.test_journey_pay_webhook_cancel_ledger"
+      ]
+    },
+    {
+      "id": "U05",
+      "name": "Cancel with refund",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E02"
+      ],
+      "merge_type": "unique",
+      "rationale": "C's cancel kept, with the refund the user asked for.",
+      "behaviour": "cancel(order_id): pending becomes cancelled; paid is refunded through the gateway exactly once and becomes refunded with a ledger refund entry; cancelling a cancelled or refunded order is a no-op. The refund intent is written before the gateway call; a refund whose outcome is unknown is never re-sent automatically, and a charge.refunded webhook completes it.",
+      "improvements": "Refund on cancel of a paid order; idempotent cancel; refund intent written first",
+      "depends_on": [
+        "U01",
+        "U04",
+        "U06"
+      ],
+      "compatibility": "adaptable",
+      "validation": "verified",
+      "tests": [
+        "tests.test_billing.V2Webhooks.test_late_charge_on_cancelled_order_is_refunded_once",
+        "tests.test_billing.V3Cancel.test_cancel_paid_order_refunds_exactly_once",
+        "tests.test_billing.V3Cancel.test_cancel_pending_order",
+        "tests.test_billing.V3Cancel.test_failed_write_on_cancel_leaves_order_unchanged",
+        "tests.test_billing.V3Cancel.test_journey_pay_webhook_cancel_ledger"
+      ]
+    },
+    {
+      "id": "U06",
+      "name": "Money ledger",
+      "menu_ids": [
+        "M06"
+      ],
+      "source_features": [],
+      "evidence": [
+        "A-E01",
+        "C-E02"
+      ],
+      "merge_type": "unique",
+      "rationale": "Requested by the user; it records the money movements of U01, U02 and U05.",
+      "behaviour": "ledger() lists {order_id, kind: charge|refund, amount_cents} in order of occurrence; entries are written in the same atomic write as the order change, at most one charge and one refund per order.",
+      "improvements": "",
+      "depends_on": [
+        "U07"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_billing.V1CoreLoop.test_ledger_is_a_copy_in_order",
+        "tests.test_billing.V1CoreLoop.test_pay_marks_order_paid",
+        "tests.test_billing.V3Cancel.test_journey_pay_webhook_cancel_ledger",
+        "tests.test_billing.V4Renewals.test_journey_renewal_then_payment"
+      ]
+    },
+    {
+      "id": "U07",
+      "name": "Orders",
+      "menu_ids": [
+        "M07"
+      ],
+      "source_features": [],
+      "evidence": [
+        "B-E01",
+        "C-E01"
+      ],
+      "merge_type": "unique",
+      "rationale": "Requested by the user; B's renewal and every payment feature need a way to create and read orders.",
+      "behaviour": "create_order(customer, amount_cents) validates input (non-empty customer, positive integer cents) and stores a pending order; order(order_id) returns {status, amount_cents, charge_id}. A failed write creates nothing.",
+      "improvements": "",
+      "depends_on": [
+        "U04"
+      ],
+      "compatibility": "compatible",
+      "validation": "verified",
+      "tests": [
+        "tests.test_billing.V1CoreLoop.test_create_and_read_order",
+        "tests.test_billing.V1CoreLoop.test_create_order_validates_input",
+        "tests.test_billing.V1CoreLoop.test_default_store_and_store_flag",
+        "tests.test_billing.V1CoreLoop.test_failed_write_on_create_creates_nothing",
+        "tests.test_billing.V3Cancel.test_journey_pay_webhook_cancel_ledger",
+        "tests.test_billing.V4Renewals.test_journey_renewal_then_payment",
+        "tests.test_billing.V4Renewals.test_renewing_same_period_creates_one_order"
+      ]
+    }
+  ]
+}

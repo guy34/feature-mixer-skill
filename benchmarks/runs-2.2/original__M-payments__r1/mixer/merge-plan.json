@@ -1,0 +1,136 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Order lifecycle",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E01",
+        "C-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Orderly defines order states; it becomes the single owner of an order's payment state (replacing Billfold's separate paid flag).",
+      "behaviour": "create_order(customer, amount_cents) creates a pending order (amount a positive integer). Status moves only along pending->paid, pending->cancelled, paid->refunded; any other transition is refused. order(id) returns status, amount_cents and charge_id.",
+      "improvements": "Explicit transition table; input validation on amount_cents.",
+      "depends_on": [],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests tagged M01 in run 20261105T130725609331Z"
+      ]
+    },
+    {
+      "id": "U02",
+      "name": "Idempotent card payment",
+      "menu_ids": [
+        "M02"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E02",
+        "A-E04",
+        "A-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Billfold charges; rebuilt with a mandatory client idempotency key and timeout recovery.",
+      "behaviour": "pay(order_id, key) charges amount_cents through the gateway with the client's key. A retry with the same key returns the same result and never charges twice; paying an already-paid order never charges again; a key already used for another order is refused. On GatewayTimeout the order stays pending, the key is remembered, and a retry with the same key collects the original charge from the gateway. Success writes status=paid, charge_id and one ledger charge entry in one atomic store write.",
+      "improvements": "Stable client key instead of id(order); timeout handling; atomic write; no charge of non-pending orders.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests tagged M02 in run 20261105T130725609331Z"
+      ]
+    },
+    {
+      "id": "U03",
+      "name": "Exactly-once webhook handling",
+      "menu_ids": [
+        "M03"
+      ],
+      "source_features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E03",
+        "A-E05"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Billfold receives webhooks; rebuilt so each event applies at most once and agrees with pay().",
+      "behaviour": "handle_webhook(event) records the event id and ignores any later delivery of the same id. charge.succeeded marks a pending order paid (with the event's charge_id and one ledger charge) or does nothing if pay() already did; charge.refunded marks a paid order refunded with one ledger refund, or does nothing if already refunded. Events for unknown orders are ignored. The event id is recorded in the same atomic write as the order change, so a failed write leaves the event unprocessed and a redelivery can apply it.",
+      "improvements": "Event-id de-duplication, type dispatch, state checks, atomic write.",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests tagged M03 in run 20261105T130725609331Z"
+      ]
+    },
+    {
+      "id": "U04",
+      "name": "Cancel with refund",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E02",
+        "C-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Orderly's cancel is kept but changed per the user's requirement: a paid order is refunded exactly once.",
+      "behaviour": "cancel(order_id): pending -> cancelled (no gateway call); paid -> gateway refund, then status refunded with one ledger refund; cancelled or refunded -> no-op, never refunds again. The refund is recorded as pending before the gateway call so a crash or failed write after the refund can never cause a second refund.",
+      "improvements": "Refund on cancel; exactly-once refund guard.",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests tagged M04 in run 20261105T130725609331Z"
+      ]
+    },
+    {
+      "id": "U05",
+      "name": "Subscription renewal",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E02"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Subscribe has subscriptions; its renew() is adapted to the unified create_order.",
+      "behaviour": "renew(subscription, period=None) creates an order for subscription['customer'] at subscription['price'] (cents). With a period (and a subscription id) a second renewal of the same period returns the existing order instead of creating another.",
+      "improvements": "Per-period de-duplication so a month is never billed twice.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests tagged M05 in run 20261105T130725609331Z"
+      ]
+    }
+  ]
+}

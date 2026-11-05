@@ -1,0 +1,157 @@
+{
+  "name": "Unified Billing (Scenario M: billing, subscriptions and orders)",
+  "format": 3,
+  "mode": "full",
+  "selection": "auto-pick",
+  "audience": "Developers who need one Python billing module: orders, idempotent card payments through a (mock) gateway, webhooks, subscription renewals and refund-on-cancel. Built and tested against gateway.py (FakeGateway) only.",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Billfold",
+      "slug": "billfold",
+      "access": "own-code",
+      "licence": "none stated; provided by the user as their own source app for this task",
+      "code_reuse": "allowed",
+      "slice": "charging cards through a payment gateway and receiving its webhooks",
+      "local_path": "sources/billfold",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/billfold"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Subscribe",
+      "slug": "subscribe",
+      "access": "own-code",
+      "licence": "none stated; provided by the user as their own source app for this task",
+      "code_reuse": "allowed",
+      "slice": "monthly subscriptions that create orders",
+      "local_path": "sources/subscribe",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/subscribe"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Orderly",
+      "slug": "orderly",
+      "access": "own-code",
+      "licence": "none stated; provided by the user as their own source app for this task",
+      "code_reuse": "allowed",
+      "slice": "orders with states pending, paid, cancelled, refunded",
+      "local_path": "sources/orderly",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/orderly"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-05",
+      "note": "3 sources scanned, indexed and reported; coverage complete"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-05",
+      "note": "5 menu rows, all unique, no merge groups"
+    },
+    "selection": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-05",
+      "note": "auto-pick: kept M01-M05, nothing dropped or deferred. Approved by: benchmark operator (pre-approved Claude's recommendation; the user's auto-pick choice is the selection approval)"
+    },
+    "compatibility": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-05",
+      "note": "5 critical, 1 high, 3 medium, 1 info conflict, all resolved (D01-D10). No migrations (no source has persisted data). Approved by: benchmark operator (pre-approved)"
+    },
+    "architecture": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-05",
+      "note": "modular monolith in app/unified/billing.py; slices V1-V4. Approved by: benchmark operator (pre-approved)"
+    },
+    "implementation": {
+      "status": "done",
+      "date": "2026-11-05",
+      "note": "V1-V4 built in app/unified/billing.py; tests in app/tests; 31/31 passed in run 20261105T130725609331Z"
+    },
+    "integration": {
+      "status": "done",
+      "date": "2026-11-05",
+      "note": "31/31 passed, verified (verify_tests.py --rerun); 5/5 features verified; approval A01"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T08:03:12+00:00"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T08:03:48+00:00"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T08:04:12+00:00"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T13:03:29+00:00"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T13:05:03+00:00"
+    },
+    {
+      "id": "CP6",
+      "phase": "implementation",
+      "ref": "snapshot:checkpoints/CP6; target:app",
+      "date": "2026-11-05T13:07:32+00:00",
+      "note": "V1-V4 done"
+    },
+    {
+      "id": "CP7",
+      "phase": "integration",
+      "ref": "snapshot:checkpoints/CP7; target:app",
+      "date": "2026-11-05T13:07:44+00:00",
+      "note": "integration verified"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "run-tests",
+      "target": "app/ unittest suite (python3 -m unittest via run_tests.py --unittest tests), run in the session sandbox; no installs, no network",
+      "approved": true,
+      "by": "benchmark operator",
+      "date": "2026-11-05",
+      "note": "pre-approved by the benchmark operator: running the new app's own test suite only; not approved: installs, network, running source code, deployment"
+    }
+  ]
+}

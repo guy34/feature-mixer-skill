@@ -72,9 +72,9 @@ class V2RegressionTest(unittest.TestCase):
 
 
 class ExampleStrictTest(unittest.TestCase):
-    def test_example_is_a_v21_workspace(self):
+    def test_example_is_a_v22_workspace(self):
         with open(os.path.join(EXAMPLE, "mixer", "project.json")) as f:
-            self.assertEqual(json.load(f)["format"], 3)
+            self.assertEqual(json.load(f)["format"], 4)
         r = run_script("verify_tests.py", os.path.join(EXAMPLE, "mixer"), "--no-write")
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertIn("features: verified 11", r.stdout)

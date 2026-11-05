@@ -1,7 +1,7 @@
 {
   "name": "feature-mixer-skill",
-  "description": "Reverse-engineer one or more apps, compare and merge their features, check compatibility, then design, build and test one unified application. Evidence for every claim, scanned and untrusted sources, verified test runs. Standalone, free, MIT.",
-  "version": "2.1.0",
+  "description": "Reverse-engineer one or more apps, compare and merge their features, check compatibility, then design, build and test one unified application. Evidence for every claim, scanned and untrusted sources, scoped approvals before anything runs, verified and tamper-evident test runs. Standalone, free, MIT.",
+  "version": "2.2.0",
   "author": {
     "name": "Udit Kandpal",
     "url": "https://github.com/guy34"
@@ -18,7 +18,9 @@
     "app-builder",
     "integration-testing",
     "security",
-    "test-verification"
+    "test-verification",
+    "approvals",
+    "adversarial-testing"
   ],
   "skills": "./"
 }

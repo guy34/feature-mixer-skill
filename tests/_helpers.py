@@ -176,6 +176,29 @@ class Workspace:
         with open(os.path.join(self.source_folder(app), "security-scan.json"), "w") as f:
             json.dump(data, f)
 
+    def reload(self):
+        with open(os.path.join(self.mixer, "project.json")) as f:
+            self.project = json.load(f)
+
+    def grant(self, cwd, unittest="tests", top=".", junit=None, command=None, uses=None, expires="8h",
+              action="run-tests", bind_code=False):
+        """Record a scoped approval the way Claude does after the user says yes. Returns its id."""
+        args = ["grant", "--mixer", self.mixer, "--action", action, "--cwd", cwd, "--granted-by", "test-user",
+                "--user-confirmed", "--expires-in", expires]
+        if command is not None:
+            args += ["--junit", junit or "junit.xml", "--command-json", json.dumps(command)]
+        else:
+            args += ["--unittest", unittest, "--top", top]
+        if uses:
+            args += ["--uses", str(uses)]
+        if bind_code:
+            args.append("--bind-code")
+        r = run_script("approvals.py", *args)
+        if r.returncode != 0:
+            raise AssertionError("approvals.py grant failed: " + r.stdout + r.stderr)
+        self.reload()
+        return r.stdout.split()[1].rstrip(":")
+
     def approve(self, aid, action, target, approved=True):
         self.project["approvals"].append({"id": aid, "action": action, "target": target, "approved": approved,
                                           "by": "user", "date": "2026-11-04"})

@@ -1,0 +1,12 @@
+{
+ "scenario": "7-contradictory",
+ "kind": "scenarios",
+ "label": "original",
+ "skill_version": "2.1.0",
+ "skill_sha256": "f1d9c3e32c96b5d71707c9fd66a31e12a69b53abb46eb92f1df004d6a7c18915",
+ "started_at": "2026-11-04T19:57:46+00:00",
+ "finished_at": "2026-11-05T07:59:02+00:00",
+ "interventions": [],
+ "notes": "",
+ "finished_at_source": "last write in mixer/ (approximate); wall time includes a usage-limit pause"
+}

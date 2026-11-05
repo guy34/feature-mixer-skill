@@ -1,0 +1,60 @@
+{
+  "application:authorization-model:model": {
+    "decision": "Neither app has any authorization (all routes open). Unified app: per-user ownership; one can(user, action, record) check used by every route and query; a user can only read or change their own books, ratings and lists. One role 'reader'; no admin role in v1.",
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:rule:rating-scale": {
+    "decision": "Follow the code, not Shelfie's stale docs: integer 'stars' 1-5, checked in the API (reject non-integers and booleans) and by a DB CHECK. The documented 1-10 'score' is not built.",
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "application:session:session": {
+    "decision": "Neither app has sessions (Shelfie reads a secret it never uses). Unified app: email + password accounts, password hashed with a slow KDF, server-side session row referenced by an http-only, SameSite=Lax, Secure (in production) cookie signed with SESSION_SECRET.",
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "approved": true
+  },
+  "api:api-contract:export-format": {
+    "decision": "JSON export as the code does; CSV (documented only, never built) is not built; left as an open question for the user.",
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "application:architecture:documented-services-and-database": {
+    "decision": "Stale three-service / PostgreSQL docs are ignored; architecture chosen on this project's drivers in phase 5.",
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "database:data-integrity:list-entries-and-foreign-keys": {
+    "decision": "ReadingListItem primary key (list_id, book_id); PRAGMA foreign_keys=ON; ON DELETE CASCADE from list and book; ownership checked on both.",
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "database:data-integrity:rating-cardinality-and-durability": {
+    "decision": "Rating unique (user_id, book_id); PUT upserts, DELETE clears; every write commits in a transaction; export shows the current rating.",
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "database:duplicate-entity:book": {
+    "decision": "One Book entity merged from A:Book and B:Book: id, owner_id (new), title, author (from A, nullable), timestamps.",
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "api:api-version:path-prefix": {
+    "decision": "Every endpoint under /api/v1; no compatibility shims for Shelfie's unversioned /api paths (no known clients).",
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "application:configuration:undocumented-session-secret": {
+    "decision": "Replaced by SESSION_SECRET, read in the config module, listed (name only) in .env.example, used to sign session cookies; startup fails with a clear message if unset outside development.",
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "migration:book": {
+    "decision": "No source data is imported in this plan (whether shelfie.db or readr.db hold data is unknown). Step risk is low (adds author). Any future import is a separate migration needing its own approval.",
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  }
+}

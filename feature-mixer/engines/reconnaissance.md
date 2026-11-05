@@ -108,7 +108,13 @@ Read at normal speed; no crawlers, no bulk downloads.
 | screenshots / designs | screens, components, states, copy structure | observed |
 
 For closed sources, never look at network calls or bundles to find endpoints;
-published API docs are fine.
+published API docs are fine. A closed product's backend is never inspected:
+its data model and endpoints are `documented` (from public docs and API
+descriptions) or `inferred`, never `observed`, unless the user showed them
+in the running product. List what cannot be reproduced without access (how
+the backend really stores, ranks, bills or secures things) in `unknowns`.
+`validate_artifacts.py` rejects code evidence for a closed source and an
+`observed` backend that nothing in the running product showed.
 
 ## 4. Extract
 
@@ -155,7 +161,27 @@ Per feature, `basis` is the strongest basis among its evidence (never
 stronger) and `confidence` is `high` (observed or documented and
 consistent), `medium` (documented but not seen working, or partly seen) or
 `low` (inferred, or sources disagree). `inferred` and `unknown` can never be
-`high`.
+`high`. `observed` needs at least one piece of evidence that is itself
+observed: documentation describes behaviour, it does not show it.
+
+**When documentation and code disagree**, the code (or the running product)
+is the behaviour and the documentation is a claim. Record each disagreement:
+
+```json
+"contradictions": [{"id": "A-C01", "documented": "A-E03", "observed": "A-E07",
+  "summary": "README promises CSV export; the code writes JSON only",
+  "resolution": "the code wins: JSON export; CSV listed in unknowns as a claim"}]
+```
+
+A feature that rests only on contradicted documentation is not a feature of
+the source (the validator says so); an outdated README, API spec or
+architecture diagram is never treated as fact. When it matters which one the
+user meant, ask.
+
+**Almost no documentation.** Read the code and the running app; mark what you
+deduce `inferred` with `low` or `medium` confidence; put every behaviour you
+could not establish in `unknowns`; and say so at selection, so the user
+decides with the uncertainty in view rather than after the build.
 
 ## 6. Write the report
 

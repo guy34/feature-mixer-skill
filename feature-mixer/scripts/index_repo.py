@@ -4,12 +4,33 @@
 Usage:
     python3 index_repo.py SOURCE_DIR --out mixer/sources/A-app/index.json
     python3 index_repo.py SOURCE_DIR --out .../index.json --previous .../index.json --source-json .../source.json
+    Limits: [--max-file-mb 50] [--max-text-mb 2] [--max-files 200000] [--max-depth 64]
 
 Writes, for every file (vendored, generated and git folders skipped):
 path, size, SHA-256, language, module, line count, and whether it is
 generated or binary. Then per module: files, lines, languages, the modules
-it imports, and the external packages it imports (Python and JavaScript /
-TypeScript imports are found with text patterns, so the map is approximate).
+it imports, and the external packages it imports.
+
+Imports (static analysis: evidence, not certainty):
+  python      parsed with the ast module: import / from-import (relative
+              too), importlib.import_module("x") and __import__("x") with a
+              literal name; imports inside try/except ImportError are marked
+              optional, inside if-blocks conditional. Calls with a computed
+              name are counted as unresolved dynamic imports. Files that do
+              not parse fall back to text patterns.
+  javascript, typescript
+              import ... from, export ... from (barrel files), import("x"),
+              require("x"); tsconfig/jsconfig "paths" aliases and the
+              package names of workspace packages resolve to files in the
+              repo, not to external packages; import()/require() with a
+              computed name are counted as unresolved.
+  go          import "x" and import ( ... ) blocks; paths under the go.mod
+              module are internal.
+  rust        use / extern crate; crate::, self::, super:: are internal.
+  java, kotlin  import a.b.C; packages found under the repo are internal.
+  others      not analysed: listed in import_coverage as "not supported".
+A package can be needed without any import this finds (plugins, config
+files, CLIs, computed names), so nothing here proves a package is unused.
 
 With --source-json it maps each feature to the files its evidence points at
 (feature_files), which is the feature-to-file map.
@@ -18,32 +39,60 @@ With --previous it compares fingerprints and lists added, changed and
 removed files, plus the features whose evidence points at any of them
 (stale_features). Those features must be re-analysed.
 
-It reads files only; it never runs anything. Exit codes: 0 written, 1 written
-but some features are stale, 2 bad input. Standard library only, no network.
+Safety and limits: it reads files only and never runs anything. It walks
+with directory file descriptors where the OS allows (Linux, macOS) and opens
+files with O_NOFOLLOW, never follows symbolic links, never opens named pipes
+or devices, hashes large files in chunks, and parses at most --max-text-mb of
+each file. Files and folders it could not read, or skipped because of a
+limit, are listed in "errors" and "limits_hit", and "complete" says whether
+anything was left out.
+
+Exit codes: 0 written, 1 written but some features are stale, 2 bad input.
+Standard library only, no network.
 """
 
 import argparse
+import ast
 import hashlib
 import json
 import os
 import re
+import stat
 import sys
 from datetime import datetime, timezone
 
 SKIP_DIRS = {".git", "node_modules", "vendor", ".venv", "venv", "__pycache__", "dist", "build", ".next",
              "coverage", "target", ".tox", ".mypy_cache", ".pytest_cache", ".idea", ".vscode"}
 LANG = {".py": "python", ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript", ".cjs": "javascript",
-        ".ts": "typescript", ".tsx": "typescript", ".rb": "ruby", ".go": "go", ".java": "java", ".kt": "kotlin",
-        ".cs": "csharp", ".php": "php", ".rs": "rust", ".swift": "swift", ".sql": "sql", ".html": "html",
-        ".css": "css", ".scss": "css", ".vue": "vue", ".svelte": "svelte", ".md": "markdown", ".json": "json",
-        ".yml": "yaml", ".yaml": "yaml", ".toml": "toml", ".sh": "shell"}
+        ".ts": "typescript", ".tsx": "typescript", ".mts": "typescript", ".cts": "typescript", ".rb": "ruby",
+        ".go": "go", ".java": "java", ".kt": "kotlin", ".kts": "kotlin", ".cs": "csharp", ".php": "php",
+        ".rs": "rust", ".swift": "swift", ".sql": "sql", ".html": "html", ".css": "css", ".scss": "css",
+        ".vue": "vue", ".svelte": "svelte", ".md": "markdown", ".json": "json", ".yml": "yaml", ".yaml": "yaml",
+        ".toml": "toml", ".sh": "shell", ".scala": "scala", ".ex": "elixir", ".exs": "elixir", ".dart": "dart",
+        ".c": "c", ".h": "c", ".cpp": "cpp", ".hpp": "cpp", ".m": "objective-c"}
+CODE_LANGS = {"python", "javascript", "typescript", "ruby", "go", "java", "kotlin", "csharp", "php", "rust", "swift",
+              "vue", "svelte", "scala", "elixir", "dart", "c", "cpp", "objective-c"}
+IMPORT_SUPPORT = {"python": "parsed (ast)", "javascript": "patterns", "typescript": "patterns", "go": "patterns",
+                  "rust": "patterns", "java": "patterns", "kotlin": "patterns"}
 GENERATED = (re.compile(r"\.min\.(js|css)$"), re.compile(r"\.map$"),
-             re.compile(r"(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Cargo\.lock)$"))
+             re.compile(r"(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Cargo\.lock|go\.sum)$"),
+             re.compile(r"(^|/)(generated|__generated__|gen)/"), re.compile(r"\.(pb|g|generated)\.\w+$"))
+GENERATED_MARK = re.compile(rb"(?i)(@generated|do not edit|auto-?generated|code generated by)")
 CONTAINERS = ("src", "lib", "app", "server", "client", "packages", "apps", "services", "modules")
 PY_IMPORT = re.compile(r"^\s*(?:from\s+(\.*[\w.]*)\s+import|import\s+([\w.]+))", re.M)
-JS_IMPORT = re.compile(r"""(?:import\s[^'"]*?from\s*|import\s*\(\s*|require\s*\(\s*|^\s*import\s+)['"]([^'"]+)['"]""",
-                       re.M)
-JS_EXT = (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")
+JS_IMPORT = re.compile(r"""(?:\bimport\s[^'"();]*?\bfrom\s*|\bexport\s[^'"();]*?\bfrom\s*|\bimport\s*\(\s*|"""
+                       r"""\brequire\s*\(\s*|^\s*import\s+)['"]([^'"]+)['"]""", re.M)
+JS_DYNAMIC_UNRESOLVED = re.compile(r"""\b(?:import|require)\s*\(\s*(?!['"`]\s*[^'"`]*['"`]\s*\))[^)'"`\s]""")
+GO_IMPORT_BLOCK = re.compile(r"^\s*import\s*\((.*?)\)", re.M | re.S)
+GO_IMPORT_LINE = re.compile(r'^\s*import\s+(?:[\w.]+\s+)?"([^"]+)"', re.M)
+GO_SPEC = re.compile(r'(?:[\w.]+\s+)?"([^"]+)"')
+RUST_USE = re.compile(r"^\s*(?:pub\s+)?(?:use\s+(?:::)?([A-Za-z_][\w]*)|extern\s+crate\s+([A-Za-z_]\w*))", re.M)
+JAVA_IMPORT = re.compile(r"^\s*import\s+(?:static\s+)?([\w.]+)\s*;?", re.M)
+JS_EXT = (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts")
+O_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+O_NONBLOCK = getattr(os, "O_NONBLOCK", 0)
+O_BINARY = getattr(os, "O_BINARY", 0)
+USE_FWALK = hasattr(os, "fwalk") and O_NOFOLLOW != 0
 
 
 def sha256_bytes(data):
@@ -59,11 +108,37 @@ def module_of(rel):
     return parts[0]
 
 
-def _resolve_js(rel_file, spec, files):
-    base = os.path.normpath(os.path.join(os.path.dirname(rel_file), spec)).replace("\\", "/")
-    for cand in [base] + [base + e for e in JS_EXT] + [f"{base}/index{e}" for e in JS_EXT]:
-        if cand in files:
-            return cand
+def _candidates(base):
+    return [base] + [base + e for e in JS_EXT] + [f"{base}/index{e}" for e in JS_EXT]
+
+
+def _resolve_js(rel_file, spec, files, aliases=None, workspaces=None):
+    """A repo file for a JS/TS import spec, or None when it is an external package."""
+    if spec.startswith("."):
+        base = os.path.normpath(os.path.join(os.path.dirname(rel_file), spec)).replace("\\", "/")
+        return next((c for c in _candidates(base) if c in files), None)
+    for pattern, targets in (aliases or {}).items():
+        if pattern.endswith("*"):
+            prefix = pattern[:-1]
+            if not spec.startswith(prefix):
+                continue
+            rest = spec[len(prefix):]
+        elif spec != pattern:
+            continue
+        else:
+            rest = ""
+        for t in targets:
+            base = os.path.normpath(t.replace("*", rest)).replace("\\", "/").lstrip("./")
+            hit = next((c for c in _candidates(base) if c in files), None)
+            if hit:
+                return hit
+    for name, folder in (workspaces or {}).items():
+        if spec == name or spec.startswith(name + "/"):
+            sub = spec[len(name):].lstrip("/")
+            base = f"{folder}/{sub}" if sub else folder
+            hit = next((c for c in _candidates(base) + _candidates(f"{folder}/src/{sub or 'index'}")
+                        if c in files), None)
+            return hit or f"{folder}/package.json"
     return None
 
 
@@ -81,42 +156,237 @@ def _resolve_py(rel_file, spec, files):
     for cand in (f"{stem}.py", f"{stem}/__init__.py"):
         if cand in files:
             return cand
+    # imports relative to a src/ layout or the file's own top folder
+    for root in ("src", rel_file.split("/")[0] if "/" in rel_file else ""):
+        if root and not spec.startswith("."):
+            for cand in (f"{root}/{stem}.py", f"{root}/{stem}/__init__.py"):
+                if cand in files:
+                    return cand
     return None
 
 
-def build(root):
-    root = os.path.abspath(root)
-    entries, skipped, texts = {}, {}, {}
-    for base, dirs, names in os.walk(root, followlinks=False):
-        rel_base = os.path.relpath(base, root).replace("\\", "/")
-        rel_base = "" if rel_base == "." else rel_base
-        keep = []
-        for d in sorted(dirs):
-            rel = f"{rel_base}/{d}" if rel_base else d
-            if d in SKIP_DIRS or os.path.islink(os.path.join(base, d)):
-                skipped[rel] = "vendored, generated, metadata or link"
-            else:
-                keep.append(d)
-        dirs[:] = keep
-        for n in sorted(names):
-            full = os.path.join(base, n)
-            rel = f"{rel_base}/{n}" if rel_base else n
-            if os.path.islink(full):
-                skipped[rel] = "symbolic link"
-                continue
-            with open(full, "rb") as f:
-                data = f.read()
-            binary = b"\x00" in data[:8192]
-            ext = os.path.splitext(n.lower())[1]
-            entry = {"path": rel, "size": len(data), "sha256": sha256_bytes(data), "language": LANG.get(ext, "other"),
-                     "module": module_of(rel), "binary": binary,
-                     "generated": any(p.search(rel) for p in GENERATED)}
-            if not binary:
-                text = data.decode("utf-8", errors="replace")
-                entry["lines"] = text.count("\n") + (1 if text and not text.endswith("\n") else 0)
-                if ext == ".py" or ext in JS_EXT:
-                    texts[rel] = text
-            entries[rel] = entry
+def python_imports(text):
+    """[(spec, how)] where how is static, optional, conditional or dynamic; plus the unresolved dynamic count.
+    Falls back to text patterns when the file does not parse."""
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError, MemoryError):
+        return [(a or b, "static", []) for a, b in PY_IMPORT.findall(text)], 0, "patterns (did not parse)"
+    out, unresolved = [], 0
+    parents = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parents[child] = node
+
+    def how(node):
+        p = parents.get(node)
+        while p is not None:
+            if isinstance(p, ast.Try) and any(
+                    isinstance(h.type, (ast.Name, ast.Tuple)) and "ImportError" in ast.dump(h.type) or
+                    (isinstance(h.type, ast.Name) and h.type.id == "ModuleNotFoundError") for h in p.handlers
+                    if h.type is not None):
+                return "optional"
+            if isinstance(p, ast.If):
+                return "conditional"
+            if isinstance(p, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return "deferred"
+            p = parents.get(p)
+        return "static"
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                out.append((alias.name, how(node), []))
+        elif isinstance(node, ast.ImportFrom):
+            base = "." * (node.level or 0) + (node.module or "")
+            sep = "" if base.endswith(".") or not base else "."
+            # "from pkg import a" may import the submodule pkg/a.py: offer both, the resolver keeps what exists
+            out.append((base, how(node), [base + sep + a.name for a in node.names if a.name != "*"]))
+        elif isinstance(node, ast.Call):
+            f = node.func
+            name = f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else ""
+            if name in ("import_module", "__import__"):
+                arg = node.args[0] if node.args else None
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    out.append((arg.value, "dynamic", []))
+                else:
+                    unresolved += 1
+    return out, unresolved, "parsed (ast)"
+
+
+def js_imports(text):
+    specs = JS_IMPORT.findall(text)
+    unresolved = len(JS_DYNAMIC_UNRESOLVED.findall(text))
+    return specs, unresolved
+
+
+def go_imports(text):
+    specs = GO_IMPORT_LINE.findall(text)
+    for block in GO_IMPORT_BLOCK.findall(text):
+        specs += GO_SPEC.findall(block)
+    return specs
+
+
+class Walker:
+    def __init__(self, root, max_bytes, max_text, max_files, max_depth, include_nested=False, progress=None):
+        self.root = os.path.realpath(root)
+        self.max_bytes, self.max_text, self.max_files, self.max_depth = max_bytes, max_text, max_files, max_depth
+        self.errors, self.limits_hit, self.skipped, self.boundaries = [], [], {}, []
+        self.count = 0
+        self.include_nested, self.progress = include_nested, progress
+
+    def _is_repo(self, d, base, dfd):
+        """A folder with its own .git (a nested repository or a vendored checkout)."""
+        try:
+            if dfd is not None:
+                fd = os.open(d, os.O_RDONLY | O_NOFOLLOW | getattr(os, "O_DIRECTORY", 0), dir_fd=dfd)
+                try:
+                    os.stat(".git", dir_fd=fd, follow_symlinks=False)
+                    return True
+                finally:
+                    os.close(fd)
+            return os.path.lexists(os.path.join(base, d, ".git"))
+        except OSError:
+            return False
+
+    def walk(self):
+        """Yield (rel, read) where read() returns (size, sha256, head bytes, binary, generated_mark)."""
+        if USE_FWALK:
+            it = ((b, d, f, fd) for b, d, f, fd in os.fwalk(self.root, onerror=self._err, follow_symlinks=False))
+        else:
+            it = ((b, d, f, None) for b, d, f in os.walk(self.root, onerror=self._err, followlinks=False))
+        for base, dirs, files, dfd in it:
+            rel_base = os.path.relpath(base, self.root).replace("\\", "/")
+            rel_base = "" if rel_base == "." else rel_base
+            if dfd is None:
+                real = os.path.realpath(base)
+                if not (real == self.root or real.startswith(self.root + os.sep)):
+                    self.skipped[rel_base] = "resolves outside the source; not indexed"
+                    dirs[:] = []
+                    continue
+            depth = 0 if not rel_base else rel_base.count("/") + 1
+            keep = []
+            for d in sorted(dirs):
+                rel = f"{rel_base}/{d}" if rel_base else d
+                try:
+                    st = os.stat(d, dir_fd=dfd, follow_symlinks=False) if dfd is not None else \
+                        os.lstat(os.path.join(base, d))
+                except OSError as e:
+                    self.errors.append(f"{rel}: {e.strerror}")
+                    continue
+                if d in SKIP_DIRS or stat.S_ISLNK(st.st_mode):
+                    self.skipped[rel] = "vendored, generated, metadata or link"
+                elif not self.include_nested and self._is_repo(d, base, dfd):
+                    self.skipped[rel] = "a separate repository inside this one (its own .git); not indexed as part " \
+                                        "of this source (use --include-nested to include it)"
+                    self.boundaries.append(rel)
+                elif depth + 1 > self.max_depth:
+                    self.limits_hit.append(f"{rel}: deeper than {self.max_depth} folders, not indexed")
+                else:
+                    keep.append(d)
+            dirs[:] = keep
+            for n in sorted(files):
+                rel = f"{rel_base}/{n}" if rel_base else n
+                if self.count >= self.max_files:
+                    self.limits_hit.append(f"stopped after {self.max_files} files; the rest is not indexed")
+                    return
+                self.count += 1
+                if self.progress and self.count % self.progress == 0:
+                    print(f"  ... {self.count} files indexed", file=sys.stderr, flush=True)
+                yield rel, (lambda n=n, base=base, dfd=dfd, rel=rel: self._read(n, base, dfd, rel))
+
+    def _err(self, e):
+        path = getattr(e, "filename", "") or "?"
+        self.errors.append(f"{os.path.relpath(path, self.root) if path != '?' else path}: {e.strerror or e}")
+
+    def _read(self, name, base, dfd, rel):
+        try:
+            st = os.stat(name, dir_fd=dfd, follow_symlinks=False) if dfd is not None else \
+                os.lstat(os.path.join(base, name))
+            if stat.S_ISLNK(st.st_mode):
+                self.skipped[rel] = "symbolic link"
+                return None
+            if not stat.S_ISREG(st.st_mode):
+                self.skipped[rel] = "named pipe, socket or device; never opened"
+                return None
+            flags = os.O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_BINARY
+            fd = os.open(name, flags, dir_fd=dfd) if dfd is not None else os.open(os.path.join(base, name), flags)
+        except OSError as e:
+            self.errors.append(f"{rel}: {e.strerror}")
+            return None
+        h = hashlib.sha256()
+        head = bytearray()
+        size = lines = 0
+        last = b""
+        with os.fdopen(fd, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 16), b""):
+                size += len(chunk)
+                h.update(chunk)
+                lines += chunk.count(b"\n")
+                last = chunk[-1:]
+                if len(head) < self.max_text:
+                    head += chunk[:self.max_text - len(head)]
+                if size > self.max_bytes:
+                    self.limits_hit.append(f"{rel}: larger than {self.max_bytes} bytes; fingerprint covers only "
+                                           "the first part")
+                    break
+        if size and last != b"\n":
+            lines += 1
+        return {"size": size, "sha256": h.hexdigest(), "head": bytes(head), "lines": lines,
+                "truncated": size > len(head)}
+
+
+def _json_head(text):
+    try:
+        return json.loads(re.sub(r"(?m)^\s*//.*$|/\*.*?\*/", "", text, flags=re.S))
+    except ValueError:
+        return None
+
+
+def build(root, max_bytes=50 * 1024 * 1024, max_text=2 * 1024 * 1024, max_files=200000, max_depth=64,
+          include_nested=False, progress=None):
+    w = Walker(root, max_bytes, max_text, max_files, max_depth, include_nested, progress)
+    entries, texts, small_json = {}, {}, {}
+    for rel, read in w.walk():
+        info = read()
+        if info is None:
+            continue
+        data = info["head"]
+        binary = b"\x00" in data[:8192]
+        ext = os.path.splitext(rel.lower())[1]
+        entry = {"path": rel, "size": info["size"], "sha256": info["sha256"], "language": LANG.get(ext, "other"),
+                 "module": module_of(rel), "binary": binary,
+                 "generated": any(p.search(rel) for p in GENERATED) or bool(GENERATED_MARK.search(data[:2048]))}
+        if not binary:
+            entry["lines"] = info["lines"]
+            if info["truncated"]:
+                entry["text_truncated"] = True
+            text = data.decode("utf-8", errors="replace")
+            if entry["language"] in IMPORT_SUPPORT:
+                texts[rel] = text
+            base = os.path.basename(rel)
+            if base in ("tsconfig.json", "jsconfig.json", "package.json", "go.mod") and len(data) < 2_000_000:
+                small_json[rel] = text
+        entries[rel] = entry
+
+    # aliases and workspace packages (JS/TS), go module path
+    aliases, workspaces, go_modules = {}, {}, []
+    for rel, text in small_json.items():
+        folder = os.path.dirname(rel)
+        if rel.endswith(("tsconfig.json", "jsconfig.json")):
+            cfg = _json_head(text) or {}
+            opts = cfg.get("compilerOptions") or {}
+            base_url = os.path.normpath(os.path.join(folder, opts.get("baseUrl") or ".")).replace("\\", "/")
+            for pat, targets in (opts.get("paths") or {}).items():
+                aliases[pat] = [os.path.normpath(os.path.join(base_url, t)).replace("\\", "/") for t in targets]
+        elif rel.endswith("package.json") and folder:
+            pkg = _json_head(text) or {}
+            if pkg.get("name"):
+                workspaces[pkg["name"]] = folder
+        elif rel.endswith("go.mod"):
+            m = re.search(r"^\s*module\s+(\S+)", text, re.M)
+            if m:
+                go_modules.append(m.group(1))
 
     modules, external = {}, {}
     for rel, e in entries.items():
@@ -126,49 +396,106 @@ def build(root):
         m["lines"] += e.get("lines", 0)
         if e["language"] != "other":
             m["languages"].add(e["language"])
+    coverage = {}
+    unresolved_total = {}
+    java_roots = {}
+    for rel in entries:
+        m = re.match(r"(.*?/(?:java|kotlin))/(.+)/[^/]+\.(?:java|kt)$", rel)
+        if m:
+            java_roots[m.group(2).replace("/", ".")] = rel
     for rel, text in texts.items():
-        mod = entries[rel]["module"]
-        ext = os.path.splitext(rel)[1]
-        specs = []
-        if ext == ".py":
-            for a, b in PY_IMPORT.findall(text):
-                specs.append(a or b)
-        else:
-            specs = JS_IMPORT.findall(text)
-        imports, pkgs = [], []
-        for spec in specs:
-            if ext == ".py":
-                target = _resolve_py(rel, spec, entries)
-                if target is None and not spec.startswith("."):
-                    pkgs.append(spec.split(".")[0])
-            elif spec.startswith("."):
-                target = _resolve_js(rel, spec, entries)
-            else:
-                target = None
-                name = spec[5:] if spec.startswith("node:") else spec
-                pkgs.append("/".join(name.split("/")[:2]) if name.startswith("@") else name.split("/")[0])
-            if target:
-                imports.append(target)
-                if entries[target]["module"] != mod:
-                    modules[mod]["depends_on"].add(entries[target]["module"])
-        entries[rel]["imports"] = sorted(set(imports))
-        entries[rel]["packages"] = sorted(set(pkgs))
+        e = entries[rel]
+        lang, mod = e["language"], e["module"]
+        imports, pkgs, optional, unresolved, method = [], [], [], 0, IMPORT_SUPPORT.get(lang)
+        if lang == "python":
+            specs, unresolved, method = python_imports(text)
+            for spec, kind, subs in specs:
+                hits = [t for t in (_resolve_py(rel, x, entries) for x in subs) if t]
+                target = None if hits else _resolve_py(rel, spec, entries)
+                imports.extend(hits)
+                if hits:
+                    continue
+                if target:
+                    imports.append(target)
+                elif not spec.startswith(".") and spec:
+                    top = spec.split(".")[0]
+                    pkgs.append(top)
+                    if kind in ("optional", "conditional"):
+                        optional.append(top)
+        elif lang in ("javascript", "typescript"):
+            specs, unresolved = js_imports(text)
+            for spec in specs:
+                target = _resolve_js(rel, spec, entries, aliases, workspaces)
+                if target:
+                    if target in entries:
+                        imports.append(target)
+                elif not spec.startswith("."):
+                    name = spec[5:] if spec.startswith("node:") else spec
+                    pkgs.append("/".join(name.split("/")[:2]) if name.startswith("@") else name.split("/")[0])
+        elif lang == "go":
+            for spec in go_imports(text):
+                if any(spec == gm or spec.startswith(gm + "/") for gm in go_modules):
+                    continue  # internal package
+                pkgs.append(spec if "." in spec.split("/")[0] else f"std:{spec}")
+            pkgs = [p for p in pkgs if not p.startswith("std:")]
+        elif lang == "rust":
+            for a, b in RUST_USE.findall(text):
+                name = a or b
+                if name not in ("crate", "self", "super", "std", "core", "alloc"):
+                    pkgs.append(name)
+        elif lang in ("java", "kotlin"):
+            for spec in JAVA_IMPORT.findall(text):
+                pkg = spec.rsplit(".", 1)[0]
+                if pkg in java_roots or spec in java_roots:
+                    continue
+                if spec.startswith(("java.", "javax.", "kotlin.", "jdk.", "sun.")):
+                    continue
+                pkgs.append(".".join(spec.split(".")[:2]))
+        for target in imports:
+            if entries[target]["module"] != mod:
+                modules[mod]["depends_on"].add(entries[target]["module"])
+        e["imports"] = sorted(set(imports))
+        e["packages"] = sorted(set(pkgs))
+        if optional:
+            e["optional_packages"] = sorted(set(optional))
+        if unresolved:
+            e["unresolved_dynamic_imports"] = unresolved
+            unresolved_total[lang] = unresolved_total.get(lang, 0) + unresolved
         for p in set(pkgs):
             modules[mod]["external"].add(p)
             external.setdefault(p, []).append(rel)
+        c = coverage.setdefault(lang, {"files": 0, "method": method})
+        c["files"] += 1
+        if method and "did not parse" in method:
+            c["fallback_files"] = c.get("fallback_files", 0) + 1
+    for e in entries.values():
+        if e["language"] in CODE_LANGS and e["language"] not in IMPORT_SUPPORT and not e["binary"]:
+            c = coverage.setdefault(e["language"], {"files": 0, "method": "not supported"})
+            c["files"] += 1
+    for lang, n in unresolved_total.items():
+        coverage[lang]["unresolved_dynamic_imports"] = n
     for m in modules.values():
         for k in ("languages", "depends_on", "external"):
             m[k] = sorted(m[k])
+    from mixerlib import find_cycles
+    cycles = find_cycles({k: v["depends_on"] for k, v in modules.items()})
     return {
-        "root": root,
+        "root": w.root,
         "indexed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "indexer": "index_repo.py",
         "totals": {"files": len(entries), "lines": sum(e.get("lines", 0) for e in entries.values()),
                    "modules": len(modules)},
         "files": [entries[k] for k in sorted(entries)],
         "modules": dict(sorted(modules.items())),
+        "module_cycles": cycles,
         "external_imports": {k: sorted(v) for k, v in sorted(external.items())},
-        "skipped": skipped,
+        "import_coverage": dict(sorted(coverage.items())),
+        "aliases": {"paths": aliases, "workspace_packages": workspaces, "go_modules": go_modules},
+        "skipped": w.skipped,
+        "nested_repositories": w.boundaries,
+        "errors": w.errors,
+        "limits_hit": w.limits_hit,
+        "complete": not (w.errors or w.limits_hit),
     }
 
 
@@ -213,11 +540,18 @@ def main(argv=None):
     parser.add_argument("--out", required=True)
     parser.add_argument("--previous", help="an earlier index.json, to find what changed")
     parser.add_argument("--source-json", help="the source.json, to map features to files")
+    parser.add_argument("--max-file-mb", type=float, default=50)
+    parser.add_argument("--max-text-mb", type=float, default=2)
+    parser.add_argument("--max-files", type=int, default=200000)
+    parser.add_argument("--max-depth", type=int, default=64)
+    parser.add_argument("--include-nested", action="store_true", help="also index repositories nested inside")
+    parser.add_argument("--progress", type=int, default=0, metavar="N", help="report progress every N files")
     args = parser.parse_args(argv)
     if not os.path.isdir(args.source):
-        print(f"error: not a folder: {args.source}")
+        print(f"error: not a folder: {args.source!r}")
         return 2
-    index = build(args.source)
+    index = build(args.source, int(args.max_file_mb * 1048576), int(args.max_text_mb * 1048576), args.max_files,
+                  args.max_depth, args.include_nested, args.progress or None)
     index["root"] = os.path.relpath(index["root"], os.path.dirname(os.path.abspath(args.out)))
     paths = {f["path"] for f in index["files"]}
     source = None
@@ -249,6 +583,17 @@ def main(argv=None):
         f.write("\n")
     t = index["totals"]
     print(f"indexed {t['files']} files, {t['lines']} lines, {t['modules']} modules -> {args.out}")
+    if index["nested_repositories"]:
+        print("separate repositories inside, not indexed: " + ", ".join(index["nested_repositories"]))
+    if not index["complete"]:
+        print(f"NOT complete: {len(index['errors'])} unreadable, {len(index['limits_hit'])} limit(s) hit "
+              "(see errors and limits_hit)")
+    unsupported = [k for k, v in index["import_coverage"].items() if v["method"] == "not supported"]
+    if unsupported:
+        print("imports not analysed for: " + ", ".join(unsupported))
+    if index["module_cycles"]:
+        print(f"{len(index['module_cycles'])} module import cycle(s): "
+              + "; ".join(" -> ".join(c) for c in index["module_cycles"][:3]))
     if "changes" in index:
         c = index["changes"]
         print(f"since the previous index: {len(c['added'])} added, {len(c['changed'])} changed, "
@@ -260,4 +605,6 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="backslashreplace")
     sys.exit(main())

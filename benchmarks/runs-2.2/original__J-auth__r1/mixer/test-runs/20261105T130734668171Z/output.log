@@ -1,0 +1,71 @@
+test_interface_and_stdlib_only (tests.test_identity.TestModuleInterface.test_interface_and_stdlib_only)
+features: M01, M02, M03, M04, M05 ... ok
+test_new_oauth_user_is_viewer_and_stable (tests.test_identity.TestOAuth.test_new_oauth_user_is_viewer_and_stable)
+features: M03, M04 ... ok
+test_oauth_logout (tests.test_identity.TestOAuth.test_oauth_logout)
+features: M02, M03 ... ok
+test_oauth_requires_provider_and_subject (tests.test_identity.TestOAuth.test_oauth_requires_provider_and_subject)
+features: M03 ... ok
+test_only_true_counts_as_verified (tests.test_identity.TestOAuth.test_only_true_counts_as_verified)
+features: M03 ... ok
+test_same_subject_different_provider_is_different_identity (tests.test_identity.TestOAuth.test_same_subject_different_provider_is_different_identity)
+features: M03 ... ok
+test_unverified_email_creates_separate_account (tests.test_identity.TestOAuth.test_unverified_email_creates_separate_account)
+features: M01, M03 ... ok
+test_unverified_oauth_does_not_block_registration (tests.test_identity.TestOAuth.test_unverified_oauth_does_not_block_registration)
+features: M01, M03 ... ok
+test_verified_email_joins_password_account (tests.test_identity.TestOAuth.test_verified_email_joins_password_account)
+features: M01, M02, M03 ... ok
+test_verified_oauth_account_owns_email (tests.test_identity.TestOAuth.test_verified_oauth_account_owns_email)
+features: M01, M03 ... ok
+test_duplicate_email_rejected_and_original_kept (tests.test_identity.TestPasswordAccounts.test_duplicate_email_rejected_and_original_kept)
+features: M01 ... ok
+test_invalid_and_expired_tokens (tests.test_identity.TestPasswordAccounts.test_invalid_and_expired_tokens)
+features: M02 ... ok
+test_invalid_registration_input (tests.test_identity.TestPasswordAccounts.test_invalid_registration_input)
+features: M01 ... ok
+test_login_is_case_insensitive_on_email (tests.test_identity.TestPasswordAccounts.test_login_is_case_insensitive_on_email)
+features: M02 ... ok
+test_logout_invalidates_token (tests.test_identity.TestPasswordAccounts.test_logout_invalidates_token)
+features: M02 ... ok
+test_password_not_stored_in_clear (tests.test_identity.TestPasswordAccounts.test_password_not_stored_in_clear)
+features: M01 ... ok
+test_register_returns_id_and_editor_role (tests.test_identity.TestPasswordAccounts.test_register_returns_id_and_editor_role)
+features: M01, M02, M04 ... ok
+test_separate_apps_do_not_share_state (tests.test_identity.TestPasswordAccounts.test_separate_apps_do_not_share_state)
+features: M01 ... ok
+test_tokens_are_unique_per_login (tests.test_identity.TestPasswordAccounts.test_tokens_are_unique_per_login)
+features: M02 ... ok
+test_wrong_password_and_unknown_email_raise_autherror (tests.test_identity.TestPasswordAccounts.test_wrong_password_and_unknown_email_raise_autherror)
+features: M02 ... ok
+test_admin_changes_role_and_it_applies_at_once (tests.test_identity.TestRoleAdmin.test_admin_changes_role_and_it_applies_at_once)
+features: M04, M05 ... ok
+test_admin_may_lower_but_not_raise_own_role (tests.test_identity.TestRoleAdmin.test_admin_may_lower_but_not_raise_own_role)
+features: M05 ... ok
+test_bootstrap_admin_creates_admin (tests.test_identity.TestRoleAdmin.test_bootstrap_admin_creates_admin)
+features: M05 ... ok
+test_bootstrap_admin_only_once (tests.test_identity.TestRoleAdmin.test_bootstrap_admin_only_once)
+features: M05 ... ok
+test_core_journey (tests.test_identity.TestRoleAdmin.test_core_journey)
+features: M01, M02, M03, M04, M05 ... ok
+test_invalid_or_logged_out_token_cannot_change_roles (tests.test_identity.TestRoleAdmin.test_invalid_or_logged_out_token_cannot_change_roles)
+features: M02, M05 ... ok
+test_invalid_role_and_unknown_user (tests.test_identity.TestRoleAdmin.test_invalid_role_and_unknown_user)
+features: M05 ... ok
+test_nobody_raises_their_own_role (tests.test_identity.TestRoleAdmin.test_nobody_raises_their_own_role)
+features: M05 ... ok
+test_non_admin_cannot_change_roles (tests.test_identity.TestRoleAdmin.test_non_admin_cannot_change_roles)
+features: M05 ... ok
+test_role_change_on_joined_oauth_account (tests.test_identity.TestRoleAdmin.test_role_change_on_joined_oauth_account)
+features: M03, M04, M05 ... ok
+test_permission_check (tests.test_identity.TestRoleMapping.test_permission_check)
+features: M04 ... ok
+test_source_role_mapping (tests.test_identity.TestRoleMapping.test_source_role_mapping)
+features: M04 ... ok
+test_unknown_role_or_app_raises_keyerror (tests.test_identity.TestRoleMapping.test_unknown_role_or_app_raises_keyerror)
+features: M04 ... ok
+
+----------------------------------------------------------------------
+Ran 33 tests in 5.646s
+
+OK

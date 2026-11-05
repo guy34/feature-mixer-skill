@@ -1,0 +1,159 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
+    "low": 0,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "application:workflow:suggestion-input",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "suggestion-input",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "B's suggest() takes one free-text string; A's Ticket has no text field (only status and a thread of agent replies), so it is undecided which ticket text the FAQ matcher reads",
+      "solutions": [
+        "Match on the ticket's subject and description, set when it is created",
+        "Also match on every reply",
+        "Match on the latest message only"
+      ],
+      "recommended": "Match on subject and description: they are the customer's question; agent replies would make the agent's own words pull in FAQs",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "The FAQ matcher reads the ticket's subject and description only; replies are not matched.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC06",
+          "test_suggestions_ignore_agent_replies"
+        ],
+        "note": "medium; pre-approved by the benchmark operator with Claude's recommendation"
+      }
+    },
+    {
+      "id": "dependency:runtime-mix:backend-runtime",
+      "category": "dependency",
+      "kind": "runtime-mix",
+      "subject": "backend-runtime",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "medium",
+      "detail": "Several runtimes: node: A; python: B",
+      "solutions": [
+        "Choose one backend runtime and rebuild the features from the other",
+        "Keep two services only if a kept feature truly needs the other runtime"
+      ],
+      "recommended": "One backend runtime for the unified app, chosen in the architecture phase",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One backend runtime: Python 3 (standard library). B is the user's own Python code and may be adapted; A's JavaScript may not be reused (no licence file) and is rebuilt anyway.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "medium; pre-approved by the benchmark operator with Claude's recommendation"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:ticket",
+      "entity": "Ticket",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "A.Ticket fields not kept in Ticket: messages",
+          "risk": "high",
+          "data_loss": [
+            "messages"
+          ]
+        }
+      ],
+      "changes": [
+        "A.Ticket fields not kept in Ticket: messages"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "messages"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:message",
+      "entity": "Message",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "A.Message.from: text to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "from"
+          ]
+        }
+      ],
+      "changes": [
+        "A.Message.from: text to integer can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "from"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:faq",
+      "entity": "FAQ",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    }
+  ]
+}

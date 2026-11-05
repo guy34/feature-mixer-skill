@@ -1,0 +1,80 @@
+{
+  "A": {
+    "app": {
+      "id": "A",
+      "name": "CRMish"
+    },
+    "api": {
+      "pagination": "offset",
+      "error_format": "json error field"
+    },
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/v1/contacts",
+        "auth": "bearer",
+        "version": "v1",
+        "response": {
+          "name": "text"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/v1/contacts/{id}",
+        "auth": "bearer"
+      },
+      {
+        "method": "DELETE",
+        "path": "/v1/contacts/{id}",
+        "auth": "bearer"
+      }
+    ]
+  },
+  "B": {
+    "app": {
+      "id": "B",
+      "name": "Addressly"
+    },
+    "api": {
+      "pagination": "cursor",
+      "error_format": "problem+json",
+      "rate_limit": "429 with Retry-After"
+    },
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/v2/people",
+        "auth": "api-key",
+        "version": "v2",
+        "response": {
+          "name": "text"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/v2/people/{id}",
+        "auth": "api-key"
+      }
+    ]
+  },
+  "architecture": {
+    "api": [
+      {
+        "method": "GET",
+        "path": "/contacts",
+        "from": [
+          "A: GET /v1/contacts",
+          "B: GET /v2/people"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/contacts/{id}",
+        "from": [
+          "A: DELETE /v1/contacts/{id}",
+          "B: DELETE /v2/people/{id}"
+        ]
+      }
+    ]
+  }
+}

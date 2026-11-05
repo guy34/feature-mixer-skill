@@ -1,0 +1,42 @@
+{
+  "A": {
+    "app": {
+      "id": "A",
+      "name": "Drafty"
+    },
+    "rules": [
+      {
+        "key": "edit_after_submit",
+        "value": "author"
+      }
+    ]
+  },
+  "B": {
+    "app": {
+      "id": "B",
+      "name": "Lockbox"
+    },
+    "rules": [
+      {
+        "key": "edit_after_submit",
+        "value": "nobody"
+      }
+    ]
+  },
+  "C": {
+    "app": {
+      "id": "C",
+      "name": "Override"
+    },
+    "rules": [
+      {
+        "key": "edit_after_submit",
+        "value": "admin"
+      },
+      {
+        "key": "override_reason",
+        "value": false
+      }
+    ]
+  }
+}

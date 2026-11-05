@@ -1,0 +1,55 @@
+{
+  "app": {"id": "B", "name": "Faqbot"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "source-code", "location": "sources/faqbot", "accessed": "2026-11-04",
+     "commit": "not a git repository; file fingerprinted in index.json"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/faqbot/faq.py:1",
+     "summary": "FAQ is a hard-coded list of question/answer pairs (one entry about password reset)."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/faqbot/faq.py:2-4",
+     "summary": "suggest(text) lower-cases and splits the text on whitespace and returns every FAQ whose question shares at least one word, unranked."}
+  ],
+  "stack": {"backend": ["Python (standard library only)"], "frontend": [], "database": [], "infrastructure": [], "basis": "observed"},
+  "packages": {},
+  "architecture": {"backend": "One Python module with an in-memory FAQ list and a suggest function", "frontend": "none in the folder (the user calls it a widget; no widget code present)",
+                   "evidence": ["B-E01", "B-E02"], "basis": "observed"},
+  "screens": [],
+  "workflows": [],
+  "features": [
+    {"id": "B-F01", "name": "FAQ entries", "description": "A list of frequently asked questions with their answers.",
+     "observed_behaviour": "Static in-code list; no way to add, edit or delete entries at runtime.",
+     "business_logic": "Each entry has q (question) and a (answer).",
+     "data": ["FAQ.q", "FAQ.a"], "depends_on": [],
+     "integration": "Becomes a stored, editable FAQ entity in the unified app.",
+     "evidence": ["B-E01"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F02", "name": "Suggest FAQ answers for text", "description": "Given some text, return the FAQ entries that look relevant.",
+     "observed_behaviour": "Case-insensitive whitespace tokenisation; any shared word matches; no stop-word filtering, punctuation stripping or ranking, so common words like 'how' or 'i' match almost everything and 'password?' does not match 'password'.",
+     "business_logic": "match if |words(text) ∩ words(question)| >= 1; results in list order.",
+     "data": ["FAQ.q"], "depends_on": ["B-F01"],
+     "integration": "Run against ticket text to suggest answers on each ticket.",
+     "evidence": ["B-E02"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "FAQ", "fields": [{"name": "q", "type": "str", "required": true}, {"name": "a", "type": "str", "required": true}],
+     "features": ["B-F01", "B-F02"], "evidence": ["B-E01"], "basis": "observed"}
+  ],
+  "endpoints": [],
+  "rules": [
+    {"key": "suggest.min_shared_words", "value": 1, "features": ["B-F02"], "evidence": ["B-E02"]},
+    {"key": "suggest.case_sensitive", "value": false, "features": ["B-F02"], "evidence": ["B-E02"]}
+  ],
+  "integrations": [],
+  "configuration": [],
+  "error_handling": [
+    {"case": "empty text", "behaviour": "returns an empty list", "evidence": ["B-E02"]},
+    {"case": "non-string input", "behaviour": "raises AttributeError (no validation)", "evidence": ["B-E02"]}
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1},
+  "unknowns": [
+    "The widget UI the user mentions is not in the folder; only the matching logic was provided.",
+    "No persistence, auth or API: how FAQ entries are maintained in practice is unknown."
+  ]
+}

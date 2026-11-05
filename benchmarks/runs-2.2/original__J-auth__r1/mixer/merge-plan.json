@@ -1,0 +1,129 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Unified sign-in (password and OAuth)",
+      "menu_ids": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "source_features": [
+        "A-F01",
+        "A-F02",
+        "B-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E02",
+        "A-E03",
+        "A-E04",
+        "B-E01",
+        "B-E02",
+        "B-E03"
+      ],
+      "merge_type": "complementary",
+      "rationale": "Password accounts (A) and federated sign-in (B) are two ways into one identity; the user wants one account per person, so both methods write to one user store and issue one kind of session.",
+      "behaviour": "register_password creates a user (role editor, mapped from A's user) owning the normalised email; login_password and login_oauth both return a session token; login_oauth finds the (provider, subject) identity, else joins the user that owns the email only when email_verified is true, else creates a separate user (role viewer, mapped from B's member); whoami resolves a live token to user_id, email and current role; logout revokes the token; tokens expire.",
+      "improvements": "A: duplicate email rejected instead of overwritten; constant-time hash comparison; one AuthError for every sign-in failure; sessions expire and can be revoked. B: email_verified decides linking; an unverified email never takes ownership of an address; sessions issued (B had none).",
+      "depends_on": [],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_identity.TestModuleInterface.test_interface_and_stdlib_only",
+        "tests.test_identity.TestOAuth.test_new_oauth_user_is_viewer_and_stable",
+        "tests.test_identity.TestOAuth.test_oauth_logout",
+        "tests.test_identity.TestOAuth.test_oauth_requires_provider_and_subject",
+        "tests.test_identity.TestOAuth.test_only_true_counts_as_verified",
+        "tests.test_identity.TestOAuth.test_same_subject_different_provider_is_different_identity",
+        "tests.test_identity.TestOAuth.test_unverified_email_creates_separate_account",
+        "tests.test_identity.TestOAuth.test_unverified_oauth_does_not_block_registration",
+        "tests.test_identity.TestOAuth.test_verified_email_joins_password_account",
+        "tests.test_identity.TestOAuth.test_verified_oauth_account_owns_email",
+        "tests.test_identity.TestPasswordAccounts.test_duplicate_email_rejected_and_original_kept",
+        "tests.test_identity.TestPasswordAccounts.test_invalid_and_expired_tokens",
+        "tests.test_identity.TestPasswordAccounts.test_invalid_registration_input",
+        "tests.test_identity.TestPasswordAccounts.test_login_is_case_insensitive_on_email",
+        "tests.test_identity.TestPasswordAccounts.test_logout_invalidates_token",
+        "tests.test_identity.TestPasswordAccounts.test_password_not_stored_in_clear",
+        "tests.test_identity.TestPasswordAccounts.test_register_returns_id_and_editor_role",
+        "tests.test_identity.TestPasswordAccounts.test_separate_apps_do_not_share_state",
+        "tests.test_identity.TestPasswordAccounts.test_tokens_are_unique_per_login",
+        "tests.test_identity.TestPasswordAccounts.test_wrong_password_and_unknown_email_raise_autherror",
+        "tests.test_identity.TestRoleAdmin.test_core_journey",
+        "tests.test_identity.TestRoleAdmin.test_invalid_or_logged_out_token_cannot_change_roles",
+        "tests.test_identity.TestRoleAdmin.test_role_change_on_joined_oauth_account"
+      ]
+    },
+    {
+      "id": "U02",
+      "name": "Role-based permissions",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E01",
+        "C-E02"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Roster has a permission model; it becomes the one role set for every account, with A's and B's role names mapped onto it.",
+      "behaviour": "Roles viewer (read), editor (read, write), admin (read, write, manage_roles); one can(role, permission) check that denies unknown roles; map_source_role maps A user -> editor, B member -> viewer, C roles unchanged, and raises KeyError for anything else.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_identity.TestModuleInterface.test_interface_and_stdlib_only",
+        "tests.test_identity.TestOAuth.test_new_oauth_user_is_viewer_and_stable",
+        "tests.test_identity.TestPasswordAccounts.test_register_returns_id_and_editor_role",
+        "tests.test_identity.TestRoleAdmin.test_admin_changes_role_and_it_applies_at_once",
+        "tests.test_identity.TestRoleAdmin.test_core_journey",
+        "tests.test_identity.TestRoleAdmin.test_role_change_on_joined_oauth_account",
+        "tests.test_identity.TestRoleMapping.test_permission_check",
+        "tests.test_identity.TestRoleMapping.test_source_role_mapping",
+        "tests.test_identity.TestRoleMapping.test_unknown_role_or_app_raises_keyerror"
+      ]
+    },
+    {
+      "id": "U03",
+      "name": "Admin role management",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Roster's admin-only role change, kept as its own feature on top of the unified permissions and sessions.",
+      "behaviour": "set_role(token, user_id, role): the caller is resolved from the session; PermissionError unless the caller has manage_roles; the role must be a unified role; nobody can raise their own role; bootstrap_admin creates the first admin once, during setup.",
+      "improvements": "The actor comes from a verified session instead of a caller-supplied role; the new role is validated; raising your own role is refused; first admin created by an explicit setup step.",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_identity.TestModuleInterface.test_interface_and_stdlib_only",
+        "tests.test_identity.TestRoleAdmin.test_admin_changes_role_and_it_applies_at_once",
+        "tests.test_identity.TestRoleAdmin.test_admin_may_lower_but_not_raise_own_role",
+        "tests.test_identity.TestRoleAdmin.test_bootstrap_admin_creates_admin",
+        "tests.test_identity.TestRoleAdmin.test_bootstrap_admin_only_once",
+        "tests.test_identity.TestRoleAdmin.test_core_journey",
+        "tests.test_identity.TestRoleAdmin.test_invalid_or_logged_out_token_cannot_change_roles",
+        "tests.test_identity.TestRoleAdmin.test_invalid_role_and_unknown_user",
+        "tests.test_identity.TestRoleAdmin.test_nobody_raises_their_own_role",
+        "tests.test_identity.TestRoleAdmin.test_non_admin_cannot_change_roles",
+        "tests.test_identity.TestRoleAdmin.test_role_change_on_joined_oauth_account"
+      ]
+    }
+  ]
+}

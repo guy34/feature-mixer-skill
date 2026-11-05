@@ -1,0 +1,30 @@
+{
+  "unified_features": [
+    {"id": "U01", "name": "Ticket lifecycle", "menu_ids": ["M01", "M04"], "source_features": ["A-F01"],
+     "evidence": ["A-E02", "A-E01"], "merge_type": "complementary",
+     "rationale": "A defines the statuses but cannot create a ticket; the user asked for tickets. Creation and statuses are two parts of one lifecycle, so they are one module.",
+     "behaviour": "An agent creates a ticket with a subject and a description; it starts open. Status is always one of open, pending, closed (database check constraint).",
+     "improvements": "Creation added at the user's request; A only had helpers for an existing ticket.",
+     "depends_on": [], "compatibility": "compatible", "validation": "untested", "tests": []},
+    {"id": "U02", "name": "Agent reply", "menu_ids": ["M02"], "source_features": ["A-F02"], "evidence": ["A-E03"],
+     "merge_type": "unique", "rationale": "Only A has replies.",
+     "behaviour": "A signed-in agent adds a non-empty reply; it is stored in order on the ticket with the agent's id and a UTC time. The status does not change (as in A). No email is sent.",
+     "improvements": "The real author is stored instead of the literal 'agent'; an empty body is refused.",
+     "depends_on": ["U01"], "compatibility": "adaptable", "validation": "untested", "tests": []},
+    {"id": "U03", "name": "Close a ticket", "menu_ids": ["M03"], "source_features": ["A-F03"], "evidence": ["A-E04"],
+     "merge_type": "unique", "rationale": "Only A has closing; its rule is kept as observed.",
+     "behaviour": "Closing an open ticket sets it to closed; closing a pending ticket is refused with 409 'answer the customer first'.",
+     "improvements": "", "depends_on": ["U01"], "compatibility": "compatible", "validation": "untested", "tests": []},
+    {"id": "U04", "name": "FAQ content", "menu_ids": ["M06"], "source_features": ["B-F02"], "evidence": ["B-E01"],
+     "merge_type": "unique", "rationale": "Only B has FAQ content.",
+     "behaviour": "FAQ entries (question, answer) live in a table seeded with B's entry; they are read-only in the app.",
+     "improvements": "Moved from a hard-coded list to a table.",
+     "depends_on": [], "compatibility": "adaptable", "validation": "untested", "tests": []},
+    {"id": "U05", "name": "Suggested FAQ answers on tickets", "menu_ids": ["M05"], "source_features": ["B-F01"],
+     "evidence": ["B-E02"], "merge_type": "unique",
+     "rationale": "B's suggestion is the feature the user wants on tickets; it shares only the ticket text with U01.",
+     "behaviour": "The ticket view shows up to 3 FAQ answers ranked by the number of meaningful words shared between the ticket's subject and description and each FAQ question.",
+     "improvements": "Punctuation stripped, stop words ignored, ranked by overlap, limited to 3 (B matched any shared word, so common words matched nearly everything).",
+     "depends_on": ["U01", "U04"], "compatibility": "adaptable", "validation": "untested", "tests": []}
+  ]
+}

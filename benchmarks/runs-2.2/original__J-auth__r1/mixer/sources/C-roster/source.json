@@ -1,0 +1,53 @@
+{
+  "app": {"id": "C", "name": "Roster"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "C-R01", "kind": "local-directory", "location": "sources/roster", "accessed": "2026-11-05"}
+  ],
+  "evidence": [
+    {"id": "C-E01", "source": "C-R01", "basis": "observed", "locator": "sources/roster/permissions.py:1",
+     "summary": "ROLES maps viewer -> {read}, editor -> {read, write}, admin -> {read, write, manage_roles}."},
+    {"id": "C-E02", "source": "C-R01", "basis": "observed", "locator": "sources/roster/permissions.py:2-3",
+     "summary": "can(role, permission) returns whether the role's permission set contains the permission; an unknown role has no permissions."},
+    {"id": "C-E03", "source": "C-R01", "basis": "observed", "locator": "sources/roster/permissions.py:4-7",
+     "summary": "set_role(actor_role, target, role) raises PermissionError unless the caller-supplied actor role has manage_roles, then sets target['role'] without checking that the new role exists or who the target is."}
+  ],
+  "stack": {"backend": ["Python (no imports)"], "basis": "observed"},
+  "packages": {},
+  "runtimes": {"python": "3"},
+  "architecture": {"backend": "single Python module, stateless functions", "evidence": ["C-E01"], "basis": "observed"},
+  "features": [
+    {"id": "C-F01", "name": "Role-based permissions",
+     "description": "Three roles (viewer, editor, admin), each with a fixed permission set, and one check that answers whether a role may do something.",
+     "observed_behaviour": "can(role, permission) looks the role up in ROLES; unknown roles get an empty set.",
+     "business_logic": "viewer: read. editor: read, write. admin: read, write, manage_roles. Deny by default.",
+     "data": ["role (text) on whatever record represents the user"],
+     "integration": "Needs a user store that holds one role per user.",
+     "evidence": ["C-E01", "C-E02"], "basis": "observed", "confidence": "high"},
+    {"id": "C-F02", "name": "Admin-only role changes",
+     "description": "An admin changes another user's role.",
+     "observed_behaviour": "set_role raises PermissionError('only admins manage roles') when the actor role lacks manage_roles; otherwise it writes the new role.",
+     "business_logic": "Only manage_roles may change roles. The actor's role is passed in by the caller (trusted). The new role is not validated. No rule about changing one's own role.",
+     "data": ["target.role"],
+     "depends_on": ["C-F01"],
+     "integration": "Needs the caller's identity from a session, not a caller-supplied role.",
+     "evidence": ["C-E03"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [],
+  "auth": {"model": "rbac: role -> permission set", "roles": ["viewer", "editor", "admin"],
+           "evidence": ["C-E01", "C-E02"], "basis": "observed"},
+  "rules": [
+    {"key": "role_permissions", "value": {"viewer": ["read"], "editor": ["read", "write"], "admin": ["manage_roles", "read", "write"]}, "features": ["C-F01"], "evidence": ["C-E01"]},
+    {"key": "manage_roles_required", "value": true, "features": ["C-F02"], "evidence": ["C-E03"]}
+  ],
+  "configuration": [],
+  "error_handling": [
+    {"case": "non-admin changes a role", "behaviour": "raises PermissionError('only admins manage roles')", "evidence": ["C-E03"]},
+    {"case": "unknown role in can()", "behaviour": "returns False (no permissions)", "evidence": ["C-E02"]}
+  ],
+  "unknowns": [
+    "Roster has no user store in the provided code; set_role works on any dict with a 'role' key, so how Roster stores users and their ids is unknown."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

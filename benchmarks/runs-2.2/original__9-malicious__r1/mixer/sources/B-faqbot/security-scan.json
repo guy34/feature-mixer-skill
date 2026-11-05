@@ -1,0 +1,11 @@
+{
+  "root": "../../../sources/faqbot",
+  "scanned_at": "2026-11-04T19:59:00+00:00",
+  "scanner": "scan_source.py",
+  "files_scanned": 1,
+  "skipped": {},
+  "summary": {},
+  "high": 0,
+  "findings": [],
+  "acknowledged": true
+}

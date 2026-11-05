@@ -1,0 +1,69 @@
+test_standard_library_only (tests.test_dependencies.DependencyTests.test_standard_library_only)
+features: M01, M02, M03, M04, M05 ... ok
+test_concurrent_registration_one_winner (tests.test_identity.ModuleTests.test_concurrent_registration_one_winner)
+features: M01 ... ok
+test_interface_and_file_import (tests.test_identity.ModuleTests.test_interface_and_file_import)
+features: M01, M02, M03, M04, M05 ... ok
+test_oauth_email_verified_must_be_true (tests.test_identity.OAuthTests.test_oauth_email_verified_must_be_true)
+features: M03 ... ok
+test_oauth_input_validated (tests.test_identity.OAuthTests.test_oauth_input_validated)
+features: M03 ... ok
+test_oauth_new_user_is_viewer_and_stable (tests.test_identity.OAuthTests.test_oauth_new_user_is_viewer_and_stable)
+features: M03, M04 ... ok
+test_oauth_unverified_does_not_claim_email (tests.test_identity.OAuthTests.test_oauth_unverified_does_not_claim_email)
+features: M03, M01 ... ok
+test_oauth_unverified_email_creates_separate_account (tests.test_identity.OAuthTests.test_oauth_unverified_email_creates_separate_account)
+features: M03, M01 ... ok
+test_oauth_verified_email_links_existing_account (tests.test_identity.OAuthTests.test_oauth_verified_email_links_existing_account)
+features: M03, M01 ... ok
+test_oauth_verified_new_user_owns_email (tests.test_identity.OAuthTests.test_oauth_verified_new_user_owns_email)
+features: M03, M01 ... ok
+test_oauth_without_email_creates_separate_account (tests.test_identity.OAuthTests.test_oauth_without_email_creates_separate_account)
+features: M03 ... ok
+test_same_subject_different_providers_are_different_identities (tests.test_identity.OAuthTests.test_same_subject_different_providers_are_different_identities)
+features: M03 ... ok
+test_duplicate_registration_refused (tests.test_identity.PasswordTests.test_duplicate_registration_refused)
+features: M01 ... ok
+test_email_case_normalised (tests.test_identity.PasswordTests.test_email_case_normalised)
+features: M01, M02, M03 ... ok
+test_login_failures_raise_autherror (tests.test_identity.PasswordTests.test_login_failures_raise_autherror)
+features: M02 ... ok
+test_password_stored_hashed_with_salt (tests.test_identity.PasswordTests.test_password_stored_hashed_with_salt)
+features: M01 ... ok
+test_register_and_login_password (tests.test_identity.PasswordTests.test_register_and_login_password)
+features: M01, M02, M04 ... ok
+test_registration_input_validated (tests.test_identity.PasswordTests.test_registration_input_validated)
+features: M01 ... ok
+test_user_ids_are_opaque_strings (tests.test_identity.PasswordTests.test_user_ids_are_opaque_strings)
+features: M01, M03 ... ok
+test_admin_sets_role (tests.test_identity.RoleChangeTests.test_admin_sets_role)
+features: M05, M04 ... ok
+test_bootstrap_admin_only_once (tests.test_identity.RoleChangeTests.test_bootstrap_admin_only_once)
+features: M05 ... ok
+test_nobody_raises_own_role (tests.test_identity.RoleChangeTests.test_nobody_raises_own_role)
+features: M05 ... ok
+test_non_admin_cannot_set_role (tests.test_identity.RoleChangeTests.test_non_admin_cannot_set_role)
+features: M05, M04 ... ok
+test_role_change_needs_live_session (tests.test_identity.RoleChangeTests.test_role_change_needs_live_session)
+features: M05, M02 ... ok
+test_logout_revokes_token (tests.test_identity.SessionTests.test_logout_revokes_token)
+features: M02 ... ok
+test_session_expires (tests.test_identity.SessionTests.test_session_expires)
+features: M02, M03 ... ok
+test_tokens_not_stored_in_clear (tests.test_identity.SessionTests.test_tokens_not_stored_in_clear)
+features: M02 ... ok
+test_whoami_invalid_token (tests.test_identity.SessionTests.test_whoami_invalid_token)
+features: M02 ... ok
+test_journey_full_identity_flow (tests.test_journey.JourneyTests.test_journey_full_identity_flow)
+features: M01, M02, M03, M04, M05 ... ok
+test_map_source_role (tests.test_roles.RoleMappingTests.test_map_source_role)
+features: M04 ... ok
+test_no_source_role_maps_to_admin_except_roster_admin (tests.test_roles.RoleMappingTests.test_no_source_role_maps_to_admin_except_roster_admin)
+features: M04 ... ok
+test_permission_check (tests.test_roles.RoleMappingTests.test_permission_check)
+features: M04 ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 1.889s
+
+OK

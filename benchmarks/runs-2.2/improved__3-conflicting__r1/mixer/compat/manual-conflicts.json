@@ -1,0 +1,17 @@
+[
+  {"kind": "data", "category": "database", "subject": "imported-post-status", "apps": ["A", "B"], "severity": "high",
+   "detail": "B's posts have no status and are all live (B-F03); the unified Post requires a status and every new post starts pending (A-F04). If B's existing posts are imported, they need a status, and the choice decides whether they stay visible.",
+   "solutions": ["Import B's posts as published, marked imported_from = B, so they stay visible; moderators may reject any later", "Import B's posts as pending so moderators re-review everything (they disappear from public view until reviewed)", "Do not import B's posts"],
+   "recommended": "Import as published with imported_from = B; they were already public, and moderators can reject any of them",
+   "features": ["A-F04", "B-F02"]},
+  {"kind": "data", "category": "database", "subject": "imported-anonymous-posts", "apps": ["A", "B"], "severity": "high",
+   "detail": "B allows posts with no author (author_id null, B-F04); the unified Post requires an author for new posts (A-F02) and anonymous posting is deferred (M07). Imported anonymous B posts would be rejected by a NOT NULL author.",
+   "solutions": ["Allow a null author only on imported B rows (check: author_id is not null or imported_from = 'B')", "Assign imported anonymous posts to one placeholder account", "Skip anonymous B posts on import (data loss)"],
+   "recommended": "Allow a null author only on imported B rows, enforced by a check constraint; new posts always need an author",
+   "features": ["A-F02", "B-F02"]},
+  {"kind": "security", "category": "application", "subject": "b-hardcoded-signing-key", "apps": ["B"], "severity": "medium",
+   "detail": "B signs and verifies JWTs with a literal key in api.py (scan: 2 medium findings) and passes no algorithms list to decode. B's sign-in (M02) is dropped, but nothing from B's auth code may be carried over.",
+   "solutions": ["Carry over nothing from B's token code; one cookie-session system configured from environment variables", "If a token API is ever needed, a new key from the environment with a fixed algorithm and expiry"],
+   "recommended": "Carry over nothing from B's token code; existing B tokens stop working after the merge and B users sign in again",
+   "features": ["B-F01"]}
+]

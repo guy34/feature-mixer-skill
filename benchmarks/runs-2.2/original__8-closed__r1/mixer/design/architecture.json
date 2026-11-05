@@ -1,0 +1,230 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one small team (the user), one release cadence",
+      "strong consistency between expenses, budget membership and budget totals",
+      "low volume: household-sized budgets, no independent scaling need",
+      "permission checks must be identical on every read (shared budgets)"
+    ],
+    "alternatives": [
+      {"style": "microservices", "fit": "poor", "reason": "Network calls and distributed data for a few small modules, with no team or scaling reason to split them"},
+      {"style": "service-oriented", "fit": "poor", "reason": "No existing system that must stay separate; the OCR provider is reached through an adapter, not a service of ours"},
+      {"style": "event-driven", "fit": "partial", "reason": "OCR and invitation email are naturally asynchronous, but volume is low and a synchronous call with a timeout and manual fallback is enough"},
+      {"style": "hybrid", "fit": "partial", "reason": "A monolith plus a background job for OCR would fit if scans prove slow; revisit then (decision D04)"}
+    ],
+    "reason": "Simplest design that meets every driver; module boundaries keep the expense, budget and receipt rules separate without a second deployable"
+  },
+  "stack": {
+    "frontend": "Server-rendered, mobile-first web pages (Django templates) with a small amount of plain JavaScript; camera capture through the browser file input",
+    "backend": "Python 3.12, Django 5.2 LTS",
+    "database": "PostgreSQL 16",
+    "storage": "S3-compatible private object storage for receipt images",
+    "email": "Transactional email provider through Django's email backend (console backend in development)",
+    "ocr": "Receipt OCR provider behind a ReceiptReader adapter, chosen by the user before slice V3; a deterministic fake reader for development and tests",
+    "hosting": "A managed platform with managed PostgreSQL, chosen by the user at deployment (not part of this plan)",
+    "reasons": {
+      "backend": "D01: Spendly (the user's own code, reuse allowed) is Python, so its category rule is adapted directly; Django gives accounts, password hashing, sessions, CSRF, migrations and email without extra packages",
+      "database": "D02: relational data with foreign keys, constraints and per-month sums; boring and managed everywhere",
+      "frontend": "D03: the user uses Tallyho on a phone; a mobile-first web app can use the camera through the file input without app-store builds; one codebase",
+      "storage": "D13: receipt photos are personal data and must not be public or in the database",
+      "ocr": "D07: Tallyho's engine is closed and unknown; the provider needs the user's own account and keys, so it is an adapter with a fake for tests",
+      "email": "D08: invitations need outbound email; adapter so development and tests send nothing"
+    }
+  },
+  "modules": [
+    {"name": "accounts", "responsibility": "Sign-up, sign-in, sign-out, email verification, sessions; the User record (platform piece, no source feature)", "features": [], "depends_on": [], "owns_entities": ["User"]},
+    {"name": "mailer", "responsibility": "Send transactional email through the configured backend (platform piece)", "features": [], "depends_on": [], "owns_entities": []},
+    {"name": "categories", "responsibility": "The four fixed categories and their validation, adapted from Spendly", "features": ["M09"], "depends_on": [], "owns_entities": []},
+    {"name": "budgets", "responsibility": "Create and edit budgets, membership records, and the one permission function used by every module ('may this user do this to this budget or expense')", "features": ["M03"], "depends_on": ["accounts"], "owns_entities": ["Budget", "Membership"]},
+    {"name": "members", "responsibility": "Email invitations (owner-only, single-use, 7-day expiry) and owner removal of members", "features": ["M04", "M05"], "depends_on": ["budgets", "accounts", "mailer"], "owns_entities": ["Invitation"]},
+    {"name": "expenses", "responsibility": "Create, list, edit and delete expenses (personal or in a budget), with amount, currency, date, merchant, category and note validation", "features": ["M06", "M08"], "depends_on": ["accounts", "budgets", "categories"], "owns_entities": ["Expense"]},
+    {"name": "budget-period", "responsibility": "Spent-of-limit for a budget for a calendar month in the budget's time zone; the budget overview", "features": ["M07"], "depends_on": ["budgets", "expenses"], "owns_entities": []},
+    {"name": "receipts", "responsibility": "Receipt upload and private storage, OCR through the ReceiptReader adapter, the review draft with date checks, and confirming a draft into an expense", "features": ["M01"], "depends_on": ["accounts", "budgets", "categories", "expenses"], "owns_entities": ["Receipt"]}
+  ],
+  "entities": [
+    {"name": "User", "merged_from": ["A:User"], "primary_key": "id uuid",
+     "notes": "Tallyho's account model is undocumented; Spendly has no users. Email is unique (case-insensitive) and must be verified before accepting invitations.",
+     "fields": [
+       {"name": "id", "type": "uuid"},
+       {"name": "email", "type": "citext", "from": ["A:User.email"]},
+       {"name": "password_hash", "type": "text"},
+       {"name": "email_verified_at", "type": "timestamptz"},
+       {"name": "display_name", "type": "text"},
+       {"name": "created_at", "type": "timestamptz"}
+     ]},
+    {"name": "Budget", "merged_from": ["A:Budget"], "primary_key": "id uuid",
+     "notes": "One owner (owner_id, also a Membership with role owner). limit_minor > 0. currency is ISO 4217. time_zone is an IANA name used for the monthly period.",
+     "fields": [
+       {"name": "id", "type": "uuid"},
+       {"name": "name", "type": "text", "from": ["A:Budget.name"]},
+       {"name": "limit_minor", "type": "bigint", "from": ["A:Budget.limit"]},
+       {"name": "currency", "type": "char(3)", "from": ["A:Budget.currency"]},
+       {"name": "time_zone", "type": "text"},
+       {"name": "owner_id", "type": "uuid"},
+       {"name": "created_at", "type": "timestamptz"},
+       {"name": "updated_at", "type": "timestamptz"}
+     ]},
+    {"name": "Membership", "merged_from": ["A:BudgetMember"], "primary_key": "id uuid",
+     "notes": "Unique (budget_id, user_id). removed_at set when the owner removes a member: the row stays so their expenses can be shown as from a former member; access requires removed_at is null.",
+     "fields": [
+       {"name": "id", "type": "uuid"},
+       {"name": "budget_id", "type": "uuid", "from": ["A:BudgetMember.budget_id"]},
+       {"name": "user_id", "type": "uuid", "from": ["A:BudgetMember.user_id"]},
+       {"name": "role", "type": "text", "from": ["A:BudgetMember.role"]},
+       {"name": "joined_at", "type": "timestamptz"},
+       {"name": "removed_at", "type": "timestamptz"}
+     ]},
+    {"name": "Invitation", "merged_from": ["new"], "primary_key": "id uuid",
+     "notes": "Tallyho's invitation record is not documented; this one is new. Token stored only as a hash; single use; expires_at = created + 7 days.",
+     "fields": [
+       {"name": "id", "type": "uuid"},
+       {"name": "budget_id", "type": "uuid"},
+       {"name": "email", "type": "citext"},
+       {"name": "token_hash", "type": "text"},
+       {"name": "invited_by", "type": "uuid"},
+       {"name": "created_at", "type": "timestamptz"},
+       {"name": "expires_at", "type": "timestamptz"},
+       {"name": "accepted_at", "type": "timestamptz"},
+       {"name": "revoked_at", "type": "timestamptz"}
+     ]},
+    {"name": "Expense", "merged_from": ["A:Expense", "B:Expense"], "primary_key": "id uuid",
+     "notes": "amount_minor > 0 (Spendly's integer cents; Tallyho's undocumented amount). category in (food, travel, home, other). budget_id null means personal. When budget_id is set, currency must equal the budget's currency (checked in the expenses module).",
+     "fields": [
+       {"name": "id", "type": "uuid", "from": ["A:Expense.id"]},
+       {"name": "author_id", "type": "uuid"},
+       {"name": "budget_id", "type": "uuid", "from": ["A:Expense.budget_id"]},
+       {"name": "amount_minor", "type": "bigint", "from": ["A:Expense.amount", "B:Expense.amount_cents"]},
+       {"name": "currency", "type": "char(3)", "from": ["A:Expense.currency"]},
+       {"name": "spent_on", "type": "date", "from": ["A:Expense.date"]},
+       {"name": "merchant", "type": "text", "from": ["A:Expense.merchant"]},
+       {"name": "category", "type": "text", "from": ["A:Expense.category", "B:Expense.category"]},
+       {"name": "note", "type": "text", "from": ["B:Expense.note"]},
+       {"name": "receipt_id", "type": "uuid"},
+       {"name": "created_at", "type": "timestamptz"},
+       {"name": "updated_at", "type": "timestamptz"}
+     ]},
+    {"name": "Receipt", "merged_from": ["new"], "primary_key": "id uuid",
+     "notes": "Tallyho exposes no receipt record; this one holds the private image key and the OCR draft. status in (uploaded, read, failed, confirmed).",
+     "fields": [
+       {"name": "id", "type": "uuid"},
+       {"name": "uploaded_by", "type": "uuid"},
+       {"name": "storage_key", "type": "text"},
+       {"name": "content_type", "type": "text"},
+       {"name": "size_bytes", "type": "integer"},
+       {"name": "status", "type": "text"},
+       {"name": "ocr_provider", "type": "text"},
+       {"name": "extracted_merchant", "type": "text"},
+       {"name": "extracted_date", "type": "date"},
+       {"name": "extracted_total_minor", "type": "bigint"},
+       {"name": "extracted_currency", "type": "char(3)"},
+       {"name": "date_flagged", "type": "boolean"},
+       {"name": "created_at", "type": "timestamptz"}
+     ]}
+  ],
+  "auth": {
+    "method": "Email and password (Django auth, PBKDF2 or Argon2 hashing), with email verification",
+    "session": "Server-side session in an http-only, secure, SameSite=Lax cookie; CSRF token on every state-changing request",
+    "roles": ["user", "budget-owner", "budget-member"],
+    "permissions": {
+      "personal expense": "author only: view, edit, delete",
+      "budget": "current members: view budget, members and all expenses; owner: edit budget, invite, remove members",
+      "budget expense": "current members: view, add; author (while a current member): edit, delete; owner: delete any",
+      "former member": "no access to the budget or any of its expenses, including their own",
+      "receipt": "uploader; once confirmed, same access as its expense"
+    },
+    "role_mapping": {
+      "A:owner": "budget-owner",
+      "A:member": "budget-member",
+      "B:(no users or roles)": "user (author of personal expenses)"
+    }
+  },
+  "navigation": [
+    {"route": "/signup", "screen": "Sign up", "module": "accounts"},
+    {"route": "/login", "screen": "Sign in", "module": "accounts"},
+    {"route": "/", "screen": "My expenses and budgets", "module": "expenses"},
+    {"route": "/expenses/new", "screen": "Add expense", "module": "expenses"},
+    {"route": "/expenses/{expense_id}", "screen": "Expense detail and edit", "module": "expenses"},
+    {"route": "/budgets/new", "screen": "Create budget", "module": "budgets"},
+    {"route": "/budgets/{budget_id}", "screen": "Budget overview (spent of limit this month, expenses)", "module": "budget-period"},
+    {"route": "/budgets/{budget_id}/members", "screen": "Budget members, invite and remove", "module": "members"},
+    {"route": "/invitations/{token}", "screen": "Accept invitation", "module": "members"},
+    {"route": "/scan", "screen": "Scan a receipt (camera or upload)", "module": "receipts"},
+    {"route": "/scan/{receipt_id}", "screen": "Review scanned receipt", "module": "receipts"}
+  ],
+  "api": [
+    {"method": "POST", "path": "/api/v1/auth/signup", "module": "accounts", "auth": "none", "features": []},
+    {"method": "POST", "path": "/api/v1/auth/login", "module": "accounts", "auth": "none", "features": []},
+    {"method": "POST", "path": "/api/v1/auth/logout", "module": "accounts", "auth": "session", "features": []},
+    {"method": "POST", "path": "/api/v1/auth/verify-email", "module": "accounts", "auth": "none (signed token)", "features": []},
+    {"method": "GET", "path": "/api/v1/me", "module": "accounts", "auth": "session", "features": []},
+    {"method": "GET", "path": "/api/v1/categories", "module": "categories", "auth": "session", "features": ["M09"]},
+    {"method": "POST", "path": "/api/v1/budgets", "module": "budgets", "auth": "session", "features": ["M03"]},
+    {"method": "GET", "path": "/api/v1/budgets", "module": "budgets", "auth": "session", "features": ["M03"]},
+    {"method": "GET", "path": "/api/v1/budgets/{budget_id}", "module": "budgets", "auth": "session (current member)", "features": ["M03"]},
+    {"method": "PATCH", "path": "/api/v1/budgets/{budget_id}", "module": "budgets", "auth": "session (owner)", "features": ["M03"]},
+    {"method": "GET", "path": "/api/v1/budgets/{budget_id}/summary", "module": "budget-period", "auth": "session (current member)", "features": ["M07", "M03"]},
+    {"method": "GET", "path": "/api/v1/budgets/{budget_id}/members", "module": "members", "auth": "session (current member)", "features": ["M03", "M05"]},
+    {"method": "POST", "path": "/api/v1/budgets/{budget_id}/invitations", "module": "members", "auth": "session (owner)", "features": ["M04"]},
+    {"method": "POST", "path": "/api/v1/invitations/{token}/accept", "module": "members", "auth": "session (verified email matching the invitation)", "features": ["M04"]},
+    {"method": "DELETE", "path": "/api/v1/budgets/{budget_id}/members/{user_id}", "module": "members", "auth": "session (owner)", "features": ["M05"]},
+    {"method": "POST", "path": "/api/v1/expenses", "module": "expenses", "auth": "session", "features": ["M06", "M08", "M09"]},
+    {"method": "GET", "path": "/api/v1/expenses", "module": "expenses", "auth": "session", "features": ["M06"]},
+    {"method": "GET", "path": "/api/v1/expenses/{expense_id}", "module": "expenses", "auth": "session (author or current member)", "features": ["M06"]},
+    {"method": "PATCH", "path": "/api/v1/expenses/{expense_id}", "module": "expenses", "auth": "session (author, current member)", "features": ["M06", "M08"]},
+    {"method": "DELETE", "path": "/api/v1/expenses/{expense_id}", "module": "expenses", "auth": "session (author or budget owner)", "features": ["M06"]},
+    {"method": "POST", "path": "/api/v1/receipts", "module": "receipts", "auth": "session", "features": ["M01"]},
+    {"method": "GET", "path": "/api/v1/receipts/{receipt_id}", "module": "receipts", "auth": "session (uploader)", "features": ["M01"]},
+    {"method": "GET", "path": "/api/v1/receipts/{receipt_id}/image", "module": "receipts", "auth": "session (uploader, or access to its expense)", "features": ["M01"]},
+    {"method": "POST", "path": "/api/v1/receipts/{receipt_id}/expense", "module": "receipts", "auth": "session (uploader)", "features": ["M01", "M06", "M09"]}
+  ],
+  "design_system": {
+    "tokens": {"colour_roles": ["background", "surface", "text", "muted", "primary", "danger", "warning (for 'check this date')", "success"], "type_scale": "14/16/20/24/32 px", "spacing": "4 px base (4, 8, 12, 16, 24, 32)", "radius": "4, 8, 999"},
+    "fonts": "Inter (SIL Open Font Licence)",
+    "icons": "Lucide (ISC licence)",
+    "components": ["button (primary, secondary, danger)", "text field (default, error, flagged-for-check)", "money field (amount + currency)", "category picker (4 options, no default)", "date field (default, flagged)", "budget progress bar (under, near, over limit)", "member row (owner, member, former member)", "confirmation dialog", "empty state", "error banner"],
+    "note": "The user's own palette and name; nothing visual, textual or iconic taken from Tallyho"
+  },
+  "configuration": {
+    "DATABASE_URL": "PostgreSQL connection (secret)",
+    "DJANGO_SECRET_KEY": "session and token signing (secret)",
+    "ALLOWED_HOSTS": "host names served",
+    "EMAIL_BACKEND_URL": "email provider connection (secret); console in development",
+    "EMAIL_FROM": "sender address for invitations",
+    "RECEIPT_STORAGE_BUCKET": "private bucket for receipt images",
+    "RECEIPT_STORAGE_ENDPOINT": "S3-compatible endpoint",
+    "RECEIPT_STORAGE_ACCESS_KEY_ID": "storage credential name (secret)",
+    "RECEIPT_STORAGE_SECRET_ACCESS_KEY": "storage credential name (secret)",
+    "OCR_PROVIDER": "which ReceiptReader adapter (fake in development and tests)",
+    "OCR_API_KEY": "OCR provider credential (secret)",
+    "OCR_TIMEOUT_SECONDS": "default 20; on timeout the review screen opens empty for manual entry",
+    "INVITE_TTL_DAYS": "default 7",
+    "SCAN_DATE_MAX_AGE_DAYS": "default 90",
+    "MAX_RECEIPT_BYTES": "default 10485760",
+    "note": "Read in one settings module; .env.example lists names only; secrets never in code or logs"
+  },
+  "slices": [
+    {"id": "V1", "name": "Core loop: sign in, add an expense with a Spendly category, see it listed", "features": ["M06", "M08", "M09"], "status": "pending"},
+    {"id": "V2", "name": "Shared budgets: create, invite by email, join, see this month's spent of limit", "features": ["M03", "M04", "M07"], "status": "pending"},
+    {"id": "V3", "name": "Receipt scanning: photo, OCR draft, check date, pick category, save into a budget", "features": ["M01"], "status": "pending"},
+    {"id": "V4", "name": "Owner removes a member; expenses stay, marked former member; access revoked", "features": ["M05"], "status": "pending"}
+  ],
+  "decisions": [
+    {"id": "D01", "decision": "Backend: Python 3.12 + Django 5.2 LTS", "reason": "Spendly is Python (adapt its category rule); batteries for auth, sessions, CSRF, migrations, email", "approved": true},
+    {"id": "D02", "decision": "Database: PostgreSQL 16", "reason": "Relational data, constraints, monthly sums; managed everywhere", "approved": true},
+    {"id": "D03", "decision": "Frontend: server-rendered mobile-first web pages with camera capture via file input; JSON API at /api/v1 for the scan flow and tests", "reason": "User scans on a phone; one codebase, no app-store builds", "approved": true},
+    {"id": "D04", "decision": "Style: modular monolith; OCR called synchronously with a timeout and manual fallback", "reason": "One team, strong consistency, low volume; revisit (hybrid with a job) only if scans prove slow", "approved": true},
+    {"id": "D05", "decision": "Money: bigint minor units + ISO 4217 currency; budget expenses must match the budget currency; conversion deferred (M02)", "reason": "Compatibility decision database:business-rule:money-and-currency", "approved": true},
+    {"id": "D06", "decision": "Removed member: membership soft-removed (removed_at); expenses stay, shown as former member; no access afterwards", "reason": "Compatibility decision application:business-rule:removed-member-expenses", "approved": true},
+    {"id": "D07", "decision": "OCR behind a ReceiptReader adapter; provider chosen by the user before V3 (their account and keys); fake reader for development and tests", "reason": "Tallyho's engine is closed and unknown; real OCR cannot be exercised without the user's keys and network", "approved": true},
+    {"id": "D08", "decision": "Email behind Django's email backend; console backend in development, locmem in tests", "reason": "Invitations need email; tests must send nothing", "approved": true},
+    {"id": "D09", "decision": "Categories: Spendly's four values as one constant plus a database check constraint; category required everywhere, no default on scans", "reason": "User asked for Spendly's categories; compatibility decision category-on-scanned-expenses", "approved": true},
+    {"id": "D10", "decision": "Defer foreign-currency conversion (M02) and the public token API (M11); drop Tallyho's category field (M10)", "reason": "Auto-pick: could features adding risk deferred; user chose Spendly's categories", "approved": true},
+    {"id": "D11", "decision": "uuid primary keys generated by the app", "reason": "Neither source has a known key type; no data to re-key", "approved": true},
+    {"id": "D12", "decision": "Scanned date must be confirmed; missing, future or older-than-90-days dates become today and are flagged", "reason": "User's notes: the scanned date is often wrong", "approved": true},
+    {"id": "D13", "decision": "Receipt images in private S3-compatible storage, served only through the permission check, deleted with the expense or after 24 hours if never confirmed", "reason": "Personal data; Tallyho's retention unknown", "approved": true},
+    {"id": "D14", "decision": "Invitations: owner-only, single-use hashed token, 7-day expiry, accepted only by a verified account with the invited email", "reason": "Compatibility decision invitation-rules", "approved": true},
+    {"id": "D15", "decision": "Monthly period: calendar month in the budget's time zone, computed at read time, no rollover, nothing deleted", "reason": "Compatibility decision monthly-reset-semantics", "approved": true},
+    {"id": "D16", "decision": "API: REST JSON under /api/v1; error shape {\"error\": {\"code\", \"message\", \"fields\"}}; cursor pagination (?cursor=, limit default 50, max 200); session auth for every endpoint except sign-up, sign-in and verification; non-members get 404 for budget resources", "reason": "One style, one error shape, one auth scheme; 404 avoids revealing that a budget exists", "approved": true}
+  ]
+}

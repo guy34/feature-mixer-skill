@@ -71,9 +71,45 @@ WEAK_SECRET_PATTERN = (
 )
 
 
+# Connection strings with an inline password (v2.2). Group 1 is the password.
+CONNECTION_STRING = re.compile(
+    r"\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|amqps?|mssql|sqlserver|oracle|"
+    r"cockroachdb|clickhouse)://[^:\s/@'\"]+:([^@\s'\"]+)@[^\s'\"]+", re.I)
+# Values that are documented placeholders, not credentials (AWS's own example key, ${VAR}, <...>, xxx...).
+PLACEHOLDER = re.compile(r"(?i)example|placeholder|changeme|change[_-]me|your[_-]|\bmy[_-]|dummy|fake|sample|"
+                         r"\$\{|\$[A-Z_]{3,}|<[^>]+>|\{\{|%\(|x{4,}|\*{4,}|0{8,}|"
+                         r"^(?:password|pass|passwd|pwd|secret|user|username|postgres|root|admin|test|guest|"
+                         r"mysql|redis|rabbitmq|sa)$")
+
+
 def redact(value):
     value = str(value)
     return f"{value[:4]}... ({len(value)} chars, redacted)" if len(value) > 4 else "(redacted)"
+
+
+def is_placeholder(value):
+    return bool(PLACEHOLDER.search(str(value)))
+
+
+def find_secrets(text):
+    """[(kind, value, placeholder)] for every strong secret pattern and connection-string password in text."""
+    out = []
+    for name, pattern in SECRET_PATTERNS:
+        for m in re.finditer(pattern, text):
+            out.append((name, m.group(0), is_placeholder(m.group(0))))
+    for m in CONNECTION_STRING.finditer(text):
+        out.append(("connection-string", m.group(1), is_placeholder(m.group(1))))
+    return out
+
+
+def redact_text(text):
+    """text with every strong secret, connection-string password and quoted secret-like value redacted."""
+    s = str(text)
+    for _, pattern in SECRET_PATTERNS:
+        s = re.sub(pattern, lambda m: redact(m.group(0)), s)
+    s = CONNECTION_STRING.sub(lambda m: m.group(0).replace(m.group(1), "(redacted)"), s)
+    s = re.sub(WEAK_SECRET_PATTERN[1], lambda m: m.group(0).replace(m.group(1), redact(m.group(1))), s)
+    return s
 
 
 def workspace_format(project):

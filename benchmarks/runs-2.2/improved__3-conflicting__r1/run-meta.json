@@ -1,0 +1,12 @@
+{
+ "scenario": "3-conflicting",
+ "kind": "scenarios",
+ "label": "improved",
+ "skill_version": "2.2.0",
+ "skill_sha256": "13abaa93d556ed2d2c5a76bcfdfddfd0d60aeefee3b2be7c1e2d0877e577d045",
+ "started_at": "2026-11-04T19:57:45+00:00",
+ "finished_at": "2026-11-05T13:03:30+00:00",
+ "interventions": [],
+ "notes": "",
+ "finished_at_source": "recorded at completion notice; wall time includes a usage-limit pause"
+}

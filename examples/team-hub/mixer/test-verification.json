@@ -1,5 +1,5 @@
 {
-  "run_id": "20261104T090459705214Z",
+  "run_id": "20261104T193511009402Z-692f6b",
   "tests": {
     "tests.test_teamhub.AccountsTest.test_account_rules": "passed",
     "tests.test_teamhub.AccountsTest.test_session_expires_after_idle_timeout": "passed",
@@ -51,7 +51,31 @@
     "AC10": "verified"
   },
   "verified": true,
+  "verdict": "passed",
+  "decisions": {
+    "api:api-version:GET /api/users/{}": "no test named",
+    "api:contract:GET /api/users/{} response": "no test named",
+    "api:duplicate-endpoint:GET /api/users/{}": "no test named",
+    "api:endpoint-auth:GET /api/users/{}": "no test named",
+    "application:auth-methods:methods": "no test named",
+    "application:auth-provider:provider": "no test named",
+    "application:component:button": "no test named",
+    "application:roles:roles": "no test named",
+    "application:route:/login": "no test named",
+    "application:route:/settings": "no test named",
+    "application:session:session": "no test named",
+    "application:workflow:closing-tasks-with-approvals": "no test named",
+    "database:duplicate-entity:user": "no test named",
+    "database:field-type:user.id": "no test named",
+    "database:primary-key:user": "no test named",
+    "dependency:duplicate-library:date-library": "no test named",
+    "dependency:duplicate-library:http-client": "no test named",
+    "dependency:runtime:node": "no test named",
+    "dependency:version:react": "no test named",
+    "dependency:version:react-dom": "no test named",
+    "migration:user": "no test named"
+  },
   "errors": 0,
   "warnings": 0,
-  "checked_at": "2026-11-04T09:08:51+00:00"
+  "checked_at": "2026-11-04T19:35:20+00:00"
 }

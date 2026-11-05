@@ -18,6 +18,7 @@ Standard library only, no network.
 """
 
 import argparse
+import re
 import csv
 import sys
 from collections import deque
@@ -205,8 +206,13 @@ def _validate_v2(by_id, kept, rep):
         if _pick(r) == "skip" and strat not in ("", "reject"):
             rep.error(f"{label}: is skip (cannot be rebuilt) so its strategy must be reject, not '{strat}'")
 
+        requested = [x.lower() for x in split_ids(r.get("source_app"))] == ["new"]
+        if requested and not re.search(r"(?i)requested by the user|user (?:asked|requested)",
+                                       r.get("notes", "") + " " + r.get("integration_notes", "")):
+            rep.error(f"{label}: has no source app ('new') but its notes do not say the user requested it; a "
+                      "feature that is in no source and was not asked for is invented")
         if is_kept:
-            if not refs:
+            if not refs and not requested:
                 rep.error(f"{label}: is kept but has no evidence_refs (every kept feature needs evidence)")
             if strat == "reject":
                 rep.error(f"{label}: is kept but its implementation_strategy is reject")

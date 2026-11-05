@@ -145,7 +145,8 @@ def check_recon(mixer_dir, project):
         if has_code and not os.path.exists(os.path.join(folder, "security-scan.json")):
             (rep.error if strict else rep.warn)(
                 f"recon: {s['id']} ({s['name']}) has code but no security-scan.json; run scan_source.py before reading it")
-        rep.merge(validate_artifacts.check_source(folder, s["id"], strict=strict, capabilities=caps))
+        rep.merge(validate_artifacts.check_source(folder, s["id"], strict=strict, capabilities=caps,
+                                                  access=s.get("access"), fmt=workspace_format(project)))
     return rep
 
 
@@ -265,6 +266,22 @@ def check_test_approval(mixer_dir, project):
         rep.error(f"integration: the test run cites approval {ref}, which is not in project.json")
     elif not ledger[ref]["approved"] or ledger[ref]["action"] not in ("run-tests", "run-source-code"):
         rep.error(f"integration: approval {ref} does not approve running tests")
+    else:
+        scope = ledger[ref].get("scope")
+        if scope is None:
+            (rep.error if workspace_format(project) >= 4 else rep.warn)(
+                f"integration: approval {ref} has no scope, so nothing shows it covered the command that ran "
+                "(record approvals with approvals.py grant)")
+        elif scope.get("cwd") != ex.get("cwd"):
+            rep.error(f"integration: approval {ref} covers the folder {scope.get('cwd')}, but the run was in "
+                      f"{ex.get('cwd')}")
+        log = os.path.join(mixer_dir, "approval-log.jsonl")
+        if scope is not None and os.path.exists(log):
+            with open(log, encoding="utf-8") as f:
+                accepted = [x for x in f if f'"approval": "{ref}"' in x and '"decision": "accepted"' in x]
+            if not accepted:
+                rep.error(f"integration: approval-log.jsonl has no accepted use of {ref}, so the run did not go "
+                          "through run_tests.py's approval check")
     return rep
 
 
@@ -285,6 +302,51 @@ def check_implementation(mixer_dir, project):
     return rep
 
 
+def check_approved_unchanged(mixer_dir, project):
+    """An approved phase's decisions may not change without a new approval (v2.2)."""
+    import approvals
+    rep = Report()
+    fmt = workspace_format(project)
+    for p in APPROVAL_PHASES:
+        entry = (project.get("phases") or {}).get(p) or {}
+        if entry.get("approved") is not True or p == "deployment":
+            continue
+        want = entry.get("approved_fingerprint")
+        if not want:
+            if fmt >= 4:
+                rep.error(f"{p}: approved without a record of what was approved; record approvals with "
+                          f"approvals.py approve-phase --phase {p}")
+            continue
+        if approvals.phase_fingerprint(mixer_dir, p, entry.get("approved_fingerprint_method", 1)) != want:
+            rep.error(f"{p}: changed after the user approved it ({', '.join(approvals.PHASE_FILES[p])}); show the "
+                      f"change to the user, log it, and approve the phase again (approvals.py approve-phase "
+                      f"--phase {p}); later phases built on the old decision must be redone")
+    if project.get("mode") == "plan":
+        for p in ("implementation", "integration", "deployment"):
+            if phase_status(project, p) not in ("pending",):
+                rep.error(f"{p}: the run is in plan mode, which builds nothing, but {p} is "
+                          f"{phase_status(project, p)}")
+    return rep
+
+
+def check_journeys(mixer_dir, project):
+    """Unit tests can pass while the workflow is broken: at least one end-to-end journey test must pass (v2.2)."""
+    rep = Report()
+    if workspace_format(project) < 4:
+        return rep
+    path = os.path.join(mixer_dir, "integration-report.json")
+    if not os.path.exists(path):
+        return rep
+    data = load_json(path)
+    journeys = [t for t in data.get("tests", []) if t.get("level") == "journey"]
+    if not journeys:
+        rep.error("integration: no journey-level test (level: journey): unit and API tests can pass while the "
+                  "end-to-end workflow is broken; add at least one test of the core loop")
+    elif not any(t.get("status") == "passed" for t in journeys):
+        rep.error("integration: no journey-level test passed")
+    return rep
+
+
 def run(mixer_dir, phase=None):
     rep = Report()
     path = os.path.join(mixer_dir, "project.json")
@@ -300,6 +362,7 @@ def run(mixer_dir, phase=None):
     kept = set()
     strict = workspace_format(project) >= 3
     rep.merge(validate_artifacts.check_secrets(mixer_dir))
+    rep.merge(check_approved_unchanged(mixer_dir, project))
     for p in upto:
         if p == "recon":
             rep.merge(check_recon(mixer_dir, project))
@@ -318,6 +381,7 @@ def run(mixer_dir, phase=None):
         elif p == "integration":
             rep.merge(validate_artifacts.check_integration(mixer_dir, kept, strict))
             rep.merge(check_test_approval(mixer_dir, project))
+            rep.merge(check_journeys(mixer_dir, project))
         elif p == "deployment":
             if (project["phases"].get("deployment") or {}).get("approved") is not True:
                 rep.error("deployment: needs the user's explicit approval in project.json before anything ships")

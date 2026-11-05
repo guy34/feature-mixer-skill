@@ -1,0 +1,24 @@
+{
+  "unified_features": [
+    {"id": "U01", "name": "Ticket statuses", "menu_ids": ["M01"], "source_features": ["A-F01"], "evidence": ["A-E01", "A-E02"],
+     "merge_type": "unique", "rationale": "Only Helpdesk has tickets; nothing to merge.",
+     "behaviour": "Every ticket has status open, pending or closed (database check constraint). A new customer ticket or customer message sets pending; an agent reply sets open; closing sets closed.",
+     "improvements": "Status transitions are made explicit; A never sets open or pending.", "depends_on": [], "compatibility": "compatible", "validation": "untested", "tests": []},
+    {"id": "U02", "name": "Agent replies", "menu_ids": ["M02"], "source_features": ["A-F02"], "evidence": ["A-E03"],
+     "merge_type": "unique", "rationale": "Only Helpdesk has replies.",
+     "behaviour": "An agent posts a reply on a ticket; it is stored as a Message with the agent's user id and appears in the thread; a pending ticket becomes open.",
+     "improvements": "Empty body rejected (A accepted it); sender recorded as a user id rather than the fixed label 'agent'.", "depends_on": ["U01"], "compatibility": "adaptable", "validation": "untested", "tests": []},
+    {"id": "U03", "name": "Close ticket", "menu_ids": ["M03"], "source_features": ["A-F03"], "evidence": ["A-E04"],
+     "merge_type": "unique", "rationale": "Only Helpdesk has closing.",
+     "behaviour": "An agent closes an open ticket; closing a pending ticket is refused with error code ticket_pending ('answer the customer first').",
+     "improvements": "", "depends_on": ["U01"], "compatibility": "compatible", "validation": "untested", "tests": []},
+    {"id": "U04", "name": "FAQ entries", "menu_ids": ["M05"], "source_features": ["B-F01"], "evidence": ["B-E01"],
+     "merge_type": "unique", "rationale": "Only Faqbot has FAQ entries.",
+     "behaviour": "Admins add, edit and delete FAQ entries (question, answer); B's existing entry is seeded.",
+     "improvements": "Stored and editable instead of hard-coded.", "depends_on": [], "compatibility": "adaptable", "validation": "untested", "tests": []},
+    {"id": "U05", "name": "Suggested FAQ answers on tickets", "menu_ids": ["M06"], "source_features": ["B-F02"], "evidence": ["B-E02"],
+     "merge_type": "unique", "rationale": "Faqbot's matcher applied to Helpdesk tickets: the combination the user asked for.",
+     "behaviour": "When an agent opens a ticket, up to 3 FAQ entries are suggested, ranked by shared meaningful words between the ticket's subject and customer messages and each FAQ question; the agent can insert a suggested answer into a reply draft.",
+     "improvements": "Punctuation stripped, stop words ignored, results ranked and capped at 3 (B matched on any shared word, including 'how' and 'i').", "depends_on": ["U01", "U04"], "compatibility": "adaptable", "validation": "untested", "tests": []}
+  ]
+}

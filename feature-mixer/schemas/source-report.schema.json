@@ -403,6 +403,33 @@
                 },
                 "required": {
                   "type": "boolean"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What the field means (owner vs creator, local vs UTC time...)."
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "unique": {
+                  "type": "boolean"
+                },
+                "default": {},
+                "enum": {
+                  "type": "array",
+                  "description": "Allowed values."
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "timezone": {
+                  "type": "string"
+                },
+                "format": {
+                  "type": "string"
                 }
               }
             }
@@ -450,6 +477,48 @@
               "inferred",
               "unknown"
             ]
+          },
+          "description": {
+            "type": "string",
+            "description": "What the entity is, in the source's own terms (used to tell same-named entities apart)."
+          },
+          "deletion": {
+            "enum": [
+              "soft",
+              "hard",
+              "archive"
+            ],
+            "description": "What deleting a row does."
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "Shared across tenants."
+          },
+          "tenant_key": {
+            "type": "string"
+          },
+          "relations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "to",
+                "kind"
+              ],
+              "properties": {
+                "to": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "one-to-one",
+                    "one-to-many",
+                    "many-to-one",
+                    "many-to-many"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -526,6 +595,15 @@
               "inferred",
               "unknown"
             ]
+          },
+          "pagination": {
+            "type": "string"
+          },
+          "error_format": {
+            "type": "string"
+          },
+          "rate_limit": {
+            "type": "string"
           }
         }
       }
@@ -569,6 +647,10 @@
             "inferred",
             "unknown"
           ]
+        },
+        "role_permissions": {
+          "type": "object",
+          "description": "Permissions per role, to compare what a role name really allows."
         }
       }
     },
@@ -701,6 +783,20 @@
               "type": "string",
               "pattern": "^[A-Z]{1,3}-E\\d{2,}$"
             }
+          },
+          "kind": {
+            "type": "string",
+            "description": "payments, storage, email, auth..."
+          },
+          "provider": {
+            "type": "string"
+          },
+          "webhooks": {
+            "type": "boolean"
+          },
+          "idempotency": {
+            "type": "string",
+            "description": "How repeated deliveries are recognised (event id...), or none."
           }
         }
       }
@@ -804,6 +900,68 @@
         "files_read": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "tenancy": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "none, organisation, workspace, project..."
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "description": "How the source separates customers' data."
+    },
+    "api": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "type": "string"
+        },
+        "error_format": {
+          "type": "string"
+        },
+        "rate_limit": {
+          "type": "string"
+        },
+        "versioning": {
+          "type": "string"
+        }
+      }
+    },
+    "contradictions": {
+      "type": "array",
+      "description": "Where the source's documentation and its code disagree. What the code does is the behaviour; the documentation is a claim.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "documented",
+          "observed",
+          "summary"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "documented": {
+            "type": "string",
+            "description": "evidence id of the claim"
+          },
+          "observed": {
+            "type": "string",
+            "description": "evidence id of what the code or the running product does"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string"
+          }
         }
       }
     }

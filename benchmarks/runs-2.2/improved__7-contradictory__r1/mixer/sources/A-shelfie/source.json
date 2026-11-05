@@ -1,0 +1,180 @@
+{
+  "app": {"id": "A", "name": "Shelfie"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/shelfie", "accessed": "2026-11-04"},
+    {"ref": "A-R02", "kind": "documentation", "location": "sources/shelfie/README.md", "accessed": "2026-11-04"},
+    {"ref": "A-R03", "kind": "documentation", "location": "sources/shelfie/docs/architecture.md", "accessed": "2026-11-04"},
+    {"ref": "A-R04", "kind": "api-spec", "location": "sources/shelfie/openapi.yaml", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:6", "summary": "books table: id integer primary key, title text not null, author text (nullable)."},
+    {"id": "A-E02", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:13-15", "summary": "GET /api/books returns every book as a JSON array of {id, title, author}; no paging, no filter, no auth."},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:7-8", "summary": "ratings table: book_id integer references books(id), stars integer with check (stars between 1 and 5); no primary key, no uniqueness."},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:20-27", "summary": "PUT /api/books/{id}/rating reads JSON field 'stars', rejects values outside 1-5 with 400 {\"error\": \"stars must be 1 to 5\"}, otherwise inserts a new ratings row (appends; never updates) and returns {\"ok\": true}."},
+    {"id": "A-E05", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:16-18", "summary": "GET /api/books/export returns JSON (code comment: 'JSON, not CSV'): one {title, stars} object per book-rating pair from a left join, so unrated books have stars null and a book rated twice appears twice."},
+    {"id": "A-E06", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:1-4", "summary": "Storage is SQLite through Python's sqlite3, file named by SHELFIE_DB (default shelfie.db), one module-level connection."},
+    {"id": "A-E07", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:5", "summary": "SHELFIE_SESSION_SECRET is read at import (startup fails with KeyError without it); nothing else in the file uses it. Value not recorded."},
+    {"id": "A-E08", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:2-34", "summary": "One process: the standard library http.server HTTPServer on port 8080 with a single Handler class."},
+    {"id": "A-E09", "source": "A-R01", "basis": "observed", "locator": "sources/shelfie/app.py:11-30", "summary": "No handler checks identity or a session; no DB.commit() call anywhere; unmatched GET/PUT paths send no response; there is no endpoint to add, edit or delete a book."},
+    {"id": "A-E10", "source": "A-R02", "basis": "documented", "locator": "sources/shelfie/README.md:3", "summary": "README claims: export the library as CSV at GET /api/v1/books/export.csv."},
+    {"id": "A-E11", "source": "A-R02", "basis": "documented", "locator": "sources/shelfie/README.md:4", "summary": "README claims: rate books from 1 to 10."},
+    {"id": "A-E12", "source": "A-R02", "basis": "documented", "locator": "sources/shelfie/README.md:5", "summary": "README claims: data is stored in PostgreSQL."},
+    {"id": "A-E13", "source": "A-R02", "basis": "documented", "locator": "sources/shelfie/README.md:6", "summary": "README claims three services (catalog, ratings, gateway), pointing to docs/architecture.md."},
+    {"id": "A-E14", "source": "A-R03", "basis": "documented", "locator": "sources/shelfie/docs/architecture.md:3-4", "summary": "Architecture doc claims three services behind a gateway (catalog, ratings, gateway doing auth and routing), each with its own database."},
+    {"id": "A-E15", "source": "A-R04", "basis": "documented", "locator": "sources/shelfie/openapi.yaml:4-5", "summary": "OpenAPI 3.0 spec v1.0 lists GET /api/v1/books (List books)."},
+    {"id": "A-E16", "source": "A-R04", "basis": "documented", "locator": "sources/shelfie/openapi.yaml:6-7", "summary": "Spec lists GET /api/v1/books/export.csv (Export the library as CSV)."},
+    {"id": "A-E17", "source": "A-R04", "basis": "documented", "locator": "sources/shelfie/openapi.yaml:8-11", "summary": "Spec lists PUT /api/v1/books/{id}/rating with body field 'score', integer, minimum 1, maximum 10."},
+    {"id": "A-E18", "source": "A-R01", "basis": "inferred", "locator": "sources/shelfie/app.py:7-26", "summary": "SQLite does not enforce 'references' unless PRAGMA foreign_keys is on (it is never set), so a rating for a missing book id would be accepted; and with no commit, writes are visible to the running process but would be lost when it exits. Deduced from sqlite3 defaults; the code was not run (not approved)."}
+  ],
+  "stack": {
+    "frontend": [],
+    "backend": ["Python 3 standard library http.server"],
+    "database": ["SQLite (sqlite3 module)"],
+    "infrastructure": ["single process, port 8080"],
+    "basis": "observed"
+  },
+  "packages": {},
+  "runtimes": {"python": "3 (exact version not stated anywhere)"},
+  "architecture": {
+    "frontend": "none: JSON over HTTP only, no UI",
+    "backend": "single-process Python http.server with one Handler and one shared SQLite connection (the documented three-service gateway design does not exist in the code)",
+    "evidence": ["A-E06", "A-E08"],
+    "basis": "observed"
+  },
+  "screens": [],
+  "workflows": [],
+  "features": [
+    {
+      "id": "A-F01",
+      "name": "Browse the book library",
+      "description": "List every book in the library with its title and author.",
+      "observed_behaviour": "GET /api/books returns a JSON array of {id, title, author} for all rows of books, unpaged and unfiltered, with no authentication.",
+      "business_logic": "title is required (not null); author is optional. There is no endpoint to add, edit or delete books, so how books enter the library is not in the code.",
+      "data": ["Book"],
+      "depends_on": [],
+      "integration": "Needs a way to add books in the unified app (none exists in Shelfie); needs per-user ownership if several people use it.",
+      "evidence": ["A-E01", "A-E02", "A-E09"],
+      "basis": "observed",
+      "confidence": "high"
+    },
+    {
+      "id": "A-F02",
+      "name": "Rate a book (1-5 stars)",
+      "description": "Give a book a whole-number rating from 1 to 5 stars.",
+      "observed_behaviour": "PUT /api/books/{id}/rating with JSON {\"stars\": n}; n outside 1-5 gives 400 {\"error\": \"stars must be 1 to 5\"}; otherwise a new ratings row is inserted and {\"ok\": true} returned. Rating again adds another row instead of replacing the first.",
+      "business_logic": "stars is an integer 1..5, enforced in the handler and by a CHECK constraint. Ratings are appended, never updated; there is no user on a rating. The README and OpenAPI spec say 1-10 with field 'score'; the code (which wins) says 1-5 with field 'stars'.",
+      "data": ["Rating", "Book"],
+      "depends_on": ["A-F01"],
+      "integration": "Needs the unified Book; should become one rating per user per book (PUT replaces) in the unified app.",
+      "evidence": ["A-E03", "A-E04"],
+      "basis": "observed",
+      "confidence": "high"
+    },
+    {
+      "id": "A-F03",
+      "name": "Export library with ratings (JSON)",
+      "description": "Download the library as JSON: each book's title with its star rating.",
+      "observed_behaviour": "GET /api/books/export returns a JSON array of {title, stars} from books left-joined to ratings: unrated books have stars null; a book rated several times appears once per rating.",
+      "business_logic": "Output format is JSON, not CSV, despite the README and spec. Only title and stars are exported (no id, no author).",
+      "data": ["Book", "Rating"],
+      "depends_on": ["A-F01", "A-F02"],
+      "integration": "Needs the unified Book and Rating; duplicate rows per multiple ratings should not carry over once ratings are one per user per book.",
+      "evidence": ["A-E05"],
+      "basis": "observed",
+      "confidence": "high"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Book",
+      "description": "A book in the library (Shelfie's catalog).",
+      "primary_key": {"name": "id", "type": "integer"},
+      "fields": [
+        {"name": "id", "type": "integer", "required": true},
+        {"name": "title", "type": "text", "required": true, "nullable": false},
+        {"name": "author", "type": "text", "required": false, "nullable": true}
+      ],
+      "features": ["A-F01", "A-F02", "A-F03"],
+      "evidence": ["A-E01"],
+      "basis": "observed",
+      "deletion": "hard",
+      "shared": true
+    },
+    {
+      "name": "Rating",
+      "description": "One star rating given to a book; several rows may exist per book (appended).",
+      "fields": [
+        {"name": "book_id", "type": "integer", "required": false, "nullable": true, "description": "the rated book; not enforced as a foreign key at runtime (PRAGMA foreign_keys never set)"},
+        {"name": "stars", "type": "integer", "required": false, "nullable": true, "description": "rating value; CHECK between 1 and 5", "enum": [1, 2, 3, 4, 5], "unit": "stars"}
+      ],
+      "foreign_keys": [{"field": "book_id", "references": "Book"}],
+      "relations": [{"to": "Book", "kind": "many-to-one"}],
+      "features": ["A-F02", "A-F03"],
+      "evidence": ["A-E03", "A-E18"],
+      "basis": "observed"
+    }
+  ],
+  "endpoints": [
+    {"method": "GET", "path": "/api/books", "auth": "none", "response": {"[]": "array of {id: integer, title: text, author: text|null}"}, "features": ["A-F01"], "evidence": ["A-E02"], "basis": "observed", "pagination": "none"},
+    {"method": "GET", "path": "/api/books/export", "auth": "none", "response": {"[]": "array of {title: text, stars: integer|null}"}, "features": ["A-F03"], "evidence": ["A-E05"], "basis": "observed", "pagination": "none"},
+    {"method": "PUT", "path": "/api/books/{id}/rating", "auth": "none", "request": {"stars": "integer 1-5"}, "response": {"ok": "true"}, "errors": ["400 {\"error\": \"stars must be 1 to 5\"}"], "features": ["A-F02"], "evidence": ["A-E04"], "basis": "observed", "error_format": "{\"error\": message}"}
+  ],
+  "auth": {
+    "provider": "none",
+    "methods": [],
+    "session": "none in use: SHELFIE_SESSION_SECRET is required at startup but never used",
+    "model": "no authentication or authorization; every endpoint is open (the documented gateway auth does not exist in the code)",
+    "roles": [],
+    "evidence": ["A-E07", "A-E09"],
+    "basis": "observed"
+  },
+  "routes": [],
+  "rules": [
+    {"key": "rating.stars.range", "value": "integer 1..5", "features": ["A-F02"], "evidence": ["A-E03", "A-E04"]},
+    {"key": "rating.per_book", "value": "append: each PUT inserts another row", "features": ["A-F02", "A-F03"], "evidence": ["A-E04"]},
+    {"key": "book.title.required", "value": true, "features": ["A-F01"], "evidence": ["A-E01"]},
+    {"key": "export.format", "value": "JSON", "features": ["A-F03"], "evidence": ["A-E05"]}
+  ],
+  "integrations": [],
+  "configuration": [
+    {"key": "SHELFIE_DB", "purpose": "path of the SQLite database file (default shelfie.db)", "evidence": ["A-E06"]},
+    {"key": "SHELFIE_SESSION_SECRET", "purpose": "required at startup, undocumented, unused by any handler (probably meant for the never-built gateway auth; inferred)", "evidence": ["A-E07"]}
+  ],
+  "error_handling": [
+    {"case": "rating outside 1-5", "behaviour": "400 with {\"error\": \"stars must be 1 to 5\"}", "evidence": ["A-E04"]},
+    {"case": "missing or non-integer 'stars', bad JSON, non-numeric book id", "behaviour": "unhandled exception in the handler; http.server drops the connection with no response (inferred from the code path)", "evidence": ["A-E04"]},
+    {"case": "unknown path", "behaviour": "no response is written (no 404)", "evidence": ["A-E09"]},
+    {"case": "rating a book id that does not exist", "behaviour": "accepted, because SQLite foreign keys are off by default (inferred)", "evidence": ["A-E18"]}
+  ],
+  "tenancy": {"model": "none", "key": ""},
+  "api": {"pagination": "none", "error_format": "{\"error\": message}", "rate_limit": "none", "versioning": "none in code (/api/...); the spec's /api/v1 prefix does not exist"},
+  "contradictions": [
+    {"id": "A-C01", "documented": "A-E10", "observed": "A-E05", "summary": "README promises CSV export at GET /api/v1/books/export.csv; the code serves JSON at GET /api/books/export", "resolution": "the code wins: JSON export of {title, stars}; CSV is listed in unknowns as an unbuilt claim"},
+    {"id": "A-C02", "documented": "A-E16", "observed": "A-E05", "summary": "OpenAPI lists GET /api/v1/books/export.csv (CSV); the code has GET /api/books/export (JSON)", "resolution": "the code wins (same as A-C01)"},
+    {"id": "A-C03", "documented": "A-E11", "observed": "A-E04", "summary": "README says ratings are 1 to 10; the handler and the CHECK constraint allow 1 to 5", "resolution": "the code wins: 1-5 stars"},
+    {"id": "A-C04", "documented": "A-E17", "observed": "A-E04", "summary": "OpenAPI says PUT /api/v1/books/{id}/rating with field 'score' 1-10; the code takes 'stars' 1-5 at /api/books/{id}/rating", "resolution": "the code wins: field 'stars', 1-5, path without /v1"},
+    {"id": "A-C05", "documented": "A-E15", "observed": "A-E02", "summary": "OpenAPI lists GET /api/v1/books; the code serves GET /api/books", "resolution": "the code wins: /api/books (no version prefix)"},
+    {"id": "A-C06", "documented": "A-E12", "observed": "A-E06", "summary": "README says PostgreSQL; the code uses SQLite via sqlite3", "resolution": "the code wins: SQLite"},
+    {"id": "A-C07", "documented": "A-E13", "observed": "A-E08", "summary": "README says three services (catalog, ratings, gateway); the code is one process", "resolution": "the code wins: a single-process app"},
+    {"id": "A-C08", "documented": "A-E14", "observed": "A-E09", "summary": "docs/architecture.md says a gateway does auth and each service has its own database; the code has no auth and one database", "resolution": "the code wins: no auth, one SQLite database; SHELFIE_SESSION_SECRET is an unused leftover"}
+  ],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": ["(root)", "docs"],
+    "modules_skipped": [],
+    "files_read": 4
+  },
+  "unknowns": [
+    "CSV export: claimed by README and openapi.yaml, contradicted by the code (JSON only). Treated as a claim, not a feature. Would be settled by the user saying CSV is wanted in the new app.",
+    "1-10 rating scale and the 'score' field: claimed by README and spec, contradicted by the code (1-5 'stars'). Settled as 1-5 per 'trust what the apps actually do'.",
+    "PostgreSQL storage and the three-service gateway architecture with per-service databases: claimed by README and docs/architecture.md, not present in the code.",
+    "The /api/v1 version prefix: claimed by the spec only.",
+    "Purpose of SHELFIE_SESSION_SECRET: required at startup, never used; would be settled by the user.",
+    "How books get into the library: there is no create, edit or delete endpoint; perhaps inserted into the database by hand. Would be settled by the user.",
+    "Whether writes persist: the code never commits, so ratings would be lost when the process exits (inferred from sqlite3 defaults; the code was not run because running source code was not approved).",
+    "Whether appending several ratings per book is intended (a rating history) or a bug: the export repeats books rated more than once.",
+    "Exact Python version: not stated."
+  ]
+}

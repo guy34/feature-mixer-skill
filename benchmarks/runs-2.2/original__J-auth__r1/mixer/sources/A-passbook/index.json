@@ -1,0 +1,53 @@
+{
+  "root": "../../../sources/passbook",
+  "indexed_at": "2026-11-05T08:04:33+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 12,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "accounts.py",
+      "size": 617,
+      "sha256": "02670aa2a4fd076a7988676d9225f96c68f60ba66fe8712b3eddbb582eaeba03",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 12,
+      "imports": [],
+      "packages": [
+        "hashlib"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 12,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": [
+        "hashlib"
+      ]
+    }
+  },
+  "external_imports": {
+    "hashlib": [
+      "accounts.py"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "accounts.py"
+    ],
+    "A-F02": [
+      "accounts.py"
+    ]
+  }
+}

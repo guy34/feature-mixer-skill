@@ -1,0 +1,425 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one small library called in-process by the host (task.md asks for one Python module, unified/billing.py)",
+      "strong consistency: an order, its ledger entry and its processed webhook id must change together or not at all",
+      "money movement must be exactly-once, which is far simpler inside one transaction boundary",
+      "no independent scaling, team or release need"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "splitting orders, payments and ledger across services turns every state change into a distributed transaction, the opposite of the exactly-once requirement"
+      },
+      {
+        "style": "event-driven",
+        "fit": "partial",
+        "reason": "webhooks are events, but they are handled synchronously with an event-id dedupe; a message bus adds eventual consistency and infrastructure nothing here needs"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "there is no existing system that must stay separate; the gateway is already behind an adapter"
+      },
+      {
+        "style": "hybrid",
+        "fit": "poor",
+        "reason": "no part has different needs from the rest"
+      }
+    ],
+    "reason": "The simplest design that gives one atomic write per state change and one place that decides each order's state"
+  },
+  "stack": {
+    "language": "Python 3.8+ (tested on 3.13), standard library only",
+    "backend": "an in-process library: unified/billing.py exposing create_app(gateway, store=None)",
+    "database": "an in-memory store with atomic batch writes behind a small interface (MemoryStore); a real database adapter would implement the same write(ops) contract",
+    "gateway": "the injected gateway object (gateway.FakeGateway in tests) behind a gateway-adapter section",
+    "tests": "unittest (standard library)",
+    "reasons": {
+      "language": "D01: the user asked for a Python module and no package installs are approved; the mock gateway is Python",
+      "backend": "D02: the API in task.md is a Python object API, so no HTTP layer is built",
+      "database": "D04: task.md's store contract (fail_next_write, StoreError) needs one write per state change; no database package may be installed",
+      "tests": "D01: unittest needs no install and run_tests.py has a built-in unittest harness"
+    }
+  },
+  "modules": [
+    {
+      "name": "store",
+      "responsibility": "Atomic batch writes of order, ledger, event, key and renewal records; raises StoreError and applies nothing when a write fails (fail_next_write)",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "gateway-adapter",
+      "responsibility": "Calls the injected gateway's charge(amount_cents, key) and refund(charge_id); recognises timeouts",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "orders",
+      "responsibility": "Create and read orders; the status transition table every change goes through",
+      "features": [
+        "M04",
+        "M07"
+      ],
+      "depends_on": [
+        "store"
+      ],
+      "owns_entities": [
+        "Order"
+      ]
+    },
+    {
+      "name": "ledger",
+      "responsibility": "Ledger entries for charges and refunds, added inside the same write as the order change",
+      "features": [
+        "M06"
+      ],
+      "depends_on": [
+        "store",
+        "orders"
+      ],
+      "owns_entities": [
+        "LedgerEntry"
+      ]
+    },
+    {
+      "name": "payments",
+      "responsibility": "pay(order_id, key): key binding, attempt key written before the call, timeout retry with the same key, paid state written atomically",
+      "features": [
+        "M01"
+      ],
+      "depends_on": [
+        "orders",
+        "ledger",
+        "gateway-adapter",
+        "store"
+      ],
+      "owns_entities": [
+        "IdempotencyKey"
+      ]
+    },
+    {
+      "name": "refunds",
+      "responsibility": "cancel(order_id): cancel a pending order, or refund a paid one exactly once (refund intent written first)",
+      "features": [
+        "M05"
+      ],
+      "depends_on": [
+        "orders",
+        "ledger",
+        "gateway-adapter",
+        "store"
+      ],
+      "owns_entities": []
+    },
+    {
+      "name": "webhooks",
+      "responsibility": "handle_webhook(event): event-id dedupe in the same write as the effect; charge.succeeded and charge.refunded",
+      "features": [
+        "M02"
+      ],
+      "depends_on": [
+        "orders",
+        "ledger",
+        "refunds",
+        "store"
+      ],
+      "owns_entities": [
+        "WebhookEvent"
+      ]
+    },
+    {
+      "name": "subscriptions",
+      "responsibility": "renew(subscription, period): one order per subscription per period",
+      "features": [
+        "M03"
+      ],
+      "depends_on": [
+        "orders",
+        "store"
+      ],
+      "owns_entities": [
+        "Renewal"
+      ]
+    },
+    {
+      "name": "facade",
+      "responsibility": "create_app() and the BillingApp object: the public API from task.md, one lock around every operation",
+      "features": [],
+      "depends_on": [
+        "orders",
+        "ledger",
+        "payments",
+        "refunds",
+        "webhooks",
+        "subscriptions",
+        "store",
+        "gateway-adapter"
+      ],
+      "owns_entities": []
+    }
+  ],
+  "entities": [
+    {
+      "name": "Order",
+      "merged_from": [
+        "A:Order",
+        "C:Order"
+      ],
+      "primary_key": "id: text 'ord_<n>', generated by the app",
+      "fields": [
+        {
+          "name": "id",
+          "type": "text",
+          "from": []
+        },
+        {
+          "name": "customer",
+          "type": "text",
+          "from": [
+            "B:Subscription.customer"
+          ]
+        },
+        {
+          "name": "amount_cents",
+          "type": "integer",
+          "from": [
+            "A:Order.amount"
+          ]
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "from": [
+            "C:Order.status",
+            "A:Order.paid"
+          ]
+        },
+        {
+          "name": "charge_id",
+          "type": "text",
+          "from": [
+            "A:Order.charge_id"
+          ]
+        },
+        {
+          "name": "attempt_key",
+          "type": "text",
+          "from": []
+        },
+        {
+          "name": "refund_state",
+          "type": "text",
+          "from": []
+        },
+        {
+          "name": "refund_id",
+          "type": "text",
+          "from": []
+        }
+      ],
+      "notes": "A's paid flag is not stored: paid means status == 'paid' (resolution database:field-meaning:order-payment-state); charge_id, attempt_key, refund_state, refund_id are nullable; amount_cents > 0; status in (pending, paid, cancelled, refunded); refund_state in (requested, done)"
+    },
+    {
+      "name": "LedgerEntry",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "position in the append-only list",
+      "fields": [
+        {
+          "name": "order_id",
+          "type": "text"
+        },
+        {
+          "name": "kind",
+          "type": "text in (charge, refund)"
+        },
+        {
+          "name": "amount_cents",
+          "type": "integer"
+        }
+      ],
+      "notes": "requested by the user (app.ledger())"
+    },
+    {
+      "name": "IdempotencyKey",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "key: text",
+      "fields": [
+        {
+          "name": "key",
+          "type": "text"
+        },
+        {
+          "name": "order_id",
+          "type": "text"
+        }
+      ],
+      "notes": "binds each client key to one order (resolution charge-idempotency)"
+    },
+    {
+      "name": "WebhookEvent",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "id: text (the gateway's event id)",
+      "fields": [
+        {
+          "name": "id",
+          "type": "text"
+        }
+      ],
+      "notes": "processed event ids, written in the same write as the event's effect"
+    },
+    {
+      "name": "Renewal",
+      "merged_from": [
+        "B:Subscription"
+      ],
+      "primary_key": "(subscription_id, period)",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "type": "text"
+        },
+        {
+          "name": "period",
+          "type": "text"
+        },
+        {
+          "name": "order_id",
+          "type": "text"
+        },
+        {
+          "name": "customer",
+          "type": "text",
+          "from": [
+            "B:Subscription.customer"
+          ]
+        },
+        {
+          "name": "price_cents",
+          "type": "integer",
+          "from": [
+            "B:Subscription.price"
+          ]
+        }
+      ],
+      "notes": "B's subscription is passed in by the caller; the app records one renewal per period"
+    }
+  ],
+  "auth": {
+    "method": "none: an in-process library; the host application authenticates its callers",
+    "session": "none",
+    "roles": [],
+    "role_mapping": {},
+    "permissions": {}
+  },
+  "api": [],
+  "navigation": [],
+  "configuration": {
+    "variables": [],
+    "note": "no settings: the gateway and store are passed to create_app; no secrets"
+  },
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Core loop: create an order, pay it once, see the ledger",
+      "features": [
+        "M07",
+        "M04",
+        "M01",
+        "M06"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "V2",
+      "name": "Webhooks applied exactly once",
+      "features": [
+        "M02"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "V3",
+      "name": "Cancel with refund exactly once",
+      "features": [
+        "M05"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "V4",
+      "name": "Subscription renewal into orders",
+      "features": [
+        "M03"
+      ],
+      "status": "done"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Python 3 standard library only; tests with unittest",
+      "reason": "the user asked for a Python module; installing packages is not approved",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "Modular monolith in a single file, unified/billing.py, with one section per module",
+      "reason": "task.md fixes the module path; a single file imports the same way whether loaded as unified.billing or by path; module boundaries are kept as sections with one-way dependencies",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "One Order with a single status field and an enforced transition table",
+      "reason": "resolution database:field-meaning:order-payment-state",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "Store contract: write(ops) applies a batch atomically or raises StoreError and applies nothing; it honours fail_next_write on the store passed in (resetting it after one failure); create_app(gateway) without a store makes a MemoryStore",
+      "reason": "resolution database:atomicity:write-failure and the store contract in task.md",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "Intent before gateway calls: the attempt key (pay) or the refund intent (cancel) is written before the gateway is called",
+      "reason": "a failed write must never leave a charge or refund without a record",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "Gateway timeout: recognised by exception class name GatewayTimeout (or TimeoutError), retried once with the same key; otherwise the order stays pending and the error is raised",
+      "reason": "resolution application:business-rule:gateway-timeout; matching by name avoids importing the test's gateway module from a fixed path",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "Cancelling a paid order ends in status 'refunded'; a charge.succeeded for an order cancelled while its payment was in doubt is refunded at once and the order ends 'refunded'",
+      "reason": "resolution application:workflow:cancel-paid-order; money taken on a cancelled order must go back",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "A refund whose gateway outcome is unknown stays refund_state 'requested'; it is never re-sent automatically; cancel raises RefundPending and the charge.refunded webhook completes it",
+      "reason": "the gateway's refund is not idempotent, so re-sending could refund twice",
+      "approved": true
+    },
+    {
+      "id": "D09",
+      "decision": "No HTTP API, no auth, no UI: the Python object API in task.md is the interface",
+      "reason": "task.md defines the API; adding layers nobody asked for adds risk",
+      "approved": true
+    }
+  ]
+}

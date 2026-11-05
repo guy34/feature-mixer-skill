@@ -17,7 +17,7 @@ The first ten columns are the v1 columns and keep their meaning.
 | `id` | `M01`, `M02`... stable once assigned |
 | `feature` | what it does, in plain words |
 | `area` | accounts, tasks, reporting... |
-| `source_app` | app id(s), `A` or `A;B` |
+| `source_app` | app id(s), `A` or `A;B`; `new` only for a feature the user asked for that no source has (its `notes` say "requested by the user"; it needs no source evidence) |
 | `priority` | `must`, `should`, `could` |
 | `complexity` | `S`, `M`, `L`, `XL` |
 | `depends_on` | menu ids this needs, separated by `;` |
@@ -151,7 +151,12 @@ type.
    or with strategy `reject`, and features that depend on `skip` rows. Show
    the user any problems and the ways to fix them (keep the dependency, drop
    the dependent feature, or change the strategy). Never resolve them by
-   changing picks the user did not ask to change.
+   changing picks the user did not ask to change. A kept feature whose
+   dependency was dropped is the user's call: keep the dependency too, drop
+   the feature, or rebuild what it needs, and say what each costs. Two kept
+   features that exclude each other (`conflicts_with`, an `incompatible`
+   group) are never both kept: the user chooses one, or a design that keeps
+   them apart (`separate`, with the boundary written down).
 
 4. **Write the merge plan.** Turn the kept rows into unified features in
    `mixer/merge-plan.json`: one `U01`... per capability the app will have.
@@ -173,8 +178,15 @@ type.
    features; they are modules in the architecture with no menu ids.
 5. **Confirm.** When the validator passes and no row is undecided, show the
    final list (kept, dropped, deferred) and the unified features, and ask for
-   approval. Record it in `project.json` (`selection.approved: true`),
-   checkpoint, and log every pick decision with its reason.
+   approval. Record it with
+   `python3 scripts/approvals.py approve-phase --mixer mixer/ --phase selection --granted-by "<name>" --user-confirmed`
+   (it stores a fingerprint of the picks and the merge plan), checkpoint,
+   and log every pick decision with its reason. Changing a pick or the merge
+   plan afterwards is reported by `validate_project.py` until the user
+   approves the change.
+
+Never add a feature that is in no source and that the user did not ask for.
+Platform pieces the app needs go in the architecture, not on the menu.
 
 ### auto-pick selection
 

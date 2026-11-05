@@ -1,0 +1,96 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": ["one small team (the user)", "five small features with strong consistency between tickets, replies and status", "no independent scaling or release need", "no packages may be installed in this run, so one stdlib Python process is the simplest buildable shape"],
+    "alternatives": [
+      {"style": "microservices", "fit": "poor", "reason": "a separate FAQ service adds network calls and deployables for one pure function"},
+      {"style": "event-driven", "fit": "poor", "reason": "suggestions are computed synchronously from the ticket text; nothing is asynchronous"},
+      {"style": "service-oriented", "fit": "poor", "reason": "there is no existing system that must stay separate; Faqbot is a 4-line module"}
+    ],
+    "reason": "The simplest design that meets every driver"
+  },
+  "stack": {
+    "backend": "Python 3.8+ standard library: wsgiref HTTP server, sqlite3",
+    "frontend": "server-rendered HTML forms from the same process, no JavaScript build",
+    "database": "SQLite (one file)",
+    "hosting": "not decided; runs locally (no deployment in this run)",
+    "reasons": {
+      "backend": "D01: B is the user's own Python; A's JavaScript may not be reused; no installs are approved, and stdlib Python needs none",
+      "frontend": "D02: three screens of forms; no client framework needed",
+      "database": "D03: one small team, low volume; SQLite gives check constraints and foreign keys with no server",
+      "hosting": "D04: deployment is out of scope (plan mode; never automatic)"
+    }
+  },
+  "modules": [
+    {"name": "config", "responsibility": "read every setting from environment variables with development defaults", "features": [], "depends_on": []},
+    {"name": "accounts", "responsibility": "agent accounts, password sign-in, server-side sessions, the may-this-agent-do-this check", "features": [], "depends_on": ["config"], "owns_entities": ["Agent", "Session"]},
+    {"name": "faq", "responsibility": "FAQ entries and the improved suggestion matcher (from B)", "features": ["M06", "M05"], "depends_on": ["config"], "owns_entities": ["FAQ"]},
+    {"name": "tickets", "responsibility": "ticket lifecycle, replies and closing (from A); asks faq for suggestions on a ticket's subject and description", "features": ["M01", "M04", "M02", "M03"], "depends_on": ["accounts", "faq"], "owns_entities": ["Ticket", "Message"]},
+    {"name": "web", "responsibility": "HTTP routing, JSON API, HTML pages, one error format", "features": [], "depends_on": ["accounts", "tickets", "faq", "config"]}
+  ],
+  "entities": [
+    {"name": "Agent", "merged_from": ["new"], "primary_key": "id integer",
+     "notes": "platform piece: no source has users; needed to record who replied",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "email", "type": "text"}, {"name": "name", "type": "text"},
+                {"name": "password_hash", "type": "text"}, {"name": "created_at", "type": "timestamp (UTC)"}]},
+    {"name": "Session", "merged_from": ["new"], "primary_key": "token_hash text",
+     "fields": [{"name": "token_hash", "type": "text"}, {"name": "agent_id", "type": "integer"}, {"name": "expires_at", "type": "timestamp (UTC)"}]},
+    {"name": "Ticket", "merged_from": ["A:Ticket"], "primary_key": "id integer",
+     "notes": "status check constraint open|pending|closed; index on status and created_at",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "subject", "type": "text"}, {"name": "description", "type": "text"},
+                {"name": "status", "type": "text", "from": ["A:Ticket.status"]},
+                {"name": "created_by", "type": "integer"}, {"name": "created_at", "type": "timestamp (UTC)"},
+                {"name": "updated_at", "type": "timestamp (UTC)"}]},
+    {"name": "Message", "merged_from": ["A:Message"], "primary_key": "id integer",
+     "notes": "A's embedded Ticket.messages list becomes rows with ticket_id; index on (ticket_id, created_at)",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "ticket_id", "type": "integer", "from": ["A:Ticket.messages"]},
+                {"name": "author_id", "type": "integer", "from": ["A:Message.from"]},
+                {"name": "body", "type": "text", "from": ["A:Message.body"]}, {"name": "created_at", "type": "timestamp (UTC)"}]},
+    {"name": "FAQ", "merged_from": ["B:FAQ"], "primary_key": "id integer",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "question", "type": "text", "from": ["B:FAQ.q"]},
+                {"name": "answer", "type": "text", "from": ["B:FAQ.a"]}]}
+  ],
+  "auth": {
+    "method": "email and password (PBKDF2-SHA256 via hashlib, per-agent salt)",
+    "session": "random token in an http-only, SameSite=Lax cookie (Secure outside development); only its SHA-256 is stored; expires after SESSION_TTL_MINUTES",
+    "roles": ["agent"],
+    "permissions": {"agent": ["ticket:create", "ticket:read", "ticket:reply", "ticket:set-status", "ticket:close", "faq:read"]},
+    "role_mapping": {"A:agent": "agent"}
+  },
+  "api": [
+    {"method": "POST", "path": "/api/v1/session", "module": "accounts", "auth": "none", "features": []},
+    {"method": "DELETE", "path": "/api/v1/session", "module": "accounts", "auth": "session", "features": []},
+    {"method": "GET", "path": "/api/v1/tickets", "module": "tickets", "auth": "session", "features": ["M01"]},
+    {"method": "POST", "path": "/api/v1/tickets", "module": "tickets", "auth": "session", "features": ["M04"]},
+    {"method": "GET", "path": "/api/v1/tickets/{id}", "module": "tickets", "auth": "session", "features": ["M01", "M05"]},
+    {"method": "POST", "path": "/api/v1/tickets/{id}/status", "module": "tickets", "auth": "session", "features": ["M01"]},
+    {"method": "POST", "path": "/api/v1/tickets/{id}/messages", "module": "tickets", "auth": "session", "features": ["M02"]},
+    {"method": "POST", "path": "/api/v1/tickets/{id}/close", "module": "tickets", "auth": "session", "features": ["M03"]},
+    {"method": "GET", "path": "/api/v1/tickets/{id}/suggestions", "module": "faq", "auth": "session", "features": ["M05"]},
+    {"method": "GET", "path": "/api/v1/faqs", "module": "faq", "auth": "session", "features": ["M06"]}
+  ],
+  "navigation": [
+    {"route": "/login", "screen": "Sign in", "module": "web"},
+    {"route": "/tickets", "screen": "Ticket list", "module": "web"},
+    {"route": "/tickets/new", "screen": "New ticket", "module": "web"},
+    {"route": "/tickets/{id}", "screen": "Ticket with suggested answers, thread, reply and close", "module": "web"}
+  ],
+  "design_system": {"tokens": "one CSS file: colour roles (surface, text, muted, accent, danger), 4-step type scale, 4px spacing grid, 6px radius", "fonts": "system font stack", "icons": "none", "components": ["button (primary, secondary, danger)", "text field", "textarea", "status badge (open, pending, closed)", "suggestion card", "message item", "error banner"]},
+  "configuration": {"HELPDESK_DB_PATH": "SQLite file path (default ./helpdesk.db)", "HELPDESK_HOST": "bind address (default 127.0.0.1)", "HELPDESK_PORT": "port (default 8000)", "SESSION_TTL_MINUTES": "session lifetime (default 480)", "FAQ_MAX_SUGGESTIONS": "suggestions per ticket (default 3)", "HELPDESK_ENV": "development or production (Secure cookies in production)"},
+  "slices": [
+    {"id": "V1", "name": "Core loop: create a ticket and see suggested FAQ answers", "features": ["M04", "M01", "M06", "M05"], "status": "pending"},
+    {"id": "V2", "name": "Work the ticket: reply and close", "features": ["M02", "M03"], "status": "pending"}
+  ],
+  "decisions": [
+    {"id": "D01", "decision": "Backend in Python 3 standard library", "reason": "B is the user's own Python; A's code cannot be reused; no installs approved", "approved": true},
+    {"id": "D02", "decision": "Server-rendered HTML plus a JSON API under /api/v1", "reason": "few screens; one API for tests and future clients", "approved": true},
+    {"id": "D03", "decision": "SQLite with foreign keys on and check constraints", "reason": "small scale, enforce A's status rule in the database", "approved": true},
+    {"id": "D04", "decision": "No deployment target chosen", "reason": "plan mode; deployment is never automatic", "approved": true},
+    {"id": "D05", "decision": "Modular monolith with modules config, accounts, faq, tickets, web", "reason": "see style", "approved": true},
+    {"id": "D06", "decision": "Agents sign in with email and password; accounts created by an admin command, no public sign-up; one role 'agent'", "reason": "neither source has users; replies need a real author; minimum identity the kept features need", "approved": true},
+    {"id": "D07", "decision": "Agents may set a ticket to open or pending (POST /status); closing stays a separate action with A's rule", "reason": "A defines 'pending' and refuses to close it, but no code moves a ticket into pending; without a transition the rule cannot be reached. Open question for the user", "approved": true},
+    {"id": "D08", "decision": "Suggestions match subject and description only; punctuation stripped, stop words ignored, ranked by shared words, at most 3", "reason": "compatibility decision application:workflow:suggestion-input and the M05 improvement", "approved": true},
+    {"id": "D09", "decision": "No email delivery, no payments, and none of A's environment variables are carried over", "reason": "email is a documented claim contradicted by A's code; the payment key has no feature behind it; A's .env holds a live-looking secret that must never be copied", "approved": true},
+    {"id": "D10", "decision": "Error format {\"error\": {\"code\", \"message\"}}; list pagination ?page=&per_page= (max 100)", "reason": "one error shape and one pagination style for the whole API", "approved": true}
+  ]
+}

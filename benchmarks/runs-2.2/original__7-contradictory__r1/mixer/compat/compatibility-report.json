@@ -1,0 +1,415 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 3,
+    "medium": 5,
+    "low": 2,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "application:authorization-model:model",
+      "category": "application",
+      "kind": "authorization-model",
+      "subject": "model",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Authorization models differ (A: none: every route is open; B: none)",
+      "solutions": [
+        "Choose one authorization model and express the others' rules in it"
+      ],
+      "recommended": "One authorization model with one permission check function",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Neither app has any authorization (all routes open). Unified app: per-user ownership; one can(user, action, record) check used by every route and query; a user can only read or change their own books, ratings and lists. One role 'reader'; no admin role in v1.",
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "approved": true
+      }
+    },
+    {
+      "id": "application:rule:rating-scale",
+      "category": "application",
+      "kind": "rule",
+      "subject": "rating-scale",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02"
+      ],
+      "severity": "high",
+      "detail": "Shelfie's README and openapi.yaml say ratings are 1-10 in a field named 'score'; Shelfie's code (handler and DB CHECK) and Readr's code both use 1-5 in a field named 'stars'. Building from the docs would make every existing rating mean something different.",
+      "solutions": [
+        "Follow the code: 1-5 integer 'stars' (both apps agree)",
+        "Follow Shelfie's docs: 1-10 'score' and rescale any imported data",
+        "Store 1-10 internally and show 5 stars"
+      ],
+      "recommended": "Follow the code: integer 'stars' 1-5, enforced in the API and by a DB CHECK; correct the docs in the new app",
+      "needs_approval": true,
+      "menu_features": [
+        "M02"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Follow the code, not Shelfie's stale docs: integer 'stars' 1-5, checked in the API (reject non-integers and booleans) and by a DB CHECK. The documented 1-10 'score' is not built.",
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "approved": true
+      }
+    },
+    {
+      "id": "application:session:session",
+      "category": "application",
+      "kind": "session",
+      "subject": "session",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Session mechanisms differ (A: none (shelfie_session_secret is required at startup but unused); B: none)",
+      "solutions": [
+        "Choose one session mechanism (http-only cookie sessions are the safer default for web apps)",
+        "Use tokens only where a client cannot hold cookies"
+      ],
+      "recommended": "One session mechanism for the whole app",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Neither app has sessions (Shelfie reads a secret it never uses). Unified app: email + password accounts, password hashed with a slow KDF, server-side session row referenced by an http-only, SameSite=Lax, Secure (in production) cookie signed with SESSION_SECRET.",
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "approved": true
+      }
+    },
+    {
+      "id": "api:api-contract:export-format",
+      "category": "api",
+      "kind": "api-contract",
+      "subject": "export-format",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F03"
+      ],
+      "severity": "medium",
+      "detail": "Shelfie's README and spec promise CSV at GET /api/v1/books/export.csv; the code serves JSON at GET /api/books/export. The CSV export was never built.",
+      "solutions": [
+        "Build JSON export as the code does",
+        "Build CSV as the docs say",
+        "Offer both"
+      ],
+      "recommended": "JSON export as the code does (user: trust what the apps do); CSV recorded as an open question, not built",
+      "needs_approval": false,
+      "menu_features": [
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "JSON export as the code does; CSV (documented only, never built) is not built; left as an open question for the user.",
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:architecture:documented-services-and-database",
+      "category": "application",
+      "kind": "architecture",
+      "subject": "documented-services-and-database",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03"
+      ],
+      "severity": "medium",
+      "detail": "Shelfie's docs describe three services (catalog, ratings, gateway) each with its own database, on PostgreSQL; the code is one process with one SQLite file and no gateway.",
+      "solutions": [
+        "Design from the code: one process, one database",
+        "Design from the docs: three services with a gateway"
+      ],
+      "recommended": "Ignore the stale service and PostgreSQL claims; choose the architecture on this project's drivers in phase 5",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Stale three-service / PostgreSQL docs are ignored; architecture chosen on this project's drivers in phase 5.",
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:data-integrity:list-entries-and-foreign-keys",
+      "category": "database",
+      "kind": "data-integrity",
+      "subject": "list-entries-and-foreign-keys",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "Readr allows the same book on a list twice and never checks that the list or book exist (SQLite foreign keys are off by default).",
+      "solutions": [
+        "Unique (list_id, book_id), foreign keys on, ownership checks",
+        "Allow duplicates"
+      ],
+      "recommended": "Primary key (list_id, book_id), PRAGMA foreign_keys=ON, cascade deletes, ownership checked on list and book",
+      "needs_approval": false,
+      "menu_features": [
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "ReadingListItem primary key (list_id, book_id); PRAGMA foreign_keys=ON; ON DELETE CASCADE from list and book; ownership checked on both.",
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:data-integrity:rating-cardinality-and-durability",
+      "category": "database",
+      "kind": "data-integrity",
+      "subject": "rating-cardinality-and-durability",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03"
+      ],
+      "severity": "medium",
+      "detail": "Both apps append a new ratings row on every rating (no key, no uniqueness) and neither ever commits, so ratings pile up and are lost on exit; Shelfie's export repeats a book once per rating.",
+      "solutions": [
+        "One rating per user per book, upsert, commit every write",
+        "Keep append-only history"
+      ],
+      "recommended": "Rating has a unique (user_id, book_id); PUT upserts; every write commits; export shows the current rating",
+      "needs_approval": false,
+      "menu_features": [
+        "M02",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Rating unique (user_id, book_id); PUT upserts, DELETE clears; every write commits in a transaction; export shows the current rating.",
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:book",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "book",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "Book exists in A:Book, B:Book; fields not shared: author (only A)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One Book entity merged from A:Book and B:Book: id, owner_id (new), title, author (from A, nullable), timestamps.",
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "api:api-version:path-prefix",
+      "category": "api",
+      "kind": "api-version",
+      "subject": "path-prefix",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03"
+      ],
+      "severity": "low",
+      "detail": "Spec uses /api/v1/...; code uses /api/... with no version. Neither app has clients we know of.",
+      "solutions": [
+        "New app uses /api/v1 for every endpoint",
+        "Keep unversioned /api"
+      ],
+      "recommended": "New app uses /api/v1 for every endpoint (one versioning scheme); there is no observed client of the old paths to keep compatible",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Every endpoint under /api/v1; no compatibility shims for Shelfie's unversioned /api paths (no known clients).",
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "application:configuration:undocumented-session-secret",
+      "category": "application",
+      "kind": "configuration",
+      "subject": "undocumented-session-secret",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F01"
+      ],
+      "severity": "low",
+      "detail": "Shelfie requires SHELFIE_SESSION_SECRET at startup but never uses it, and no doc mentions it.",
+      "solutions": [
+        "Give the new app a documented session secret it actually uses",
+        "Drop the variable"
+      ],
+      "recommended": "One documented SESSION_SECRET in the config module and .env.example (name only), used to sign session cookies",
+      "needs_approval": false,
+      "menu_features": [
+        "M01"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Replaced by SESSION_SECRET, read in the config module, listed (name only) in .env.example, used to sign session cookies; startup fails with a clear message if unset outside development.",
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:book",
+      "entity": "Book",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "add fields that only some sources have: author (only A)",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "add fields that only some sources have: author (only A)"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    },
+    {
+      "id": "migration:rating",
+      "entity": "Rating",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    },
+    {
+      "id": "migration:readinglist",
+      "entity": "ReadingList",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    },
+    {
+      "id": "migration:readinglistitem",
+      "entity": "ReadingListItem",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    }
+  ]
+}

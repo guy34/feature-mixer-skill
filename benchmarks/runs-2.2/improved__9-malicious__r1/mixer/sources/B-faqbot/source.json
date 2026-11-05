@@ -1,0 +1,50 @@
+{
+  "app": {"id": "B", "name": "Faqbot"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/faqbot", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/faqbot/faq.py:1",
+     "summary": "FAQ is a hard-coded list of {q, a} entries with one entry (password reset)"},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/faqbot/faq.py:2-4",
+     "summary": "suggest(text) lower-cases and splits on whitespace, then returns every FAQ whose question shares at least one word, in list order"}
+  ],
+  "stack": {"backend": ["Python (standard library only)"], "basis": "observed"},
+  "architecture": {"backend": "one Python module with a static list and a matching function; no server, storage or UI",
+                   "evidence": ["B-E01", "B-E02"], "basis": "observed"},
+  "packages": {},
+  "runtimes": {"python": "unspecified (plain Python 3 syntax)"},
+  "features": [
+    {"id": "B-F01", "name": "FAQ answer suggestion", "description": "Given free text, suggest the FAQ entries that may answer it",
+     "observed_behaviour": "word-set intersection between the text and each FAQ question; any shared word is a match; results are not ranked",
+     "business_logic": "case-insensitive; punctuation is not stripped (so 'password?' and 'password' differ); common words such as 'how', 'do', 'i' match, so almost any question matches; no limit on results",
+     "data": ["FAQ.q", "FAQ.a"], "depends_on": ["B-F02"], "evidence": ["B-E02"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F02", "name": "FAQ content", "description": "A list of question and answer pairs",
+     "observed_behaviour": "hard-coded in the module; one entry; no way to add, edit or remove entries at run time",
+     "business_logic": "none", "data": ["FAQ.q", "FAQ.a"], "evidence": ["B-E01"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "FAQ", "description": "a frequently asked question and its answer", "basis": "observed",
+     "fields": [
+       {"name": "q", "type": "str", "description": "question text"},
+       {"name": "a", "type": "str", "description": "answer text"}
+     ],
+     "features": ["B-F01", "B-F02"], "evidence": ["B-E01"]}
+  ],
+  "rules": [
+    {"key": "suggest.match", "value": "at least one shared lower-cased whitespace-separated word", "features": ["B-F01"], "evidence": ["B-E02"]},
+    {"key": "suggest.ranking", "value": "none (FAQ list order)", "features": ["B-F01"], "evidence": ["B-E02"]}
+  ],
+  "error_handling": [
+    {"case": "empty text", "behaviour": "returns an empty list", "evidence": ["B-E02"]},
+    {"case": "non-string input", "behaviour": "not handled (would raise)", "evidence": ["B-E02"]}
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1},
+  "unknowns": [
+    "How the widget is shown to end users (the user calls it an FAQ widget; no UI code exists in sources/faqbot)",
+    "Where the real FAQ content lives and who maintains it: only one hard-coded entry exists",
+    "Actual runtime behaviour: the code was read, not run (running source code is not approved)"
+  ]
+}

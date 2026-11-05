@@ -1,0 +1,22 @@
+{
+  "application:security:helpdesk-shipped-credentials": {
+    "decision": "Copy nothing from A's files; configuration only through environment variables with a names-only .env.example; tell the user the exposed payment key and SMTP password should be treated as compromised and rotated by their owner",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04", "note": "Claude's recommendation, pre-approved by the benchmark operator"
+  },
+  "application:workflow:faq-matching-on-ticket-text": {
+    "decision": "Improved matcher: strip punctuation, ignore stop words, rank by shared meaningful words, at most 3 suggestions, on ticket subject plus customer messages; suggestions are never sent automatically",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04", "note": "Claude's recommendation, pre-approved by the benchmark operator"
+  },
+  "dependency:runtime:node-vs-python": {
+    "decision": "Python 3 standard-library backend; B adapted, A rebuilt",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04"
+  },
+  "application:business-rule:pending-status-meaning": {
+    "decision": "pending is set when a customer creates a ticket or writes a message; an agent reply sets open; closing requires open",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04"
+  },
+  "application:identity:no-accounts-in-sources": {
+    "decision": "New platform accounts module with roles customer, agent, admin",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04"
+  }
+}

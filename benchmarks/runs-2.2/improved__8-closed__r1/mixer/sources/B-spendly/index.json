@@ -1,0 +1,61 @@
+{
+  "root": "../../../sources/spendly",
+  "indexed_at": "2026-11-05T07:56:15+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 6,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "spendly.py",
+      "size": 273,
+      "sha256": "0f71af5b903600fcf2c7b36b53d80f3a91846f3c99a1ff404a4412df3d473303",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 6,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 6,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "module_cycles": [],
+  "external_imports": {},
+  "import_coverage": {
+    "python": {
+      "files": 1,
+      "method": "parsed (ast)"
+    }
+  },
+  "aliases": {
+    "paths": {},
+    "workspace_packages": {},
+    "go_modules": []
+  },
+  "skipped": {},
+  "nested_repositories": [],
+  "errors": [],
+  "limits_hit": [],
+  "complete": true,
+  "feature_files": {
+    "B-F01": [
+      "spendly.py"
+    ],
+    "B-F02": [
+      "spendly.py"
+    ]
+  }
+}

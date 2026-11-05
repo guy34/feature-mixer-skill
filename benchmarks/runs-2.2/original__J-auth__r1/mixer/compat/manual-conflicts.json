@@ -1,0 +1,17 @@
+[
+ {"kind": "account-linking", "subject": "federated-email-join", "apps": ["A", "B"], "severity": "critical",
+  "detail": "B ignores email_verified; joining a federated sign-in to a password account by an unverified email would let anyone who controls a provider account claim another person's account",
+  "solutions": ["Join only when the provider says the email is verified; otherwise create a separate account", "Never join automatically; require the user to link from a signed-in session"],
+  "recommended": "Join only when email_verified is true; otherwise a separate account (the user's decision)",
+  "features": ["A-F01", "B-F01"]},
+ {"kind": "business-rule", "subject": "duplicate-registration", "apps": ["A"], "severity": "high",
+  "detail": "A overwrites an existing account when the same email registers again (account takeover)",
+  "solutions": ["Reject a duplicate email with an error", "Keep A's overwrite"],
+  "recommended": "Reject duplicates; one account per email",
+  "features": ["A-F01"]},
+ {"kind": "permissions", "subject": "role-change-actor", "apps": ["C"], "severity": "high",
+  "detail": "C's set_role trusts a caller-supplied actor role, does not validate the new role and has no rule against raising your own role",
+  "solutions": ["Resolve the actor from the session token, validate the role, refuse raising your own role", "Keep C's behaviour"],
+  "recommended": "Actor from session; only admins; role must exist; nobody raises their own role (user decision)",
+  "features": ["C-F02"]}
+]

@@ -1,0 +1,106 @@
+{
+  "scenario": "7-contradictory",
+  "mode": "plan",
+  "features": [
+    {
+      "key": "a-catalog",
+      "app": "A",
+      "any": [
+        "book",
+        "library",
+        "catalog"
+      ],
+      "none": [
+        "export",
+        "rating"
+      ]
+    },
+    {
+      "key": "a-ratings",
+      "app": "A",
+      "any": [
+        "rating",
+        "star",
+        "score"
+      ],
+      "none": [
+        "export"
+      ]
+    },
+    {
+      "key": "a-export",
+      "app": "A",
+      "any": [
+        "export"
+      ]
+    },
+    {
+      "key": "b-lists",
+      "app": "B",
+      "any": [
+        "list"
+      ]
+    },
+    {
+      "key": "b-ratings",
+      "app": "B",
+      "any": [
+        "rating",
+        "star"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "members": [
+        "a-ratings",
+        "b-ratings"
+      ],
+      "types": [
+        "identical",
+        "similar"
+      ]
+    }
+  ],
+  "conflicts": [
+    {
+      "kind": "duplicate-entity",
+      "subject": "book"
+    }
+  ],
+  "rules": [
+    {
+      "name": "ratings are 1 to 5",
+      "any": [
+        "1-5",
+        "1 to 5",
+        "1..5",
+        "between 1 and 5",
+        "\"max\": 5",
+        "stars <= 5"
+      ]
+    }
+  ],
+  "fabrication": [
+    "csv",
+    "microservice",
+    "postgres"
+  ],
+  "contradictions_min": {
+    "A": 2
+  },
+  "unknowns_mention": [],
+  "coverage": {
+    "A": "complete",
+    "B": "complete"
+  },
+  "acceptable_extra_features": [
+    "api",
+    "server",
+    "configuration",
+    "setting"
+  ],
+  "key_changes": [
+    "2026-11-05, after the first two runs (one per version) were scored, both showing the same matching error: 'rat' became 'rating' (it matched 'separate'), and the ratings key excludes 'export' (the export row mentions ratings). The expected answer did not change; both versions are rescored with the corrected key."
+  ]
+}

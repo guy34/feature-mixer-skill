@@ -20,9 +20,10 @@
       "type": "integer",
       "enum": [
         2,
-        3
+        3,
+        4
       ],
-      "description": "2: a v2.0 workspace (v2.1 checks are warnings). 3: a v2.1 workspace (v2.1 checks are errors)."
+      "description": "2: a v2.0 workspace (v2.1 checks are warnings). 3: a v2.1 workspace (v2.1 checks are errors; v2.2 evidence checks are warnings for older run records). 4: a v2.2 workspace (every v2.2 check is an error)."
     },
     "mode": {
       "enum": [
@@ -210,6 +211,22 @@
         },
         "note": {
           "type": "string"
+        },
+        "approved_at": {
+          "type": "string"
+        },
+        "approved_by": {
+          "type": "string"
+        },
+        "approved_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "What the user approved (approvals.py approve-phase); a later change to those files is reported."
+        },
+        "approved_fingerprint_method": {
+          "type": "integer",
+          "enum": [1, 2],
+          "description": "1 (2.2.0, the default when absent): the files' bytes. 2: progress fields (merge-plan compatibility and validation, architecture slice status) left out."
         }
       }
     },
@@ -292,6 +309,85 @@
         },
         "note": {
           "type": "string"
+        },
+        "granted_at": {
+          "type": "string",
+          "description": "UTC time the user said yes (ISO 8601)."
+        },
+        "expires_at": {
+          "type": "string",
+          "description": "UTC time the approval stops working."
+        },
+        "max_uses": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many runs it covers; absent means unlimited until it expires."
+        },
+        "revoked_at": {
+          "type": "string"
+        },
+        "revoked_reason": {
+          "type": "string"
+        },
+        "granted_via": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "object",
+          "required": [
+            "cwd",
+            "runner"
+          ],
+          "description": "Exactly what the approval covers. run_tests.py refuses a run-tests approval without one.",
+          "properties": {
+            "cwd": {
+              "type": "string",
+              "minLength": 1
+            },
+            "runner": {
+              "enum": [
+                "unittest",
+                "command"
+              ]
+            },
+            "unittest": {
+              "type": "object",
+              "required": [
+                "start"
+              ],
+              "properties": {
+                "start": {
+                  "type": "string"
+                },
+                "top": {
+                  "type": "string"
+                }
+              }
+            },
+            "argv": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The command with secrets redacted, for people to read."
+            },
+            "argv_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "SHA-256 of the exact command; this is what is matched."
+            },
+            "junit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "code_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "Optional: the approval stops working once the folder's files change."
+            }
+          }
         }
       }
     }

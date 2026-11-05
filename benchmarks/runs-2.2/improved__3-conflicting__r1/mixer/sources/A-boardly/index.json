@@ -1,0 +1,99 @@
+{
+  "root": "../../../sources/boardly",
+  "indexed_at": "2026-11-05T08:01:02+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 3,
+    "lines": 13,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "client-routes.js",
+      "size": 153,
+      "sha256": "7ac02bca708307700e5c8368a3618d801b2dc71ca1c2a7b3d6267aceb2b6c439",
+      "language": "javascript",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 1,
+      "imports": [],
+      "packages": []
+    },
+    {
+      "path": "routes.js",
+      "size": 896,
+      "sha256": "017c1dd44eae06ab4b06580fc4a96b5d735fc1b20a9b7e7347f128bb2c276022",
+      "language": "javascript",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 10,
+      "imports": [],
+      "packages": []
+    },
+    {
+      "path": "schema.sql",
+      "size": 420,
+      "sha256": "8acaabc36d3894713bc9b4f36f179adc5381e395e1032177c9e8e04149fcd264",
+      "language": "sql",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 2
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 13,
+      "languages": [
+        "javascript",
+        "sql"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "module_cycles": [],
+  "external_imports": {},
+  "import_coverage": {
+    "javascript": {
+      "files": 2,
+      "method": "patterns"
+    }
+  },
+  "aliases": {
+    "paths": {},
+    "workspace_packages": {},
+    "go_modules": []
+  },
+  "skipped": {},
+  "nested_repositories": [],
+  "errors": [],
+  "limits_hit": [],
+  "complete": true,
+  "feature_files": {
+    "A-F01": [
+      "client-routes.js",
+      "routes.js",
+      "schema.sql"
+    ],
+    "A-F02": [
+      "routes.js",
+      "schema.sql"
+    ],
+    "A-F03": [
+      "routes.js"
+    ],
+    "A-F04": [
+      "client-routes.js",
+      "routes.js",
+      "schema.sql"
+    ],
+    "A-F05": [
+      "client-routes.js",
+      "routes.js"
+    ]
+  }
+}

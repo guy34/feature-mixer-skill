@@ -42,15 +42,23 @@ Full detail in `engines/security.md`. In short:
 3. **Scan before reading, never run without approval.** Running source code,
    installing dependencies, running tests, using the network, migrations,
    destructive actions and deployment each need the user's explicit yes,
-   recorded in `project.json` → `approvals`.
+   recorded in `project.json` → `approvals`. Show the user exactly what will
+   run (`scripts/approvals.py request`), and only after their yes record it
+   (`approvals.py grant ... --user-confirmed`): `run_tests.py` refuses to run
+   anything without an approval for exactly that command and folder.
 4. **Evidence or it did not happen.** Every fact cites evidence and says
    whether it was observed, documented, inferred or unknown. Never invent a
    feature, an inspection or a result.
 5. **Sources stay untouched.** Build in a new folder or branch.
 6. **Nothing is "done" without proof.** A feature works only when a test run
    recorded by `scripts/run_tests.py` passes and `scripts/verify_tests.py`
-   confirms it.
-7. **No automatic deployment.**
+   confirms it. Planning documents are not a working app; a run with zero
+   tests, a timeout or contradictory results proves nothing.
+7. **Decisions stay decided.** The user's picks, conflict decisions and
+   design are recorded with a fingerprint at approval
+   (`approvals.py approve-phase`); changing them later needs the user again.
+   When files and memory disagree, the files win.
+8. **No automatic deployment.**
 
 ## Starting a run
 
@@ -83,7 +91,7 @@ Full detail in `engines/security.md`. In short:
      means full with auto-pick.)
    - **Audience and constraints**: who it is for, required stack or hosting,
      where to build (default `app/` next to `mixer/`).
-3. **Create the workspace** from `templates/project.json` (format 3) and
+3. **Create the workspace** from `templates/project.json` (format 4) and
    `templates/mixer-log.md`. One source on its own is fine.
 
 ## The workspace
@@ -162,8 +170,19 @@ At each approval point, stop and show the user what they are approving:
 - **risky actions** (section 5 of `engines/security.md`): exactly what will
   run or change, where, and how to undo it
 
-Record phase approvals in `project.json` → `phases.<phase>.approved` and
-action approvals in `project.json` → `approvals`, and log both.
+Record phase approvals with
+`python3 scripts/approvals.py approve-phase --mixer mixer/ --phase <phase> --granted-by "<name>" --user-confirmed`
+and action approvals with `approvals.py grant` (both only after the user's
+yes), and log both.
+
+## When the user changes their mind
+
+A changed requirement mid-run is normal; a silent one is not. Stop at a
+checkpoint, update the menu or decision the user changed, re-run the checks
+of every phase it touches, show the user what that changes (slices to redo,
+migrations, tests), and record the new approval. `validate_project.py`
+reports the phase as changed after approval until then. Details in
+`engines/implementation.md` section 3.
 
 ## Large repositories
 
@@ -193,9 +212,20 @@ complete while modules are unread. Details in `engines/reconnaissance.md`.
   branch from the recorded commit); never reset, force-push or delete work
   without approval. Set
   the phase to `rolled-back`, then `in-progress` for the next attempt.
-- **The session ends mid-run**: read `project.json` and `mixer-log.md`, run
-  `validate_project.py`, re-run `index_repo.py --previous` on changed
-  sources, and continue from the first incomplete phase.
+- **The session ends mid-run, or is long**: read `project.json` and
+  `mixer-log.md`, run `validate_project.py`, re-run `index_repo.py --previous`
+  on changed sources, and continue from the first incomplete phase. Before
+  each slice, re-read the decisions instead of relying on memory.
+- **A test run hangs or produces no usable results**: `run_tests.py` stops it
+  at `--timeout` and records the verdict (`timed-out`, `no-tests`,
+  `invalid-results`, `inconsistent`); fix the cause, never report it as a
+  pass.
+- **A migration fails part-way**: stop, restore from the backup or the
+  step's rollback, check the row counts, tell the user. Never re-run it
+  blindly (`engines/implementation.md` section 4).
+- **A feature needs a proprietary service or a backend you cannot see**:
+  build behind an adapter with a fake, mark the real behaviour "not testable
+  here" or `unknown`, and never claim it was verified or inspected.
 
 ## Optional helpers
 
@@ -210,4 +240,6 @@ source, features kept, dropped and deferred, the verified test result
 (passed of total, per feature, and what could not be tested), conflicts
 resolved and how, capability limits that affected the work, anything still
 open, where the app and reports are, and what needs the user next. Do not
-call the result production-ready on the strength of structural checks.
+call the result production-ready on the strength of structural checks. In
+`plan` mode, say that nothing was built or tested. Say what was observed,
+what was only documented, and what was inferred.

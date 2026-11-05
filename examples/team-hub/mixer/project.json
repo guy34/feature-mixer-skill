@@ -1,6 +1,6 @@
 {
   "name": "Team Hub",
-  "format": 3,
+  "format": 4,
   "mode": "full",
   "audience": "A small team that plans work, gets sign-off and wants one place to see workload",
   "target": {
@@ -72,17 +72,28 @@
       "status": "done",
       "approved": true,
       "date": "2026-11-04",
-      "note": "Approved by the user with M03 and M15 deferred"
+      "note": "Approved by the user with M03 and M15 deferred | Recorded again in v2.2 with a fingerprint of what was approved on 2026-11-04",
+      "approved_at": "2026-11-04T19:35:10+00:00",
+      "approved_by": "the example's user",
+      "approved_fingerprint": "b04a036cfb9346ce2abcf8a77763b77ac5d186fd3906e67f675a3761df32e4e1"
     },
     "compatibility": {
       "status": "done",
       "approved": true,
-      "date": "2026-11-04"
+      "date": "2026-11-04",
+      "approved_at": "2026-11-04T19:35:10+00:00",
+      "approved_by": "the example's user",
+      "approved_fingerprint": "1be9d5bd8494502f6d236fd32f2989344767ea6e5731af4df77fc2c64fed621d",
+      "note": "Recorded again in v2.2 with a fingerprint of what was approved on 2026-11-04"
     },
     "architecture": {
       "status": "done",
       "approved": true,
-      "date": "2026-11-04"
+      "date": "2026-11-04",
+      "approved_at": "2026-11-04T19:35:10+00:00",
+      "approved_by": "the example's user",
+      "approved_fingerprint": "e76e5362e8c2d1f7f886efba3866290029ec053f08abc98f752e27d4cd0ceb3a",
+      "note": "Recorded again in v2.2 with a fingerprint of what was approved on 2026-11-04"
     },
     "implementation": {
       "status": "done",
@@ -145,10 +156,22 @@
     {
       "id": "A01",
       "action": "run-tests",
-      "target": "app/ unittest suite (Team Hub's own code; no source app code runs)",
+      "target": "the Python unittest suite in app/tests (top folder .)",
       "approved": true,
-      "by": "user",
-      "date": "2026-11-04"
+      "by": "the example's user",
+      "date": "2026-11-04",
+      "granted_at": "2026-11-04T19:35:02+00:00",
+      "expires_at": "2036-11-01T19:35:02+00:00",
+      "scope": {
+        "cwd": "app",
+        "runner": "unittest",
+        "unittest": {
+          "start": "tests",
+          "top": "."
+        }
+      },
+      "granted_via": "approvals.py grant --user-confirmed",
+      "note": "Example workspace: covers Team Hub's own unittest suite only; no source app code runs."
     },
     {
       "id": "A02",

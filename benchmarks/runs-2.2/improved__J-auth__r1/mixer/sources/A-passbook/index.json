@@ -1,0 +1,71 @@
+{
+  "root": "../../../sources/passbook",
+  "indexed_at": "2026-11-04T19:58:48+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 12,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "accounts.py",
+      "size": 617,
+      "sha256": "02670aa2a4fd076a7988676d9225f96c68f60ba66fe8712b3eddbb582eaeba03",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 12,
+      "imports": [],
+      "packages": [
+        "hashlib",
+        "os",
+        "secrets"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 12,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": [
+        "hashlib",
+        "os",
+        "secrets"
+      ]
+    }
+  },
+  "module_cycles": [],
+  "external_imports": {
+    "hashlib": [
+      "accounts.py"
+    ],
+    "os": [
+      "accounts.py"
+    ],
+    "secrets": [
+      "accounts.py"
+    ]
+  },
+  "import_coverage": {
+    "python": {
+      "files": 1,
+      "method": "parsed (ast)"
+    }
+  },
+  "aliases": {
+    "paths": {},
+    "workspace_packages": {},
+    "go_modules": []
+  },
+  "skipped": {},
+  "nested_repositories": [],
+  "errors": [],
+  "limits_hit": [],
+  "complete": true
+}

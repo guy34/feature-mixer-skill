@@ -1,0 +1,38 @@
+{
+  "app": {"id": "B", "name": "Subscribe"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/subscribe", "accessed": "2026-11-05"},
+    {"ref": "B-R02", "kind": "documentation", "location": "task.md", "accessed": "2026-11-05"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/subscribe/plans.py:1-2",
+     "summary": "renew(subscription, create_order) returns create_order(subscription['customer'], subscription['price']): a renewal creates one order through an injected callback."},
+    {"id": "B-E02", "source": "B-R02", "basis": "documented", "locator": "task.md#scenario-m",
+     "summary": "The user describes Subscribe as monthly subscriptions that create orders."}
+  ],
+  "stack": {"backend": ["Python (plain function, no framework)"], "database": ["none: subscriptions are dicts passed in by the caller"], "basis": "observed"},
+  "architecture": {"backend": "One free function; order creation is injected as a callback, so it is already decoupled from the order store.", "evidence": ["B-E01"], "basis": "observed"},
+  "features": [
+    {"id": "B-F01", "name": "Renew a subscription into an order",
+     "description": "Each renewal of a subscription creates a new order for the subscription's customer at the subscription's price.",
+     "observed_behaviour": "renew() calls create_order(customer, price) and returns its result. It does not charge, schedule or record the renewal.",
+     "business_logic": "Price is copied from the subscription at renewal time. No billing period, no schedule and no guard against renewing the same period twice are in the code; 'monthly' comes only from the user's description.",
+     "data": ["Subscription.customer", "Subscription.price"],
+     "integration": "Needs an order-creation function (customer, amount) -> order.",
+     "evidence": ["B-E01", "B-E02"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Subscription", "fields": [{"name": "customer", "type": "any (dict key)"}, {"name": "price", "type": "number (dict key)"}],
+     "features": ["B-F01"], "evidence": ["B-E01"], "basis": "observed"}
+  ],
+  "rules": [
+    {"key": "renewal_period", "value": "monthly (documented by the user, not in code)", "features": ["B-F01"], "evidence": ["B-E02"]}
+  ],
+  "unknowns": [
+    "How renewals are scheduled and how a period is identified: not in the code; only 'monthly' is documented.",
+    "Units of subscription['price'] (task.md's create_order takes amount_cents, so cents is assumed for the unified app)."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

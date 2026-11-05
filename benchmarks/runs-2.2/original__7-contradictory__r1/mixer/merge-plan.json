@@ -1,0 +1,40 @@
+{
+  "unified_features": [
+    {
+      "id": "U01", "name": "Personal library",
+      "menu_ids": ["M01"], "source_features": ["A-F01"], "evidence": ["A-E01", "A-E02"],
+      "merge_type": "unique",
+      "rationale": "Only Shelfie has a library view; Readr's books table has no feature of its own. One Book entity serves ratings, export and lists.",
+      "behaviour": "A signed-in user adds, lists, edits and deletes books (title required, author optional) in their own library; nobody else sees them.",
+      "improvements": "Shelfie only lists one shared library and nothing creates books: add create, edit, delete and per-user ownership.",
+      "depends_on": [], "compatibility": "adaptable", "validation": "untested", "tests": []
+    },
+    {
+      "id": "U02", "name": "Star ratings",
+      "menu_ids": ["M02"], "source_features": ["A-F02"], "evidence": ["A-E03", "A-E04", "A-E11"],
+      "merge_type": "identical",
+      "rationale": "Shelfie (M02) and Readr (M03, dropped) both rate 1-5 stars by appending rows; Shelfie's version is the more complete (HTTP endpoint plus DB CHECK), so it is the one built.",
+      "behaviour": "A user sets, changes or clears a 1-5 star rating on a book in their own library; there is one current rating per user per book.",
+      "improvements": "Upsert instead of append; integer 1-5 enforced in the API and by a DB CHECK; writes committed; 404 for a book that is not the caller's. Scale is 1-5 as both codebases do; Shelfie's documented 1-10 'score' is stale and not followed.",
+      "depends_on": ["U01"], "compatibility": "adaptable", "validation": "untested", "tests": []
+    },
+    {
+      "id": "U03", "name": "Library export",
+      "menu_ids": ["M04"], "source_features": ["A-F03"], "evidence": ["A-E05", "A-E10"],
+      "merge_type": "unique",
+      "rationale": "Only Shelfie exports. Its code exports JSON; the CSV export in its README and spec was never built.",
+      "behaviour": "A user downloads their own library as JSON: one object per book with id, title, author and current stars (null if unrated).",
+      "improvements": "Scope to the caller; one row per book instead of one per rating; include id and author. CSV is not built (documented only); listed as an open question.",
+      "depends_on": ["U01", "U02"], "compatibility": "adaptable", "validation": "untested", "tests": []
+    },
+    {
+      "id": "U04", "name": "Reading lists",
+      "menu_ids": ["M05"], "source_features": ["B-F01"], "evidence": ["B-E03", "B-E06"],
+      "merge_type": "unique",
+      "rationale": "Only Readr has lists; they hold books from the shared library entity.",
+      "behaviour": "A user creates, renames and deletes named reading lists, views a list's books, and adds or removes books from their own library; a book appears at most once per list.",
+      "improvements": "Readr only had add_to_list: add create, rename, delete, read and remove; unique (list, book); ownership checks on both list and book; writes committed.",
+      "depends_on": ["U01"], "compatibility": "adaptable", "validation": "untested", "tests": []
+    }
+  ]
+}

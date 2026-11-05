@@ -1,0 +1,61 @@
+{
+  "app": {"id": "B", "name": "Spendly"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/spendly", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/spendly/spendly.py:1",
+     "summary": "A fixed module-level category list: food, travel, home, other."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/spendly/spendly.py:2",
+     "summary": "Expenses are kept in an in-memory list; nothing is persisted."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/spendly/spendly.py:3-6",
+     "summary": "add(amount_cents, category, note='') raises ValueError('unknown category') for a category not in the list, else appends {amount_cents, category, note}."}
+  ],
+  "stack": {"frontend": [], "backend": ["Python (standard library only)"], "database": ["none (in-memory list)"], "infrastructure": [], "basis": "observed"},
+  "runtimes": {"python": "unspecified (any Python 3)"},
+  "packages": {},
+  "architecture": {"frontend": "none (no UI)", "backend": "single Python module exposing an add() function",
+                   "evidence": ["B-E02", "B-E03"], "basis": "observed"},
+  "features": [
+    {"id": "B-F01", "name": "Record an expense", "description": "Add an expense with an amount in cents, a category and an optional note.",
+     "observed_behaviour": "add() validates the category, then appends the expense to an in-memory list.",
+     "business_logic": "Amount is integer cents (by name; type not enforced). Category is required and must be in the list. Note defaults to empty.",
+     "data": ["Expense.amount_cents", "Expense.category", "Expense.note"], "depends_on": ["B-F02"],
+     "evidence": ["B-E02", "B-E03"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F02", "name": "Expense categories", "description": "A fixed set of categories (food, travel, home, other); an expense with any other category is rejected.",
+     "observed_behaviour": "CATEGORIES list; add() raises ValueError('unknown category') when the category is not in it.",
+     "business_logic": "Allowed values: food, travel, home, other. Matching is exact and case-sensitive. 'other' is the catch-all. No user-defined categories.",
+     "data": ["Expense.category"],
+     "evidence": ["B-E01", "B-E03"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Expense", "description": "A spending record: amount in cents, a category, an optional note",
+     "fields": [
+       {"name": "amount_cents", "type": "int", "required": true, "unit": "minor units (cents)", "description": "Amount in cents; currency not recorded"},
+       {"name": "category", "type": "str", "required": true, "enum": ["food", "travel", "home", "other"]},
+       {"name": "note", "type": "str", "required": false, "default": ""}
+     ],
+     "features": ["B-F01", "B-F02"], "evidence": ["B-E02", "B-E03"], "basis": "observed", "deletion": "hard"}
+  ],
+  "auth": {"provider": "none", "methods": [], "session": "none", "model": "none (single-user library function)", "roles": [],
+           "evidence": ["B-E03"], "basis": "observed"},
+  "rules": [
+    {"key": "allowed_categories", "value": ["food", "travel", "home", "other"], "features": ["B-F02"], "evidence": ["B-E01"]},
+    {"key": "category_required_and_validated", "value": true, "features": ["B-F01", "B-F02"], "evidence": ["B-E03"]},
+    {"key": "amount_unit", "value": "integer cents", "features": ["B-F01"], "evidence": ["B-E03"]}
+  ],
+  "tenancy": {"model": "none", "key": ""},
+  "error_handling": [
+    {"case": "unknown category", "behaviour": "raises ValueError('unknown category'); nothing is stored", "evidence": ["B-E03"]},
+    {"case": "negative, zero or non-integer amount", "behaviour": "not validated; accepted as given", "evidence": ["B-E03"]}
+  ],
+  "configuration": [],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1},
+  "unknowns": [
+    "No currency, date, merchant, owner or id on an expense; the app has no notion of them.",
+    "No persistence: expenses live only in memory, so there is no existing Spendly data to migrate (confirm the user has none stored elsewhere).",
+    "No UI, API or entry point; how the user runs it is not in the folder."
+  ]
+}

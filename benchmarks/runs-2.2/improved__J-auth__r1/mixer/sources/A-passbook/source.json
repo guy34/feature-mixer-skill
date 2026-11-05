@@ -1,0 +1,79 @@
+{
+  "app": {"id": "A", "name": "Passbook"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/passbook", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "observed", "locator": "sources/passbook/accounts.py:2",
+     "summary": "In-memory USERS dict keyed by email; each record holds id, salt, hash and role 'user'."},
+    {"id": "A-E02", "source": "A-R01", "basis": "observed", "locator": "sources/passbook/accounts.py:4-7",
+     "summary": "register() lowercases the email, makes a 16-byte random salt, hashes with PBKDF2-HMAC-SHA256 at 100,000 iterations, sets role 'user' and id len(USERS)+1; an existing email is silently overwritten."},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/passbook/accounts.py:8-11",
+     "summary": "login() looks the email up lowercased and raises ValueError('bad credentials') for both an unknown email and a wrong password; the hash comparison uses != (not constant-time)."},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/passbook/accounts.py:12",
+     "summary": "A successful login creates a token with secrets.token_urlsafe(24) and stores SESSIONS[token] = user id; there is no logout, expiry or lookup function."}
+  ],
+  "architecture": {"backend": "single Python module with in-memory dicts; no web layer", "evidence": ["A-E01"], "basis": "observed"},
+  "stack": {"backend": ["Python 3 standard library (hashlib, os, secrets)"], "database": ["in-memory dict"], "basis": "observed"},
+  "runtimes": {"python": "3 (version not declared)"},
+  "packages": {},
+  "features": [
+    {"id": "A-F01", "name": "Register with email and password",
+     "description": "Create an account from an email address and a password.",
+     "observed_behaviour": "register(email, password) lowercases the email, salts and hashes the password with PBKDF2-HMAC-SHA256 (100,000 iterations, 16-byte salt) and stores the account with role 'user' and an integer id. Returns nothing.",
+     "business_logic": "Email is case-insensitive (lowercased). Role is always 'user'. Id is len(USERS)+1. No password rules. Registering an email that already exists replaces the existing account (a takeover flaw).",
+     "data": ["User"], "evidence": ["A-E01", "A-E02"], "basis": "observed", "confidence": "high",
+     "integration": "Needs the unified user store and the role model."},
+    {"id": "A-F02", "name": "Log in with email and password",
+     "description": "Sign in with email and password and get a session token.",
+     "observed_behaviour": "login(email, password) re-hashes the password with the stored salt; on a match it returns a new random token and records it in SESSIONS; otherwise raises ValueError('bad credentials').",
+     "business_logic": "Same error for unknown email and wrong password. Comparison is not constant-time. Sessions never expire and cannot be revoked; there is no logout or token lookup.",
+     "data": ["User", "Session"], "depends_on": ["A-F01"], "evidence": ["A-E03", "A-E04"], "basis": "observed", "confidence": "high",
+     "integration": "Needs a unified session store with logout and lookup."}
+  ],
+  "entities": [
+    {"name": "User", "description": "A person who signs in with email and password",
+     "primary_key": {"name": "id", "type": "integer"},
+     "fields": [
+       {"name": "id", "type": "integer", "required": true, "unique": true, "description": "len(USERS)+1 at registration"},
+       {"name": "email", "type": "string", "required": true, "unique": true, "description": "lowercased; the dict key", "format": "email"},
+       {"name": "salt", "type": "bytes", "required": true, "description": "16 random bytes"},
+       {"name": "hash", "type": "bytes", "required": true, "description": "PBKDF2-HMAC-SHA256, 100,000 iterations"},
+       {"name": "role", "type": "string", "required": true, "enum": ["user"], "default": "user"}
+     ],
+     "features": ["A-F01", "A-F02"], "evidence": ["A-E01", "A-E02"], "basis": "observed", "deletion": "hard"},
+    {"name": "Session", "description": "An opaque login token mapped to a user id",
+     "primary_key": {"name": "token", "type": "string"},
+     "fields": [
+       {"name": "token", "type": "string", "required": true, "unique": true, "description": "secrets.token_urlsafe(24)"},
+       {"name": "user_id", "type": "integer", "required": true}
+     ],
+     "foreign_keys": [{"field": "user_id", "references": "User"}],
+     "features": ["A-F02"], "evidence": ["A-E04"], "basis": "observed"}
+  ],
+  "auth": {"provider": "own (local accounts)", "methods": ["password"], "session": "opaque bearer token in an in-memory store, no expiry",
+           "model": "single role", "roles": ["user"], "role_permissions": {"user": ["unspecified"]},
+           "evidence": ["A-E01", "A-E03", "A-E04"], "basis": "observed"},
+  "rules": [
+    {"key": "password_hash", "value": "pbkdf2_hmac sha256", "features": ["A-F01"], "evidence": ["A-E02"]},
+    {"key": "password_hash_iterations", "value": 100000, "features": ["A-F01"], "evidence": ["A-E02"]},
+    {"key": "salt_bytes", "value": 16, "features": ["A-F01"], "evidence": ["A-E02"]},
+    {"key": "email_case", "value": "lowercase", "features": ["A-F01", "A-F02"], "evidence": ["A-E02", "A-E03"]},
+    {"key": "default_role", "value": "user", "features": ["A-F01"], "evidence": ["A-E02"]},
+    {"key": "session_expiry", "value": "none", "features": ["A-F02"], "evidence": ["A-E04"]}
+  ],
+  "error_handling": [
+    {"case": "unknown email or wrong password", "behaviour": "raises ValueError('bad credentials'), same message for both", "evidence": ["A-E03"]},
+    {"case": "email already registered", "behaviour": "no error; the existing account is overwritten", "evidence": ["A-E02"]}
+  ],
+  "tenancy": {"model": "none"},
+  "integrations": [],
+  "configuration": [],
+  "unknowns": [
+    "What the 'user' role is allowed to do: Passbook has no permission checks (role is stored, never read).",
+    "Whether overwriting an existing account on re-registration is intended; treated as a flaw to fix."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

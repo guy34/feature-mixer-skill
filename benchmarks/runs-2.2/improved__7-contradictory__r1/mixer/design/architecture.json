@@ -1,0 +1,141 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one owner (the user), one release cadence",
+      "small app: 4 unified features, 6 entities",
+      "strong consistency: ratings and list entries must follow their book (cascade deletes in one transaction)",
+      "no package installs or extra infrastructure wanted for a first version",
+      "both sources are already single-process Python + SQLite in their code"
+    ],
+    "alternatives": [
+      {"style": "microservices", "fit": "poor", "reason": "Shelfie's docs describe catalog/ratings/gateway services, but the code never had them; separate databases would break cascade deletes and add network calls with no scaling need"},
+      {"style": "service-oriented", "fit": "poor", "reason": "no existing system must stay separate"},
+      {"style": "event-driven", "fit": "poor", "reason": "nothing is asynchronous; every action is a direct read or write"},
+      {"style": "hybrid", "fit": "poor", "reason": "no part needs a second style"}
+    ],
+    "reason": "The simplest design that meets every driver: one process, one SQLite database, modules with clear ownership"
+  },
+  "stack": {
+    "frontend": "one static HTML page with vanilla JavaScript calling the JSON API (no build step, no framework)",
+    "backend": "Python 3.10+ standard library: wsgiref server, a small router, json, sqlite3, hashlib.scrypt, secrets",
+    "database": "SQLite 3 (one file), foreign keys on, WAL mode",
+    "hosting": "single process on the user's machine or any small VM; not decided (no deployment in scope)",
+    "tests": "unittest (standard library), HTTP-level tests against an in-process server and a temp database",
+    "reasons": {
+      "frontend": "D02: neither source has a UI; people need one to keep a library; a static page needs no install",
+      "backend": "D01: both sources are Python standard library; installing packages is not approved; code reuse from Shelfie's handler shape is possible",
+      "database": "D01/D03: both sources use SQLite in their code (Shelfie's README says PostgreSQL; the code wins); one file keeps cascades consistent",
+      "hosting": "deployment is out of scope in plan mode",
+      "tests": "unittest needs no install and is the harness run_tests.py records"
+    }
+  },
+  "modules": [
+    {"name": "core", "responsibility": "configuration, database connection (foreign keys on, commit per request), router, JSON error format, the single permission check can_access(person, record)", "features": [], "depends_on": [], "owns_entities": []},
+    {"name": "accounts", "responsibility": "sign up, sign in, sign out, current person; password hashing; server-side sessions", "features": [], "depends_on": ["core"], "owns_entities": ["User", "Session"]},
+    {"name": "library", "responsibility": "a person's books: add, list, view, edit, remove", "features": ["M01"], "depends_on": ["core", "accounts"], "owns_entities": ["Book"]},
+    {"name": "ratings", "responsibility": "one 1-5 star rating per person per book: set, replace, clear", "features": ["M02"], "depends_on": ["core", "accounts", "library"], "owns_entities": ["Rating"]},
+    {"name": "lists", "responsibility": "reading lists: create, view, rename, delete; add and remove books", "features": ["M05"], "depends_on": ["core", "accounts", "library"], "owns_entities": ["ReadingList", "ListBook"]},
+    {"name": "export", "responsibility": "JSON export of a person's books with their stars", "features": ["M04"], "depends_on": ["core", "accounts", "library", "ratings"], "owns_entities": []},
+    {"name": "web", "responsibility": "static page and client-side screens calling the API", "features": [], "depends_on": ["core"], "owns_entities": []}
+  ],
+  "entities": [
+    {"name": "User", "merged_from": ["new"], "primary_key": "id integer", "tenant_key": "id",
+     "notes": "platform piece: neither source has people; needed because the user wants several people to keep libraries (D04)",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "email", "type": "text unique not null (lower-cased)"}, {"name": "password_hash", "type": "text not null (scrypt)"}, {"name": "created_at", "type": "text UTC ISO 8601"}]},
+    {"name": "Session", "merged_from": ["new"], "primary_key": "token_hash text", "tenant_key": "user_id",
+     "fields": [{"name": "token_hash", "type": "text (sha256 of the cookie token)"}, {"name": "user_id", "type": "integer references User on delete cascade"}, {"name": "expires_at", "type": "text UTC ISO 8601"}]},
+    {"name": "Book", "merged_from": ["A:Book", "B:Book"], "primary_key": "id integer", "tenant_key": "owner_id",
+     "notes": "A's and B's books are the same thing (compat decision database:entity-meaning:book); union of fields",
+     "fields": [
+       {"name": "id", "type": "integer", "from": ["A:Book.id", "B:Book.id"]},
+       {"name": "owner_id", "type": "integer references User on delete cascade, indexed"},
+       {"name": "title", "type": "text not null, 1-500 chars", "from": ["A:Book.title", "B:Book.title"]},
+       {"name": "author", "type": "text null, up to 300 chars", "from": ["A:Book.author"]},
+       {"name": "created_at", "type": "text UTC ISO 8601"}]},
+    {"name": "Rating", "merged_from": ["A:Rating"], "primary_key": "(owner_id, book_id)", "tenant_key": "owner_id",
+     "notes": "Shelfie's rating, kept over Readr's identical one; one per person per book (upsert) instead of appended rows",
+     "fields": [
+       {"name": "owner_id", "type": "integer references User on delete cascade"},
+       {"name": "book_id", "type": "integer references Book on delete cascade, indexed", "from": ["A:Rating.book_id"]},
+       {"name": "stars", "type": "integer not null check (stars between 1 and 5)", "from": ["A:Rating.stars"]},
+       {"name": "updated_at", "type": "text UTC ISO 8601"}]},
+    {"name": "ReadingList", "merged_from": ["B:ReadingList"], "primary_key": "id integer", "tenant_key": "owner_id",
+     "fields": [
+       {"name": "id", "type": "integer", "from": ["B:ReadingList.id"]},
+       {"name": "owner_id", "type": "integer references User on delete cascade, indexed"},
+       {"name": "name", "type": "text not null, 1-200 chars", "from": ["B:ReadingList.name"]},
+       {"name": "created_at", "type": "text UTC ISO 8601"}]},
+    {"name": "ListBook", "merged_from": ["B:ListBook"], "primary_key": "(list_id, book_id)", "tenant_key": "owner_id (through ReadingList and Book; both must belong to the same person)",
+     "fields": [
+       {"name": "list_id", "type": "integer references ReadingList on delete cascade", "from": ["B:ListBook.list_id"]},
+       {"name": "book_id", "type": "integer references Book on delete cascade, indexed", "from": ["B:ListBook.book_id"]},
+       {"name": "added_at", "type": "text UTC ISO 8601"}]}
+  ],
+  "auth": {
+    "method": "email and password",
+    "session": "server-side session row; random 32-byte token in an http-only, SameSite=Lax cookie (Secure when COOKIE_SECURE=true); 30-day expiry; sign out deletes the row",
+    "roles": ["member"],
+    "permissions": {"member": "full access to rows whose owner_id is their own id; nothing else. Another person's ids answer 404."},
+    "role_mapping": {}
+  },
+  "api": [
+    {"method": "POST", "path": "/api/signup", "module": "accounts", "auth": "none"},
+    {"method": "POST", "path": "/api/signin", "module": "accounts", "auth": "none"},
+    {"method": "POST", "path": "/api/signout", "module": "accounts", "auth": "session"},
+    {"method": "GET", "path": "/api/me", "module": "accounts", "auth": "session"},
+    {"method": "GET", "path": "/api/books", "module": "library", "auth": "session", "features": ["M01"], "from": ["A: GET /api/books"]},
+    {"method": "POST", "path": "/api/books", "module": "library", "auth": "session", "features": ["M01"]},
+    {"method": "GET", "path": "/api/books/export", "module": "export", "auth": "session", "features": ["M04"], "from": ["A: GET /api/books/export"]},
+    {"method": "GET", "path": "/api/books/{id}", "module": "library", "auth": "session", "features": ["M01"]},
+    {"method": "PATCH", "path": "/api/books/{id}", "module": "library", "auth": "session", "features": ["M01"]},
+    {"method": "DELETE", "path": "/api/books/{id}", "module": "library", "auth": "session", "features": ["M01"]},
+    {"method": "PUT", "path": "/api/books/{id}/rating", "module": "ratings", "auth": "session", "features": ["M02"], "from": ["A: PUT /api/books/{id}/rating"]},
+    {"method": "DELETE", "path": "/api/books/{id}/rating", "module": "ratings", "auth": "session", "features": ["M02"]},
+    {"method": "GET", "path": "/api/lists", "module": "lists", "auth": "session", "features": ["M05"]},
+    {"method": "POST", "path": "/api/lists", "module": "lists", "auth": "session", "features": ["M05"]},
+    {"method": "GET", "path": "/api/lists/{id}", "module": "lists", "auth": "session", "features": ["M05"]},
+    {"method": "PATCH", "path": "/api/lists/{id}", "module": "lists", "auth": "session", "features": ["M05"]},
+    {"method": "DELETE", "path": "/api/lists/{id}", "module": "lists", "auth": "session", "features": ["M05"]},
+    {"method": "PUT", "path": "/api/lists/{id}/books/{book_id}", "module": "lists", "auth": "session", "features": ["M05"]},
+    {"method": "DELETE", "path": "/api/lists/{id}/books/{book_id}", "module": "lists", "auth": "session", "features": ["M05"]}
+  ],
+  "navigation": [
+    {"route": "/signin", "screen": "Sign in / sign up", "module": "web"},
+    {"route": "/", "screen": "Library (books with stars, add book, export link)", "module": "web"},
+    {"route": "/books/{id}", "screen": "Book (edit, rate, lists it is on)", "module": "web"},
+    {"route": "/lists", "screen": "Reading lists", "module": "web"},
+    {"route": "/lists/{id}", "screen": "Reading list (books, add/remove)", "module": "web"}
+  ],
+  "design_system": {
+    "tokens": {"colour_roles": ["bg", "surface", "text", "muted", "accent", "danger", "focus"], "type_scale": "14/16/20/28 px", "spacing": "4/8/16/24/32 px", "radius": "6 px"},
+    "fonts": "system font stack (no downloaded fonts)",
+    "icons": "none; the star rating uses the Unicode star character",
+    "components": ["Button (primary, secondary, danger)", "TextField (with error)", "StarRating (1-5, clearable, keyboard operable)", "BookRow", "ListCard", "EmptyState", "ErrorBanner"]
+  },
+  "configuration": {
+    "APP_DB_PATH": "SQLite file path; default ./data/app.db",
+    "APP_HOST": "bind address; default 127.0.0.1",
+    "APP_PORT": "port; default 8080",
+    "SESSION_TTL_HOURS": "session lifetime; default 720",
+    "COOKIE_SECURE": "mark the session cookie Secure; default false in development, true behind HTTPS"
+  },
+  "slices": [
+    {"id": "V1", "name": "Core loop: sign up, sign in, add and see your books", "features": ["M01"], "status": "pending"},
+    {"id": "V2", "name": "Rate your books 1-5 stars", "features": ["M02"], "status": "pending"},
+    {"id": "V3", "name": "Reading lists", "features": ["M05"], "status": "pending"},
+    {"id": "V4", "name": "JSON export", "features": ["M04"], "status": "pending"}
+  ],
+  "decisions": [
+    {"id": "D01", "decision": "Python 3 standard library backend with SQLite", "reason": "both sources' code is Python + sqlite3 (Shelfie's docs claim PostgreSQL and three services; the code wins); no installs approved", "approved": true},
+    {"id": "D02", "decision": "One static HTML page with vanilla JS as the UI", "reason": "neither source has a UI; no build step or package needed; alternative: API only, like both sources", "approved": true},
+    {"id": "D03", "decision": "Modular monolith, one SQLite database", "reason": "see style; Shelfie's documented three-service design was never built", "approved": true},
+    {"id": "D04", "decision": "Accounts (email + password) and an owner-only permission model as platform pieces", "reason": "the user wants 'people' to keep libraries; neither source has users (compat decisions authorization-model, session)", "approved": true},
+    {"id": "D05", "decision": "Ratings are integer 1-5 'stars', one per person per book, replaceable and clearable", "reason": "both apps' code; Shelfie's 1-10 'score' docs are out of date", "approved": true},
+    {"id": "D06", "decision": "Export is JSON [{title, stars}] for the signed-in person; no CSV", "reason": "Shelfie's code; the CSV export in its README/spec never existed", "approved": true},
+    {"id": "D07", "decision": "REST under /api, no version prefix, error shape {\"error\": {\"code\", \"message\"}}, no pagination", "reason": "Shelfie's code uses /api without /v1; one error shape for the whole app (replaces Shelfie's {\"error\": message}); personal libraries are small, pagination can be added later", "approved": true},
+    {"id": "D08", "decision": "Commit every write, foreign keys on, cascade deletes from Book to Rating and ListBook", "reason": "neither source commits or enforces foreign keys (compat decision write-persistence)", "approved": true},
+    {"id": "D09", "decision": "Start with an empty database; no import from shelfie.db or readr.db", "reason": "no data provided; an import would re-key ids and needs its own plan and approval", "approved": true},
+    {"id": "D10", "decision": "Route /api/books/export is matched before /api/books/{id}; ids are integers only", "reason": "keeps Shelfie's observed export path without ambiguity", "approved": true}
+  ]
+}

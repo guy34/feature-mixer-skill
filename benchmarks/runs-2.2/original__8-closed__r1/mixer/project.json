@@ -1,0 +1,121 @@
+{
+  "name": "Unified expense app (Tallyho receipts and shared budgets + Spendly categories)",
+  "format": 3,
+  "mode": "plan",
+  "selection": "auto-pick",
+  "audience": "The user and the people they share budgets with (households, small groups); stated by the user only as 'one expense app'",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Tallyho",
+      "slug": "tallyho",
+      "access": "closed",
+      "licence": "proprietary",
+      "code_reuse": "not-allowed",
+      "slice": "Receipt scanning and shared budgets (with the expense records they produce)",
+      "inputs": [
+        {
+          "kind": "documentation",
+          "location": "sources/tallyho/help"
+        },
+        {
+          "kind": "api-spec",
+          "location": "sources/tallyho/api.md"
+        },
+        {
+          "kind": "screenshots",
+          "location": "sources/tallyho/screens"
+        },
+        {
+          "kind": "documentation",
+          "location": "sources/tallyho/my-notes.md"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Spendly",
+      "slug": "spendly",
+      "access": "own-code",
+      "licence": "user's own code (no licence file)",
+      "code_reuse": "allowed",
+      "slice": "Categories and adding an expense (the whole app)",
+      "local_path": "sources/spendly",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/spendly"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "A partial (13 unknowns, local copies only), B complete"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "auto-pick; approved by the benchmark operator (pre-approved): keep M01 M03 M04 M05 M06 M07 M08 M09, drop M10, later M02 M11"
+    },
+    "compatibility": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "2 high conflicts resolved and approved by the benchmark operator (pre-approved recommendation); no data migration runs"
+    },
+    "architecture": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "modular monolith (Django + PostgreSQL), 8 modules, 6 entities, 4 slices, D01-D16; approved by the benchmark operator (pre-approved recommendation). Plan mode: run ends here."
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T07:55:47+00:00",
+      "note": "A partial, B complete"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T07:56:20+00:00",
+      "note": "11 menu rows"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T07:56:59+00:00",
+      "note": "auto-pick"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T07:57:55+00:00"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T08:01:52+00:00",
+      "note": "plan mode end"
+    }
+  ],
+  "approvals": []
+}

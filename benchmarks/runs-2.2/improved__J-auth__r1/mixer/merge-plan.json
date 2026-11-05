@@ -1,0 +1,128 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Unified sign-in (password and OAuth) with account linking",
+      "menu_ids": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "source_features": [
+        "A-F01",
+        "A-F02",
+        "B-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E02",
+        "A-E03",
+        "A-E04",
+        "B-E01",
+        "B-E02"
+      ],
+      "merge_type": "complementary",
+      "rationale": "Password accounts (A) and provider sign-in (B) are two sign-in methods for the same person; one identity store and one session mechanism avoid two account systems, and the user wants one account per person.",
+      "behaviour": "register_password creates one user per normalised email (duplicates refused); login_password and login_oauth both return an opaque session token; login_oauth finds the identity by (provider, subject), otherwise joins the existing user with the same email only when email_verified is true, otherwise creates a separate user; whoami resolves a token; logout revokes it.",
+      "improvements": "No overwrite on duplicate registration; constant-time hash compare; one AuthError for every sign-in failure; logout and token lookup added; email_verified honoured for linking; email normalised for both methods.",
+      "depends_on": [
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_dependencies.DependencyTests.test_standard_library_only",
+        "tests.test_identity.ModuleTests.test_concurrent_registration_one_winner",
+        "tests.test_identity.ModuleTests.test_interface_and_file_import",
+        "tests.test_identity.OAuthTests.test_oauth_email_verified_must_be_true",
+        "tests.test_identity.OAuthTests.test_oauth_input_validated",
+        "tests.test_identity.OAuthTests.test_oauth_new_user_is_viewer_and_stable",
+        "tests.test_identity.OAuthTests.test_oauth_unverified_does_not_claim_email",
+        "tests.test_identity.OAuthTests.test_oauth_unverified_email_creates_separate_account",
+        "tests.test_identity.OAuthTests.test_oauth_verified_email_links_existing_account",
+        "tests.test_identity.OAuthTests.test_oauth_verified_new_user_owns_email",
+        "tests.test_identity.OAuthTests.test_oauth_without_email_creates_separate_account",
+        "tests.test_identity.OAuthTests.test_same_subject_different_providers_are_different_identities",
+        "tests.test_identity.PasswordTests.test_duplicate_registration_refused",
+        "tests.test_identity.PasswordTests.test_email_case_normalised",
+        "tests.test_identity.PasswordTests.test_login_failures_raise_autherror",
+        "tests.test_identity.PasswordTests.test_password_stored_hashed_with_salt",
+        "tests.test_identity.PasswordTests.test_register_and_login_password",
+        "tests.test_identity.PasswordTests.test_registration_input_validated",
+        "tests.test_identity.PasswordTests.test_user_ids_are_opaque_strings",
+        "tests.test_identity.RoleChangeTests.test_role_change_needs_live_session",
+        "tests.test_identity.SessionTests.test_logout_revokes_token",
+        "tests.test_identity.SessionTests.test_session_expires",
+        "tests.test_identity.SessionTests.test_tokens_not_stored_in_clear",
+        "tests.test_identity.SessionTests.test_whoami_invalid_token",
+        "tests.test_journey.JourneyTests.test_journey_full_identity_flow"
+      ]
+    },
+    {
+      "id": "U02",
+      "name": "Roles and permission checks",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E01",
+        "C-E02"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Roster has a permission model; it becomes the single role set and the one permission check, with a mapping from every source role.",
+      "behaviour": "Roles viewer (read), editor (read, write), admin (read, write, manage_roles); can(role, permission) denies unknown roles; map_source_role maps A user->editor, B member->viewer, C viewer/editor/admin unchanged, and raises KeyError for anything else.",
+      "improvements": "Source-role mapping added (user decision).",
+      "depends_on": [],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_dependencies.DependencyTests.test_standard_library_only",
+        "tests.test_identity.ModuleTests.test_interface_and_file_import",
+        "tests.test_identity.OAuthTests.test_oauth_new_user_is_viewer_and_stable",
+        "tests.test_identity.PasswordTests.test_register_and_login_password",
+        "tests.test_identity.RoleChangeTests.test_admin_sets_role",
+        "tests.test_identity.RoleChangeTests.test_non_admin_cannot_set_role",
+        "tests.test_journey.JourneyTests.test_journey_full_identity_flow",
+        "tests.test_roles.RoleMappingTests.test_map_source_role",
+        "tests.test_roles.RoleMappingTests.test_no_source_role_maps_to_admin_except_roster_admin",
+        "tests.test_roles.RoleMappingTests.test_permission_check"
+      ]
+    },
+    {
+      "id": "U03",
+      "name": "Admin-only role changes",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Roster's role change, tied to the authenticated caller instead of a role string.",
+      "behaviour": "set_role(token, user_id, role): the caller is resolved from the session; anyone who is not an admin gets PermissionError; the role must be a known unified role; nobody may raise their own role; the target must exist.",
+      "improvements": "Caller from session; role validated; self-raise blocked (user decision).",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "verified",
+      "tests": [
+        "tests.test_dependencies.DependencyTests.test_standard_library_only",
+        "tests.test_identity.ModuleTests.test_interface_and_file_import",
+        "tests.test_identity.RoleChangeTests.test_admin_sets_role",
+        "tests.test_identity.RoleChangeTests.test_bootstrap_admin_only_once",
+        "tests.test_identity.RoleChangeTests.test_nobody_raises_own_role",
+        "tests.test_identity.RoleChangeTests.test_non_admin_cannot_set_role",
+        "tests.test_identity.RoleChangeTests.test_role_change_needs_live_session",
+        "tests.test_journey.JourneyTests.test_journey_full_identity_flow"
+      ]
+    }
+  ]
+}

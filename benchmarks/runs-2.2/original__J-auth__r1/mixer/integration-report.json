@@ -1,0 +1,484 @@
+{
+  "app": "Unified Identity",
+  "command": "python -m unittest discover -s tests -t . (Feature Mixer harness)",
+  "framework": "unittest",
+  "date": "2026-11-05",
+  "execution": {
+    "run_id": "20261105T130716734720Z",
+    "runner": "run_tests.py",
+    "cwd": "app",
+    "started_at": "2026-11-05T13:07:16+00:00",
+    "finished_at": "2026-11-05T13:07:22+00:00",
+    "exit_code": 0,
+    "log": "test-runs/20261105T130716734720Z/output.log",
+    "log_sha256": "cc5ca57ba5f531fc9a9e8645ef0e88c93b14cdc876ec7093a541adf7046d113b",
+    "results": "test-runs/20261105T130716734720Z/results.xml",
+    "results_sha256": "49f7922e0d97dfa1660e0f930cf261f376146707d3c112c713d81f2e04ee31bd",
+    "approval": "A01"
+  },
+  "summary": {
+    "total": 33,
+    "passed": 33,
+    "failed": 0,
+    "skipped": 0,
+    "not_executed": 0,
+    "unverified": 0
+  },
+  "tests": [
+    {
+      "name": "tests.test_identity.TestModuleInterface.test_interface_and_stdlib_only",
+      "level": "dependency",
+      "features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "acceptance": [
+        "AC01"
+      ],
+      "expected": "AuthError and create_app importable; every interface method present; only standard library imports",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_new_oauth_user_is_viewer_and_stable",
+      "level": "feature",
+      "features": [
+        "M03",
+        "M04"
+      ],
+      "acceptance": [
+        "AC06"
+      ],
+      "expected": "first OAuth sign-in creates a viewer; the same provider+subject returns the same user",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_oauth_logout",
+      "level": "auth",
+      "features": [
+        "M02",
+        "M03"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "OAuth sessions are revoked by logout like password sessions",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_oauth_requires_provider_and_subject",
+      "level": "form",
+      "features": [
+        "M03"
+      ],
+      "acceptance": [
+        "AC06"
+      ],
+      "expected": "missing provider or subject raises AuthError",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_only_true_counts_as_verified",
+      "level": "authorization",
+      "features": [
+        "M03"
+      ],
+      "acceptance": [
+        "AC08"
+      ],
+      "expected": "truthy non-boolean email_verified values do not join accounts",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_same_subject_different_provider_is_different_identity",
+      "level": "feature",
+      "features": [
+        "M03"
+      ],
+      "acceptance": [
+        "AC06"
+      ],
+      "expected": "(provider, subject) is the identity key",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_unverified_email_creates_separate_account",
+      "level": "interaction",
+      "features": [
+        "M01",
+        "M03"
+      ],
+      "acceptance": [
+        "AC08"
+      ],
+      "expected": "an unverified OAuth email equal to a password account's email creates a separate viewer account",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_unverified_oauth_does_not_block_registration",
+      "level": "interaction",
+      "features": [
+        "M01",
+        "M03"
+      ],
+      "acceptance": [
+        "AC08"
+      ],
+      "expected": "an unverified OAuth account never claims its email; the real owner can still register it",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_verified_email_joins_password_account",
+      "level": "interaction",
+      "features": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "acceptance": [
+        "AC07"
+      ],
+      "expected": "a verified OAuth email equal to a password account's email signs in to that account and keeps its role",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestOAuth.test_verified_oauth_account_owns_email",
+      "level": "interaction",
+      "features": [
+        "M01",
+        "M03"
+      ],
+      "acceptance": [
+        "AC07"
+      ],
+      "expected": "a verified OAuth-created account owns its email: another provider joins it and password registration is refused",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_duplicate_email_rejected_and_original_kept",
+      "level": "feature",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "registering an existing email (any case) fails; the first password still works",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_invalid_and_expired_tokens",
+      "level": "auth",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "unknown, None and expired tokens raise AuthError",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_invalid_registration_input",
+      "level": "form",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC02"
+      ],
+      "expected": "empty or malformed email and empty password are refused",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_login_is_case_insensitive_on_email",
+      "level": "auth",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC03"
+      ],
+      "expected": "login with a differently cased email reaches the same account; whoami shows the normalised email",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_logout_invalidates_token",
+      "level": "auth",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC05"
+      ],
+      "expected": "after logout whoami raises AuthError; other sessions survive; logout is idempotent",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_password_not_stored_in_clear",
+      "level": "database",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC01"
+      ],
+      "expected": "the stored password hash is salted PBKDF2 and never the password",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_register_returns_id_and_editor_role",
+      "level": "feature",
+      "features": [
+        "M01",
+        "M02",
+        "M04"
+      ],
+      "acceptance": [
+        "AC01"
+      ],
+      "expected": "register_password returns a user id; the account's role is editor (A's user)",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_separate_apps_do_not_share_state",
+      "level": "unit",
+      "features": [
+        "M01"
+      ],
+      "acceptance": [
+        "AC01"
+      ],
+      "expected": "two create_app() instances keep separate users",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_tokens_are_unique_per_login",
+      "level": "auth",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC03"
+      ],
+      "expected": "two logins give two different working tokens",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestPasswordAccounts.test_wrong_password_and_unknown_email_raise_autherror",
+      "level": "auth",
+      "features": [
+        "M02"
+      ],
+      "acceptance": [
+        "AC04"
+      ],
+      "expected": "wrong password, unknown email and empty password all raise AuthError",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_admin_changes_role_and_it_applies_at_once",
+      "level": "authorization",
+      "features": [
+        "M04",
+        "M05"
+      ],
+      "acceptance": [
+        "AC10"
+      ],
+      "expected": "admin sets ana to viewer then admin; ana's existing session shows each new role",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_admin_may_lower_but_not_raise_own_role",
+      "level": "authorization",
+      "features": [
+        "M05"
+      ],
+      "acceptance": [
+        "AC12"
+      ],
+      "expected": "an admin re-setting admin is a no-op; lowering is allowed; after that they cannot raise it back",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_bootstrap_admin_creates_admin",
+      "level": "feature",
+      "features": [
+        "M05"
+      ],
+      "acceptance": [
+        "AC13"
+      ],
+      "expected": "bootstrap_admin creates an admin who can sign in",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_bootstrap_admin_only_once",
+      "level": "authorization",
+      "features": [
+        "M05"
+      ],
+      "acceptance": [
+        "AC13"
+      ],
+      "expected": "a second bootstrap_admin fails while an admin exists",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_core_journey",
+      "level": "journey",
+      "features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "acceptance": [
+        "AC01",
+        "AC03",
+        "AC05",
+        "AC06",
+        "AC10"
+      ],
+      "expected": "register, log in, OAuth join, admin promotes, logout, all through the public interface",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_invalid_or_logged_out_token_cannot_change_roles",
+      "level": "authorization",
+      "features": [
+        "M02",
+        "M05"
+      ],
+      "acceptance": [
+        "AC11"
+      ],
+      "expected": "an unknown or logged-out admin token gets PermissionError (also an AuthError)",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_invalid_role_and_unknown_user",
+      "level": "form",
+      "features": [
+        "M05"
+      ],
+      "acceptance": [
+        "AC12"
+      ],
+      "expected": "a role outside viewer/editor/admin raises ValueError; an unknown user id raises KeyError",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_nobody_raises_their_own_role",
+      "level": "authorization",
+      "features": [
+        "M05"
+      ],
+      "acceptance": [
+        "AC12"
+      ],
+      "expected": "an editor or viewer trying to raise their own role is refused with PermissionError",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_non_admin_cannot_change_roles",
+      "level": "authorization",
+      "features": [
+        "M05"
+      ],
+      "acceptance": [
+        "AC11"
+      ],
+      "expected": "editor and viewer callers get PermissionError and nothing changes",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleAdmin.test_role_change_on_joined_oauth_account",
+      "level": "journey",
+      "features": [
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "acceptance": [
+        "AC07",
+        "AC10"
+      ],
+      "expected": "a role set on a password account applies when the same person signs in with a verified provider",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleMapping.test_permission_check",
+      "level": "authorization",
+      "features": [
+        "M04"
+      ],
+      "acceptance": [
+        "AC09"
+      ],
+      "expected": "viewer read; editor read and write; admin also manage_roles; unknown roles nothing",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleMapping.test_source_role_mapping",
+      "level": "unit",
+      "features": [
+        "M04"
+      ],
+      "acceptance": [
+        "AC09"
+      ],
+      "expected": "A user -> editor, B member -> viewer, C roles unchanged",
+      "actual": "as expected",
+      "status": "passed"
+    },
+    {
+      "name": "tests.test_identity.TestRoleMapping.test_unknown_role_or_app_raises_keyerror",
+      "level": "unit",
+      "features": [
+        "M04"
+      ],
+      "acceptance": [
+        "AC09"
+      ],
+      "expected": "unknown roles, roles from the wrong app and unknown apps raise KeyError",
+      "actual": "as expected",
+      "status": "passed"
+    }
+  ]
+}

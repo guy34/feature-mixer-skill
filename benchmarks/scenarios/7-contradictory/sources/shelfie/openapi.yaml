@@ -1,0 +1,11 @@
+openapi: 3.0.0
+info: {title: Shelfie, version: "1.0"}
+paths:
+  /api/v1/books:
+    get: {summary: List books}
+  /api/v1/books/export.csv:
+    get: {summary: Export the library as CSV}
+  /api/v1/books/{id}/rating:
+    put:
+      summary: Rate a book
+      requestBody: {content: {application/json: {schema: {properties: {score: {type: integer, minimum: 1, maximum: 10}}}}}}

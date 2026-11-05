@@ -1,0 +1,64 @@
+{
+  "app": {"id": "C", "name": "Roster"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "C-R01", "kind": "local-directory", "location": "sources/roster", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "C-E01", "source": "C-R01", "basis": "observed", "locator": "sources/roster/permissions.py:1",
+     "summary": "ROLES maps viewer to {read}, editor to {read, write}, admin to {read, write, manage_roles}."},
+    {"id": "C-E02", "source": "C-R01", "basis": "observed", "locator": "sources/roster/permissions.py:2-3",
+     "summary": "can(role, permission) returns whether the role's permission set contains the permission; an unknown role has no permissions."},
+    {"id": "C-E03", "source": "C-R01", "basis": "observed", "locator": "sources/roster/permissions.py:4-7",
+     "summary": "set_role(actor_role, target, role) raises PermissionError('only admins manage roles') unless the actor has manage_roles, then writes target['role'] = role without checking that role is a known role."}
+  ],
+  "architecture": {"backend": "single Python module, pure functions over role names; no user store", "evidence": ["C-E01"], "basis": "observed"},
+  "stack": {"backend": ["Python 3, no imports"], "basis": "observed"},
+  "runtimes": {"python": "3 (version not declared)"},
+  "packages": {},
+  "features": [
+    {"id": "C-F01", "name": "Roles and permission checks",
+     "description": "Three roles (viewer, editor, admin), each a set of permissions, and one check of whether a role may do something.",
+     "observed_behaviour": "can(role, permission) looks the role up in ROLES and tests membership; unknown roles get nothing.",
+     "business_logic": "viewer: read. editor: read, write. admin: read, write, manage_roles. Deny by default.",
+     "data": ["Role"], "evidence": ["C-E01", "C-E02"], "basis": "observed", "confidence": "high",
+     "integration": "Becomes the unified role set and the single permission check."},
+    {"id": "C-F02", "name": "Change a user's role (admins only)",
+     "description": "An admin assigns a role to another record.",
+     "observed_behaviour": "set_role(actor_role, target, role) refuses with PermissionError unless the actor's role has manage_roles; otherwise sets target['role'].",
+     "business_logic": "Only manage_roles (admin) may change roles. The new role is not validated (any string is accepted). The actor is identified only by a role string, not an authenticated user.",
+     "data": ["Role"], "depends_on": ["C-F01"], "evidence": ["C-E03"], "basis": "observed", "confidence": "high",
+     "integration": "Needs the authenticated caller (from a session), the unified user store, and validation of the new role."}
+  ],
+  "entities": [
+    {"name": "Role", "description": "A named set of permissions",
+     "primary_key": {"name": "name", "type": "string"},
+     "fields": [
+       {"name": "name", "type": "string", "required": true, "unique": true, "enum": ["viewer", "editor", "admin"]},
+       {"name": "permissions", "type": "set of string", "required": true, "enum": ["read", "write", "manage_roles"]}
+     ],
+     "features": ["C-F01", "C-F02"], "evidence": ["C-E01"], "basis": "observed"}
+  ],
+  "auth": {"provider": "none (authorization only)", "methods": [], "session": "none",
+           "model": "role-based access control", "roles": ["viewer", "editor", "admin"],
+           "role_permissions": {"viewer": ["read"], "editor": ["read", "write"], "admin": ["read", "write", "manage_roles"]},
+           "evidence": ["C-E01", "C-E02", "C-E03"], "basis": "observed"},
+  "rules": [
+    {"key": "role_change_permission", "value": "manage_roles", "features": ["C-F02"], "evidence": ["C-E03"]},
+    {"key": "unknown_role_permissions", "value": "none", "features": ["C-F01"], "evidence": ["C-E02"]},
+    {"key": "new_role_validated", "value": false, "features": ["C-F02"], "evidence": ["C-E03"]}
+  ],
+  "error_handling": [
+    {"case": "non-admin changes a role", "behaviour": "raises PermissionError('only admins manage roles')", "evidence": ["C-E03"]},
+    {"case": "unknown role name", "behaviour": "can() returns False; set_role() stores it anyway", "evidence": ["C-E02", "C-E03"]}
+  ],
+  "tenancy": {"model": "none"},
+  "integrations": [],
+  "configuration": [],
+  "unknowns": [
+    "Roster has no user store or sign-in; where target records live is not in the source.",
+    "Whether an admin may demote themselves (or the last admin) is not decided by the source; set_role allows it."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

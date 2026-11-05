@@ -1,0 +1,1142 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 2,
+    "high": 18,
+    "medium": 6,
+    "low": 0,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "database:primary-key:post",
+      "category": "database",
+      "kind": "primary-key",
+      "subject": "post",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05",
+        "B-F06"
+      ],
+      "severity": "critical",
+      "detail": "Post primary keys differ (A: uuid, B: integer)",
+      "solutions": [
+        "Pick one key type for the merged entity and re-key the other source's rows",
+        "Keep a legacy_id column holding the old key during migration"
+      ],
+      "recommended": "Use one key type (uuid is usual for merged data) and add a legacy_id column while migrating",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "uuid primary key for every post (A's type). B's integer post ids are kept in legacy_id (with imported_from = 'B') during any import; nothing is re-keyed until a migration is separately approved.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "database:primary-key:user",
+      "category": "database",
+      "kind": "primary-key",
+      "subject": "user",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F04",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "critical",
+      "detail": "User primary keys differ (A: uuid, B: integer)",
+      "solutions": [
+        "Pick one key type for the merged entity and re-key the other source's rows",
+        "Keep a legacy_id column holding the old key during migration"
+      ],
+      "recommended": "Use one key type (uuid is usual for merged data) and add a legacy_id column while migrating",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "uuid primary key for every user (A's type). B's integer user ids kept in legacy_id (imported_from = 'B') during any import.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "api:contract:GET /api/posts/{} response",
+      "category": "api",
+      "kind": "contract",
+      "subject": "GET /api/posts/{} response",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F05"
+      ],
+      "severity": "high",
+      "detail": "GET /api/posts/{} response fields disagree (id: A uuid, B integer)",
+      "solutions": [
+        "Define one request and response shape and convert at the edges",
+        "Version the endpoint if existing clients need the old shape"
+      ],
+      "recommended": "One contract per endpoint, written into the API spec",
+      "needs_approval": true,
+      "menu_features": [
+        "M08",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One contract: GET /api/v1/posts/{id} returns {id: uuid string, body, status, author: {id, display_name} or null for imported anonymous posts, created_at: UTC ISO 8601}. Integer ids are not accepted.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC08",
+          "test_read_published_post_public"
+        ]
+      }
+    },
+    {
+      "id": "api:contract:POST /api/posts response",
+      "category": "api",
+      "kind": "contract",
+      "subject": "POST /api/posts response",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02",
+        "B-F03",
+        "B-F04"
+      ],
+      "severity": "high",
+      "detail": "POST /api/posts response fields disagree (id: A uuid, B integer)",
+      "solutions": [
+        "Define one request and response shape and convert at the edges",
+        "Version the endpoint if existing clients need the old shape"
+      ],
+      "recommended": "One contract per endpoint, written into the API spec",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One contract: POST /api/v1/posts {body} returns 201 with the same post shape as GET.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC03",
+          "test_create_post_pending_with_author"
+        ]
+      }
+    },
+    {
+      "id": "api:endpoint-auth:GET /api/posts/{}",
+      "category": "api",
+      "kind": "endpoint-auth",
+      "subject": "GET /api/posts/{}",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F05"
+      ],
+      "severity": "high",
+      "detail": "GET /api/posts/{} uses different auth (A: session, B: none)",
+      "solutions": [
+        "Put every endpoint behind the one auth system the architecture chooses"
+      ],
+      "recommended": "Same auth scheme for every endpoint",
+      "needs_approval": true,
+      "menu_features": [
+        "M08",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One auth scheme (cookie session). Reading needs no session for a published post; a pending or rejected post needs the session of its author or a moderator, otherwise 404.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC08",
+          "test_read_published_post_public",
+          "AC09",
+          "test_unpublished_post_hidden_from_others"
+        ]
+      }
+    },
+    {
+      "id": "api:endpoint-auth:POST /api/posts",
+      "category": "api",
+      "kind": "endpoint-auth",
+      "subject": "POST /api/posts",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02",
+        "B-F03",
+        "B-F04"
+      ],
+      "severity": "high",
+      "detail": "POST /api/posts uses different auth (A: session, B: optional bearer token)",
+      "solutions": [
+        "Put every endpoint behind the one auth system the architecture chooses"
+      ],
+      "recommended": "Same auth scheme for every endpoint",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Cookie session required (A). No bearer tokens, no anonymous posting (M07 deferred): without a session the answer is 401.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC05",
+          "test_create_post_requires_session"
+        ]
+      }
+    },
+    {
+      "id": "application:authorization-model:model",
+      "category": "application",
+      "kind": "authorization-model",
+      "subject": "model",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Authorization models differ (A: role-based; B: role claim in token (no permission checks in the code shown))",
+      "solutions": [
+        "Choose one authorization model and express the others' rules in it"
+      ],
+      "recommended": "One authorization model with one permission check function",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One role-based model with explicit permissions and one function can(user, action, post) used by every route and query.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC06",
+          "test_member_cannot_moderate"
+        ]
+      }
+    },
+    {
+      "id": "application:business-rule:max_post_length",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "max_post_length",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Rule max_post_length differs (A: 5000, B: 10000)",
+      "solutions": [
+        "Choose one value and record why",
+        "Make it a setting if both are legitimate"
+      ],
+      "recommended": "Pick one value with the user; make it configurable only if both are needed",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "10000 characters for everyone (B's value). Reason: it keeps every existing post from both apps valid (5000 would reject B posts over 5000), and every post is reviewed before it is visible. Enforced in the handler (422) and by a check constraint.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC04",
+          "test_post_length_limit_10000"
+        ]
+      }
+    },
+    {
+      "id": "application:business-rule:read_requires_account",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "read_requires_account",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F05"
+      ],
+      "severity": "high",
+      "detail": "Rule read_requires_account differs (A: true, B: false)",
+      "solutions": [
+        "Choose one value and record why",
+        "Make it a setting if both are legitimate"
+      ],
+      "recommended": "Pick one value with the user; make it configurable only if both are needed",
+      "needs_approval": true,
+      "menu_features": [
+        "M08",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Published posts are public (B); pending and rejected posts are visible only to their author and moderators; everyone else gets 404. Fixes A's leak of unreviewed posts to every member.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC08",
+          "test_read_published_post_public",
+          "AC09",
+          "test_unpublished_post_hidden_from_others"
+        ]
+      }
+    },
+    {
+      "id": "application:roles:roles",
+      "category": "application",
+      "kind": "roles",
+      "subject": "roles",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Role sets differ (A: member, moderator; B: admin, user)",
+      "solutions": [
+        "Map every source role to a unified role set and write the mapping down",
+        "Model special powers (such as approving) as permissions, not extra roles"
+      ],
+      "recommended": "One role set plus explicit permissions; map every source role",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Unified roles member and moderator; moderate-posts is a permission of moderator. Mapping: A:member -> member, A:moderator -> moderator, B:user -> member, B:admin -> member (B's admin has no observed powers; an existing moderator promotes individual people by hand).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC11",
+          "test_imported_b_admin_is_member"
+        ]
+      }
+    },
+    {
+      "id": "application:route:/login",
+      "category": "application",
+      "kind": "route",
+      "subject": "/login",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Route /login is used by A: A-S03, B: B-S02",
+      "solutions": [
+        "Merge both screens into one page with sections",
+        "Move one to a different path"
+      ],
+      "recommended": "One route per screen in the unified navigation",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One Login screen at /login.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "application:route:/posts",
+      "category": "application",
+      "kind": "route",
+      "subject": "/posts",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Route /posts is used by A: A-S01, B: B-S01",
+      "solutions": [
+        "Merge both screens into one page with sections",
+        "Move one to a different path"
+      ],
+      "recommended": "One route per screen in the unified navigation",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One PostList screen at /posts (published posts).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "application:session:session",
+      "category": "application",
+      "kind": "session",
+      "subject": "session",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Session mechanisms differ (A: cookie session; B: jwt bearer token)",
+      "solutions": [
+        "Choose one session mechanism (http-only cookie sessions are the safer default for web apps)",
+        "Use tokens only where a client cannot hold cookies"
+      ],
+      "recommended": "One session mechanism for the whole app",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Server-side session in an http-only, secure, SameSite=Lax cookie with expiry; no JWT. B's token code and its hard-coded key are not carried over; existing B tokens stop working and B users sign in again.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC12",
+          "test_bearer_token_not_accepted",
+          "AC01",
+          "test_sign_in_sets_httponly_cookie"
+        ]
+      }
+    },
+    {
+      "id": "database:data:imported-anonymous-posts",
+      "category": "database",
+      "kind": "data",
+      "subject": "imported-anonymous-posts",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "B allows posts with no author (author_id null, B-F04); the unified Post requires an author for new posts (A-F02) and anonymous posting is deferred (M07). Imported anonymous B posts would be rejected by a NOT NULL author.",
+      "solutions": [
+        "Allow a null author only on imported B rows (check: author_id is not null or imported_from = 'B')",
+        "Assign imported anonymous posts to one placeholder account",
+        "Skip anonymous B posts on import (data loss)"
+      ],
+      "recommended": "Allow a null author only on imported B rows, enforced by a check constraint; new posts always need an author",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "author_id may be null only on imported B rows: check (author_id is not null or imported_from = 'B'). New posts always need an author.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC14",
+          "test_import_rules_for_b_posts"
+        ]
+      }
+    },
+    {
+      "id": "database:data:imported-post-status",
+      "category": "database",
+      "kind": "data",
+      "subject": "imported-post-status",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F04",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "B's posts have no status and are all live (B-F03); the unified Post requires a status and every new post starts pending (A-F04). If B's existing posts are imported, they need a status, and the choice decides whether they stay visible.",
+      "solutions": [
+        "Import B's posts as published, marked imported_from = B, so they stay visible; moderators may reject any later",
+        "Import B's posts as pending so moderators re-review everything (they disappear from public view until reviewed)",
+        "Do not import B's posts"
+      ],
+      "recommended": "Import as published with imported_from = B; they were already public, and moderators can reject any of them",
+      "needs_approval": true,
+      "menu_features": [
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Import B's posts as published with imported_from = 'B' (they were already public); moderators may reject any later.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC14",
+          "test_import_rules_for_b_posts"
+        ]
+      }
+    },
+    {
+      "id": "database:enum:user.role",
+      "category": "database",
+      "kind": "enum",
+      "subject": "user.role",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F04",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "User.role allows different values (A only: member, moderator; B only: admin, user; 4 values in all)",
+      "solutions": [
+        "Define one value set and a mapping from every source value to it",
+        "Keep the field per source if the states really differ"
+      ],
+      "recommended": "One value set with an explicit mapping; values without a mapping block the migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Value set {member, moderator}; mapping as in application:roles:roles. No source value is left unmapped.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC11",
+          "test_imported_b_admin_is_member"
+        ]
+      }
+    },
+    {
+      "id": "database:field-type:post.author_id",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "post.author_id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05",
+        "B-F06"
+      ],
+      "severity": "high",
+      "detail": "Post.author_id types differ (A: uuid, B: integer)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "uuid referencing User.id; B's integer author ids are rewritten through the users' legacy_id map on import.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "database:field-type:post.id",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "post.id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05",
+        "B-F06"
+      ],
+      "severity": "high",
+      "detail": "Post.id types differ (A: uuid, B: integer)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "uuid (see database:primary-key:post).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "database:field-type:user.id",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "user.id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F04",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "User.id types differ (A: uuid, B: integer)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "uuid (see database:primary-key:user).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "database:units:post.created_at.timezone",
+      "category": "database",
+      "kind": "units",
+      "subject": "post.created_at.timezone",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05",
+        "B-F06"
+      ],
+      "severity": "high",
+      "detail": "Post.created_at timezone differs (A: stored with time zone, B: not stated)",
+      "solutions": [
+        "Store one unit (for example integer cents in UTC) and convert at import",
+        "Store the unit with the value"
+      ],
+      "recommended": "One unit per field, converted in the migration and tested",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Store created_at as timestamptz in UTC. A's values are already zoned. B's naive timestamps are converted from B's server time zone, which is unknown: the import migration may not run until the user states it (open question).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC15",
+          "test_created_at_is_utc"
+        ]
+      }
+    },
+    {
+      "id": "api:duplicate-endpoint:GET /api/posts/{}",
+      "category": "api",
+      "kind": "duplicate-endpoint",
+      "subject": "GET /api/posts/{}",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F03",
+        "B-F05"
+      ],
+      "severity": "medium",
+      "detail": "GET /api/posts/{} exists in A: /api/posts/:id, B: /api/posts/<int:post_id>",
+      "solutions": [
+        "Keep one endpoint and adapt clients of the other",
+        "Keep both under different paths if they serve different needs"
+      ],
+      "recommended": "One endpoint per job in the unified API",
+      "needs_approval": false,
+      "menu_features": [
+        "M08",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One endpoint GET /api/v1/posts/{id} in the posts module.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "api:duplicate-endpoint:POST /api/posts",
+      "category": "api",
+      "kind": "duplicate-endpoint",
+      "subject": "POST /api/posts",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02",
+        "B-F03",
+        "B-F04"
+      ],
+      "severity": "medium",
+      "detail": "POST /api/posts exists in A: /api/posts, B: /api/posts",
+      "solutions": [
+        "Keep one endpoint and adapt clients of the other",
+        "Keep both under different paths if they serve different needs"
+      ],
+      "recommended": "One endpoint per job in the unified API",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One endpoint POST /api/v1/posts in the posts module.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "application:security:b-hardcoded-signing-key",
+      "category": "application",
+      "kind": "security",
+      "subject": "b-hardcoded-signing-key",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "B signs and verifies JWTs with a literal key in api.py (scan: 2 medium findings) and passes no algorithms list to decode. B's sign-in (M02) is dropped, but nothing from B's auth code may be carried over.",
+      "solutions": [
+        "Carry over nothing from B's token code; one cookie-session system configured from environment variables",
+        "If a token API is ever needed, a new key from the environment with a fixed algorithm and expiry"
+      ],
+      "recommended": "Carry over nothing from B's token code; existing B tokens stop working after the merge and B users sign in again",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Nothing from B's token code is reused; every secret comes from environment variables named in .env.example.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:post",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "post",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05",
+        "B-F06"
+      ],
+      "severity": "medium",
+      "detail": "Post exists in A:Post, B:Post; fields not shared: status (only A)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge only once it is confirmed they mean the same thing; then list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge: A's and B's Post are the same thing (a forum post). One Post table; fields' origins listed in architecture.json.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:user",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "user",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F04",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "User exists in A:User, B:User",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge only once it is confirmed they mean the same thing; then list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge: same meaning (a person who signs in). One User table; B's name maps to display_name (aliases.json).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator"
+      }
+    },
+    {
+      "id": "database:nullability:post.author_id",
+      "category": "database",
+      "kind": "nullability",
+      "subject": "post.author_id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "A-F04",
+        "A-F05",
+        "B-F02",
+        "B-F03",
+        "B-F04",
+        "B-F05",
+        "B-F06"
+      ],
+      "severity": "medium",
+      "detail": "Post.author_id is A: required, B: optional",
+      "solutions": [
+        "Keep the field nullable",
+        "Make it required with a default for rows that have no value"
+      ],
+      "recommended": "Do not make a field required until every source row has a value or a default is agreed",
+      "needs_approval": false,
+      "menu_features": [
+        "M03",
+        "M04",
+        "M05",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Required for new posts; null only for imported anonymous B posts (see database:data:imported-anonymous-posts).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved by the operator",
+        "verified_by": [
+          "AC14",
+          "test_import_rules_for_b_posts"
+        ]
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:post",
+      "entity": "Post",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "re-key rows to one primary key type (A: uuid, B: integer) and rewrite foreign keys that point at them",
+          "risk": "high",
+          "data_loss": [],
+          "note": "old ids and anything outside that stores them stop matching"
+        },
+        {
+          "change": "convert author_id to one type (A: uuid, B: integer)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "convert id to one type (A: uuid, B: integer)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "add fields that only some sources have: status (only A)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "B.Post.id: integer to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "id"
+          ]
+        },
+        {
+          "change": "B.Post.author_id: integer to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "author_id"
+          ]
+        },
+        {
+          "change": "author_id: rows from B may have no value; making it required rejects them unless a default is agreed",
+          "risk": "high",
+          "data_loss": []
+        },
+        {
+          "change": "convert created_at to one timezone (A: stored with time zone, B: not stated) and test the conversion",
+          "risk": "high",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "re-key rows to one primary key type (A: uuid, B: integer) and rewrite foreign keys that point at them",
+        "convert author_id to one type (A: uuid, B: integer)",
+        "convert id to one type (A: uuid, B: integer)",
+        "add fields that only some sources have: status (only A)",
+        "B.Post.id: integer to uuid can lose or reject values",
+        "B.Post.author_id: integer to uuid can lose or reject values",
+        "author_id: rows from B may have no value; making it required rejects them unless a default is agreed",
+        "convert created_at to one timezone (A: stored with time zone, B: not stated) and test the conversion"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "author_id",
+        "id"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:user",
+      "entity": "User",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "re-key rows to one primary key type (A: uuid, B: integer) and rewrite foreign keys that point at them",
+          "risk": "high",
+          "data_loss": [],
+          "note": "old ids and anything outside that stores them stop matching"
+        },
+        {
+          "change": "convert id to one type (A: uuid, B: integer)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "B.User.id: integer to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "id"
+          ]
+        },
+        {
+          "change": "map every value of role to one value set (A only: member, moderator; B only: admin, user)",
+          "risk": "high",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "re-key rows to one primary key type (A: uuid, B: integer) and rewrite foreign keys that point at them",
+        "convert id to one type (A: uuid, B: integer)",
+        "B.User.id: integer to uuid can lose or reject values",
+        "map every value of role to one value set (A only: member, moderator; B only: admin, user)"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "id"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    }
+  ]
+}

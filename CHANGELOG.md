@@ -1,5 +1,225 @@
 # Changelog
 
+## 2.2.0 (2026-11-05)
+
+Engineering hardening. Every weakness reported against 2.1.0 was first
+reproduced with a probe (`benchmarks/probes/run_probes.py`: 34 of 35 probes
+succeeded against 2.1.0), then fixed and tested; all 35 are defended in 2.2.0.
+Nothing was removed. v2.0 and v2.1 workspaces keep validating with the same
+verdicts as before.
+
+### Compatibility
+
+- `project.json` `"format": 4` is a v2.2 workspace; formats 2 and 3 keep their
+  rules. The v2.2 checks (recorded phase approvals, journey tests, honesty of
+  observed vs documented, ledger and code fingerprint) are errors in format 4
+  and warnings or silent before.
+- Two deliberate exceptions, because they concern running code now rather than
+  judging old files: `run_tests.py` refuses unscoped (v2.1-style) approvals
+  in every format, and a run recorded by the 2.2 `run_tests.py` is held to the
+  2.2 evidence rules in every format.
+- `aliases.json` accepts the 2.1 string form and the new `{"to", "reason"}`.
+  `versions_conflict()` keeps its True / False / None contract.
+- The example is now a format 4 workspace; its 2.1 run stays in `test-runs/`.
+
+### Fixed: execution safety (P0)
+
+- **Approvals are enforced, not recorded.** New `scripts/approvals.py`
+  (`request`, `grant --user-confirmed`, `check`, `list`, `revoke`). A
+  `run-tests` approval is bound to the folder, the harness or the exact
+  command (matched by SHA-256, stored redacted) and its JUnit path, with an
+  expiry (default 8 hours), optional use limit and optional code fingerprint.
+  `run_tests.py` and `verify_tests.py --rerun` refuse a missing, unknown,
+  other-action, other-command, other-folder, expired, revoked, used-up,
+  unscoped or code-changed approval and run nothing (exit 3). Every decision
+  is logged in `mixer/approval-log.jsonl` with secrets redacted.
+- **Timeouts and termination.** `run_tests.py --timeout` (default 1800 s)
+  runs the command in its own process group, sends SIGTERM then SIGKILL to the
+  whole group (`taskkill /T /F` on Windows), terminates processes the tests
+  leave behind after a normal exit, handles SIGTERM and Ctrl-C (outcome
+  `interrupted`, exit 130), keeps partial output, and records the outcome
+  (`exited`, `timed_out`, `interrupted`) and how the process was stopped.
+  Output is capped (`--max-log-mb`, keeping the first and last halves).
+
+### Fixed: false-green reports (P1)
+
+- Every run gets a **verdict**: `passed`, `failed`, `no-tests`, `incomplete`,
+  `inconsistent`, `invalid-results`, `timed-out` or `interrupted`. Only
+  `passed` exits 0, and only `passed` or `failed` runs count as evidence.
+- Zero discovered tests, or all skipped, is `no-tests`, never success.
+- Exit code and results must agree; a non-zero exit with no failing test is
+  `inconsistent` and its passes are unverified.
+- A JUnit file present before the run is moved into the run folder first, so
+  only a file this run wrote counts (2.1 accepted a touched or rewritten
+  old file). Suite totals must match the test cases; malformed, oversized or
+  missing results are `invalid-results`; unknown result elements
+  (`flakyFailure`...) make a test `unverified`; `--expect-tests N`.
+- The integration report is rewritten for every run, whatever its verdict,
+  so an earlier green report can no longer outlive a failed run.
+- A failing test left out of the report is an error; an empty report proves
+  nothing.
+
+### Fixed: evidence integrity (P1)
+
+- Run records carry the tested code's fingerprint before and after;
+  verification fails when the code changed since the run.
+- Hash-chained, append-only `test-runs/ledger.jsonl`; the report fingerprints
+  its `run.json`; evidence files are read-only; one run at a time per
+  workspace (a lock that recovers from a dead holder).
+- Optional HMAC signing with a key kept outside `mixer/`
+  (`--evidence-key`, `FEATURE_MIXER_EVIDENCE_KEY`) and an external copy of
+  each run (`--evidence-copy`), both checked by `verify_tests.py`.
+- Documented plainly: fingerprints detect change relative to a trusted
+  fingerprint; without a key or an external copy a full consistent rewrite
+  is undetectable (a test asserts this limit), and none of it proves the
+  evidence was genuine.
+
+### Fixed: source scanning (Phase 2)
+
+- Walks with directory file descriptors and opens with `O_NOFOLLOW` (POSIX):
+  a file swapped for a link mid-scan is not followed. Named pipes, sockets
+  and devices are never opened (a FIFO hung 2.1's scanner). Paths too long
+  to open, unreadable folders, depth and file limits are reported and set
+  `complete: false` (2.1 skipped them silently).
+- Prompt injection across line breaks, in HTML comments and hidden elements,
+  in base64, with zero-width or full-width characters, chat-template tokens,
+  "reveal the secrets" requests; whitespace-tolerant patterns.
+- Secrets: connection-string passwords, base64-encoded and split-into-pieces
+  keys, random-looking literals (low severity); documented placeholders
+  (`AKIA...EXAMPLE`, `${VAR}`, `postgres:postgres`) reported as info, not as
+  secrets; secrets inside quoted AI-addressed lines are redacted.
+- Hooks: `.envrc`, VS Code folder-open tasks, dev-container commands, git
+  config commands (`core.fsmonitor`, `hooksPath`, filters, `!` aliases),
+  `build.rs`, Gradle, Maven, CMake, `pyproject.toml` build backends, npm
+  test hooks, package registry settings in `package.json`.
+- Large files: the first part is scanned instead of skipping the file.
+  Control, bidirectional and invalid characters in file names are escaped so
+  they cannot spoof the report.
+- On the Python standard library (27,847 files) the scanner runs as fast as
+  2.1.0 (58.6 s vs 59.2 s) with instruction-text false positives down from 35
+  to 6.
+- `index_repo.py`: the same safe walk; hashes in chunks and parses at most
+  `--max-text-mb` per file (a 60 MB file took 120 MB in 2.1, 4 MB now).
+
+### Fixed: compatibility engine (Phase 3)
+
+- New `scripts/versions.py`: real range arithmetic for npm, Cargo and Poetry
+  (`^ ~ x * || -` ranges) and PEP 440 (`~= == != >= <` and wildcards).
+  `>=16 <20` and `^18.2` now agree (2.1: false conflict); `~18.0` and `^18.2`
+  now conflict (2.1: missed). Unreadable specs (git, URLs, local paths,
+  `workspace:`, tags) are reported as uncertain, never as compatible.
+- Manifests: package.json (with peer and optional dependencies),
+  requirements*.txt (with `-r`, `-e`, URLs, markers), pyproject.toml (PEP
+  621 and Poetry; a pattern fallback before Python 3.11), Cargo.toml, go.mod,
+  .nvmrc. Runtime ranges are compared. Conflicts inside one monorepo are
+  found. Linked, malformed, oversized and nested-repository manifests and the
+  search depth limit are reported under `manifest_problems`.
+- Imports: Python parsed with `ast` (relative, `from pkg import sub`,
+  optional and conditional imports, `importlib.import_module`); JS/TS
+  `export ... from`, `import()`, tsconfig path aliases and workspace
+  packages; Go, Rust and Java by pattern; `import_coverage` per language;
+  unresolved dynamic imports counted; module cycles. A package is called
+  possibly unused only when coverage is complete; otherwise "not
+  determinable" with the reason.
+- Meaning, not names: `entity-meaning`, `possible-alias` (synonyms and field
+  overlap), `field-meaning`, aliases must give a reason; `enum`,
+  `nullability`, `unique-constraint`, `default-value`, `exposure-default`,
+  `units` (unit, currency, time zone), `delete-policy`,
+  `deletion-semantics`, `cardinality` (one-to-many vs a join table). Better
+  singular forms (`statuses` → `status`).
+- Application level: `identity-linking`, `role-meaning`, `role-map`,
+  `privilege-escalation`, `tenancy-model`, `tenant-isolation`,
+  `shared-resource`, `idempotency`, `payment-flow`, `storage-provider`,
+  `pagination`, `error-format`, `rate-limit`, `endpoint-origin` (an
+  architecture endpoint claiming an origin the source does not have).
+- Decisions can name the tests that prove them (`verified_by`);
+  `verify_tests.py` fails until they pass.
+
+### Added: integration scenarios and robustness (Phases 4 and 5)
+
+- `benchmarks/integration/` J–O: authentication, multi-tenant isolation,
+  conflicting business rules, payments (duplicate webhooks, timeout after
+  success, failed write, refund after cancel, with a mock gateway), file
+  storage, API integration (pagination, rate limits, error mapping, no
+  invented endpoints, with a recording mock transport). Each has sources, a
+  task with an interface, hidden conformance tests, a reference integration
+  that passes them and a naive merge that fails them, and an answer key the
+  checker meets. `run_holdout.py` runs the hidden tests on any build.
+- `benchmarks/generate_monorepo.py`: a seeded 1,100-file monorepo (three
+  package managers, generated code, a legacy module, a nested unrelated
+  repository). Nested repositories are boundaries for indexing and manifests;
+  `--progress`.
+- Honesty checks: `observed` needs observed evidence; a closed source cites
+  no code and claims no observed backend; `contradictions` between docs and
+  code are recorded and resolved, and no feature rests only on contradicted
+  documentation.
+
+### Added: workflow guards (Phase 6)
+
+- `approvals.py approve-phase` records phase approvals with a fingerprint of
+  what was approved (picks and merge plan, decisions, design);
+  `validate_project.py` reports any later change until it is approved again.
+- Format 4 needs at least one passing `level: journey` test.
+- A feature from no source must be marked as requested by the user.
+- Plan mode cannot mark a build phase as started.
+- `SKILL.md` and the engines: changing requirements, long sessions,
+  half-applied migrations, existing data, proprietary services, API response
+  samples, documentation contradictions, closed sources, almost no
+  documentation. Review of 15 failure scenarios: `docs/WORKFLOW-REVIEW.md`.
+
+### Changed: benchmarks (Phase 7)
+
+- Answer keys moved to `benchmarks/answer-keys/`, out of the scenario inputs;
+  `prepare_run.py` builds a run folder with inputs only and generates
+  generated content (and fake credentials) at run time.
+- Four new scenarios: 7-contradictory, 8-closed, 9-malicious (canary files,
+  canary secrets, injected feature), 10-monorepo; with J–O, 16 in all.
+- `score.py`: feature and conflict precision, recall, F1, false-positive and
+  false-negative rates, decision rate, security violations, false success
+  claims, interventions, duration, hidden-test pass rate, and an overall score
+  that ranks a confidently wrong run below an honestly uncertain one.
+  `aggregate.py` summarises repeated runs and their reproducibility.
+
+### Fixed after the first benchmark runs
+
+The benchmark runs used the skill as it stood when they were prepared. A run
+of the 2.2 skill on `9-malicious` found two inconsistencies, both fixed and
+tested:
+
+- `security-scan.schema.json` did not allow the finding kinds and the `low`
+  severity the 2.2 scanner writes (`hidden-text`, `placeholder-secret`,
+  `possible-secret`, `unusual-filename`, `special-file`, `depth-limit`,
+  `file-limit`, `unreadable`), so a clean workspace failed validation. The
+  agent rightly refused to edit the scan to pass. A test now checks the
+  schema against everything the scanner emits.
+- The merge plan required evidence for every unified feature, which a
+  user-requested feature (`source_app` `new`) cannot have. Now only such
+  features may have none.
+- Phase-approval fingerprints hashed whole files, so recording progress
+  (slice status, a feature's `validation`, its `compatibility` status)
+  looked like a change to an approved decision and forced new approvals.
+  Three runs (3-conflicting, J-auth, M-payments) hit it independently.
+  Approvals now record `approved_fingerprint_method: 2`, which leaves those
+  progress fields out; approvals recorded without it are still checked by
+  their bytes, so existing workspaces keep their verdicts.
+- `score.py --run-holdout` reported `n/a` for the integration scenarios,
+  because their answer keys name no module; the scorer now knows each
+  scenario's module, and a test checks every integration key.
+- The M-payments hidden test `test_retry_after_timeout_charges_once`
+  required `pay()` to raise on a gateway timeout, which the task does not
+  ask for; a correct build that retries with the same key failed it. It now
+  accepts either, with the same one-charge and consistent-state checks. The
+  reference still passes 9 of 9 and the naive merge 3 of 9. Recorded in the
+  key's `key_changes` and applied to every run.
+
+### Release
+
+- `tools/release_check.py`: a secrets check (no literal key-shaped strings, so
+  a push is not blocked by secret scanning) and `--probes`.
+- The suite (322 tests) passes on Python 3.8, 3.9, 3.10, 3.11, 3.12 and 3.13 on
+  Linux; the portable walker used on Windows is tested for parity on Linux.
+  Windows itself was not run.
+
 ## 2.1.0 (2026-11-04)
 
 Reliability, intelligence and security. An improvement of 2.0, not a

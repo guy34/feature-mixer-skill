@@ -1,0 +1,110 @@
+{
+  "A": {
+    "app": {
+      "id": "A",
+      "name": "Dropzone"
+    },
+    "integrations": [
+      {
+        "name": "s3",
+        "kind": "storage"
+      }
+    ],
+    "entities": [
+      {
+        "name": "File",
+        "deletion": "hard",
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "owner",
+            "type": "text"
+          },
+          {
+            "name": "public",
+            "type": "boolean",
+            "default": false
+          }
+        ]
+      }
+    ]
+  },
+  "B": {
+    "app": {
+      "id": "B",
+      "name": "Peek"
+    },
+    "integrations": [
+      {
+        "name": "local disk",
+        "kind": "storage"
+      }
+    ],
+    "entities": [
+      {
+        "name": "File",
+        "primary_key": {
+          "name": "id",
+          "type": "text"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "text",
+            "description": "path on disk"
+          },
+          {
+            "name": "public",
+            "type": "boolean",
+            "default": true
+          }
+        ]
+      }
+    ]
+  },
+  "C": {
+    "app": {
+      "id": "C",
+      "name": "Passlink"
+    },
+    "rules": [
+      {
+        "key": "link_expiry",
+        "value": null
+      }
+    ],
+    "entities": [
+      {
+        "name": "Link",
+        "primary_key": {
+          "name": "token",
+          "type": "text"
+        },
+        "fields": [
+          {
+            "name": "token",
+            "type": "text"
+          },
+          {
+            "name": "file_id",
+            "type": "int"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "field": "file_id",
+            "references": "File.id",
+            "on_delete": "none"
+          }
+        ]
+      }
+    ]
+  }
+}

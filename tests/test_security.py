@@ -139,7 +139,7 @@ class WorkspaceSecurityTest(unittest.TestCase):
         self.addCleanup(ws.close)
         ws.menu([row("M01", "Sign in")])
         data = source_json("A")
-        data["evidence"][0]["summary"] = "-----BEGIN RSA PRIVATE KEY----- in repo"
+        data["evidence"][0]["summary"] = "-----BEGIN " + "RSA PRIVATE KEY----- in repo"
         ws.set_source("A", data)
         ws.done_through("recon")
         self.assertIn("private-key", messages(vp.run(ws.mixer)[0]))

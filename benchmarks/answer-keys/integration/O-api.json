@@ -1,0 +1,33 @@
+{
+  "scenario": "O-api",
+  "conflicts": [
+    {
+      "kind": "pagination",
+      "subject": "pagination"
+    },
+    {
+      "kind": "error-format",
+      "subject": "error_format"
+    },
+    {
+      "kind": "rate-limit",
+      "subject": "rate_limit"
+    },
+    {
+      "kind": "endpoint-origin",
+      "subject": "DELETE /contacts/{id}"
+    }
+  ],
+  "must_not_find": [
+    {
+      "kind": "endpoint-origin",
+      "subject": "GET /contacts"
+    }
+  ],
+  "holdout_must_fail_on_naive": [
+    "test_every_page_of_both_apis",
+    "test_rate_limit_is_respected",
+    "test_unavailable_delete_is_reported",
+    "test_errors_are_mapped"
+  ]
+}

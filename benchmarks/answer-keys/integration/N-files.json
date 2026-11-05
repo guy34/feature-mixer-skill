@@ -1,0 +1,26 @@
+{
+  "scenario": "N-files",
+  "conflicts": [
+    {
+      "kind": "storage-provider",
+      "subject": "files"
+    },
+    {
+      "kind": "primary-key",
+      "subject": "file"
+    },
+    {
+      "kind": "exposure-default",
+      "subject": "file.public"
+    },
+    {
+      "kind": "duplicate-entity",
+      "subject": "file"
+    }
+  ],
+  "holdout_must_fail_on_naive": [
+    "test_links_expire",
+    "test_delete_revokes_links_and_previews",
+    "test_private_by_default"
+  ]
+}

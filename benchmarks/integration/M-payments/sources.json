@@ -1,0 +1,88 @@
+{
+  "A": {
+    "app": {
+      "id": "A",
+      "name": "Billfold"
+    },
+    "integrations": [
+      {
+        "name": "mockpay",
+        "kind": "payments",
+        "webhooks": true,
+        "idempotency": "none"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Order",
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "amount",
+            "type": "integer",
+            "unit": "cents"
+          },
+          {
+            "name": "paid",
+            "type": "boolean"
+          }
+        ]
+      }
+    ]
+  },
+  "B": {
+    "app": {
+      "id": "B",
+      "name": "Subscribe"
+    },
+    "integrations": [
+      {
+        "name": "mockpay",
+        "kind": "payments"
+      }
+    ]
+  },
+  "C": {
+    "app": {
+      "id": "C",
+      "name": "Orderly"
+    },
+    "entities": [
+      {
+        "name": "Order",
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "amount",
+            "type": "decimal",
+            "unit": "units"
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "enum": [
+              "pending",
+              "paid",
+              "cancelled",
+              "refunded"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

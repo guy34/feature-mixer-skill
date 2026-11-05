@@ -1,0 +1,88 @@
+{
+  "checked_at": "2026-11-04T19:58:46+00:00",
+  "checked_by": "check_environment.py",
+  "capabilities": {
+    "terminal": {
+      "status": "available",
+      "detail": "check_environment.py ran in a shell"
+    },
+    "tools": {
+      "python": {
+        "status": "available",
+        "detail": "Python 3.13.18"
+      },
+      "git": {
+        "status": "available",
+        "detail": "git version 2.43.0"
+      },
+      "node": {
+        "status": "available",
+        "detail": "v22.23.4"
+      },
+      "npm": {
+        "status": "available",
+        "detail": "10.9.9"
+      },
+      "docker": {
+        "status": "available",
+        "detail": "Docker version 29.9.2, build a82e528"
+      },
+      "podman": {
+        "status": "unavailable",
+        "detail": "not on PATH"
+      },
+      "pytest": {
+        "status": "available",
+        "detail": "pytest 9.1.1"
+      },
+      "pip-audit": {
+        "status": "unavailable",
+        "detail": "not on PATH"
+      },
+      "osv-scanner": {
+        "status": "unavailable",
+        "detail": "not on PATH"
+      },
+      "claude-cli": {
+        "status": "available",
+        "detail": "2.1.318 (Claude Code)"
+      }
+    },
+    "test_execution": {
+      "status": "available",
+      "detail": "can run tests with: python, pytest, node"
+    },
+    "isolation": {
+      "status": "available",
+      "detail": "containers possible with docker"
+    },
+    "vulnerability_audit": {
+      "status": "partial",
+      "detail": "audit tools present: npm (they need network; run only with approval)"
+    },
+    "filesystem_write": {
+      "status": "available",
+      "detail": "can write in ."
+    },
+    "network": {
+      "status": "unavailable",
+      "detail": "network access not approved for this run"
+    },
+    "browser": {
+      "status": "not-needed",
+      "detail": "all sources are local source files; no website input (benchmark rules also forbid network)"
+    },
+    "web_fetch": {
+      "status": "not-needed",
+      "detail": "no website input; network access not approved in this run"
+    },
+    "repository_access": {
+      "status": "not-needed",
+      "detail": "no GitHub input; sources are local folders"
+    },
+    "external_api": {
+      "status": "not-needed",
+      "detail": "payment gateway is the local mock gateway.py; no real gateway or API keys"
+    }
+  }
+}

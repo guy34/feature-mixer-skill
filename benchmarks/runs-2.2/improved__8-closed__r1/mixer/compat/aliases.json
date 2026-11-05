@@ -1,0 +1,6 @@
+{
+  "entities": {},
+  "fields": {
+    "amount_cents": {"to": "amount", "reason": "Both hold the money value of one expense; Spendly stores integer cents, Tallyho shows decimal major units (12.40 in its screenshot). Same meaning, different unit: recorded so the unit difference is checked"}
+  }
+}

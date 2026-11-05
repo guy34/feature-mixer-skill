@@ -1,0 +1,178 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Expense recording",
+      "menu_ids": [
+        "M06",
+        "M08"
+      ],
+      "source_features": [
+        "A-F07",
+        "B-F01"
+      ],
+      "evidence": [
+        "A-E09",
+        "A-E10",
+        "B-E02",
+        "B-E03",
+        "B-E04"
+      ],
+      "merge_type": "similar",
+      "rationale": "Both apps record an expense, with different fields: Tallyho has merchant, currency, date and a budget; Spendly has integer cents, a validated category and a note. One Expense record with the union of fields avoids two expense stores.",
+      "behaviour": "A signed-in user records an expense with amount (positive integer minor units), currency (ISO 4217), date, merchant (optional), category (required, from U02), note (optional) and optionally a budget they belong to. Without a budget the expense is personal and only its author sees it. Expenses are stored durably with id, author and created/updated timestamps in UTC.",
+      "improvements": "Spendly accepted any amount and kept nothing after exit: amounts are now validated (positive integer, upper bound) and persisted; Tallyho's undocumented types are replaced by integer minor units plus currency.",
+      "depends_on": [
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U02",
+      "name": "Expense categories",
+      "menu_ids": [
+        "M09"
+      ],
+      "source_features": [
+        "B-F02"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E04"
+      ],
+      "merge_type": "similar",
+      "rationale": "The user asked for Spendly's categories; Tallyho's own category field (M10) is dropped because its vocabulary is unknown.",
+      "behaviour": "Exactly four categories: food, travel, home, other. Every expense, typed or scanned, must use one; anything else is rejected with a validation error naming the allowed values. The list is one constant in the categories module, reused from Spendly.",
+      "improvements": "",
+      "depends_on": [],
+      "compatibility": "compatible",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U03",
+      "name": "Receipt scanning",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E03",
+        "A-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Tallyho has it; rebuilt from its documented and observed behaviour because Tallyho is closed.",
+      "behaviour": "The user photographs or uploads a receipt; an OCR adapter returns merchant, date, total and currency with per-field confidence; a review screen shows them as an editable draft with the date marked for checking; the user picks a category and optionally a budget, then saves, which creates an expense through U01. The receipt image is stored privately and linked to the expense.",
+      "improvements": "Tallyho's date is often wrong (user's notes): the extracted date is never saved without the user confirming it; a missing or implausible date (in the future, or more than 90 days old) is replaced by today and flagged. A total in a currency different from the chosen budget's is flagged, and saving needs the amount in the budget's currency (conversion is deferred).",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U04",
+      "name": "Shared budgets",
+      "menu_ids": [
+        "M03"
+      ],
+      "source_features": [
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E05",
+        "A-E07",
+        "A-E11"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Tallyho has it; rebuilt.",
+      "behaviour": "A user creates a budget with a name, a monthly limit (integer minor units) and a currency, and becomes its only owner. Every current member sees all of the budget's expenses and the amount spent of the limit for the current period; non-members see nothing (404). Expenses added to a budget must be in its currency.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U05",
+      "name": "Budget invitations by email",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "A-F04"
+      ],
+      "evidence": [
+        "A-E05",
+        "A-E07"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Tallyho has it; a shared budget needs a way to add people.",
+      "behaviour": "The owner invites an email address; the app emails a link with a single-use token that expires after 7 days; the invitee signs in or signs up with that email and accepts, becoming a member. Re-inviting replaces the pending invitation; inviting an existing member is refused.",
+      "improvements": "Tallyho's expiry and inviter rules are undocumented; this plan sets owner-only invites, single-use tokens and a 7-day expiry as its own rules.",
+      "depends_on": [
+        "U04"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U06",
+      "name": "Member removal",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "A-F05"
+      ],
+      "evidence": [
+        "A-E05",
+        "A-E07",
+        "A-E08"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Tallyho has it; rebuilt with the retention rule decided in phase 4.",
+      "behaviour": "Only the owner removes a member (the owner cannot remove themself). The removed member loses access to the budget and all its expenses immediately. Their expenses stay in the budget, so totals do not change, and are shown as added by a former member. The owner sees a confirmation that says this before removing.",
+      "improvements": "Tallyho's behaviour (expenses stay) is kept, but made explicit: a confirmation explains it, former members are marked, and access is revoked on every read.",
+      "depends_on": [
+        "U04"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U07",
+      "name": "Monthly budget period",
+      "menu_ids": [
+        "M07"
+      ],
+      "source_features": [
+        "A-F06"
+      ],
+      "evidence": [
+        "A-E06"
+      ],
+      "merge_type": "unique",
+      "rationale": "Only Tallyho has it; its exact rules are undocumented, so the plan defines them.",
+      "behaviour": "The spent total covers expenses dated in the current calendar month in the budget's time zone; it starts again at zero on the 1st. Nothing is deleted or moved; earlier months stay viewable. No rollover of unspent amounts. Computed at read time, so no scheduled job is needed.",
+      "improvements": "",
+      "depends_on": [
+        "U04"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

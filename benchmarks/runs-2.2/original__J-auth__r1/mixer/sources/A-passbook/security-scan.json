@@ -1,0 +1,11 @@
+{
+  "root": "../../../sources/passbook",
+  "scanned_at": "2026-11-05T08:01:12+00:00",
+  "scanner": "scan_source.py",
+  "files_scanned": 1,
+  "skipped": {},
+  "summary": {},
+  "high": 0,
+  "findings": [],
+  "acknowledged": true
+}

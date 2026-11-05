@@ -1,0 +1,45 @@
+{
+  "scenario": "M-payments",
+  "conflicts": [
+    {
+      "kind": "idempotency",
+      "subject": "A:mockpay"
+    },
+    {
+      "kind": "payment-flow",
+      "subject": "payments"
+    },
+    {
+      "kind": "duplicate-entity",
+      "subject": "order"
+    },
+    {
+      "kind": "field-type",
+      "subject": "order.amount"
+    },
+    {
+      "kind": "units",
+      "subject": "order.amount.unit"
+    },
+    {
+      "kind": "integration",
+      "subject": "mockpay"
+    }
+  ],
+  "holdout_must_fail_on_naive": [
+    "test_duplicate_webhook_applies_once",
+    "test_same_key_twice_charges_once",
+    "test_cancel_after_payment_refunds_once",
+    "test_failed_write_leaves_order_unchanged"
+  ],
+  "note": "The naive merge passes test_retry_after_timeout_charges_once only because the mock gateway is itself idempotent by key; a gateway without that would double-charge.",
+  "key_changes": [
+    {
+      "date": "2026-11-05",
+      "change": "holdout test_retry_after_timeout_charges_once no longer requires pay() to raise on a gateway timeout; it accepts a raise or an in-app retry with the same key, and still requires status pending or paid after the first call, then exactly one gateway charge, status paid and one ledger charge after the client's retry",
+      "why": "task.md requires one charge and a consistent order, not that the timeout is surfaced; an improved-version run retried internally, charged once and ended paid, and failed only on assertRaises",
+      "found_by": "improved__M-payments__r1",
+      "applied_to": "every run of both versions"
+    }
+  ]
+}

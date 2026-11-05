@@ -1,0 +1,176 @@
+{
+  "name": "Unified Identity",
+  "format": 4,
+  "mode": "full",
+  "selection": "auto-pick",
+  "audience": "The user's apps that need one sign-in system: people signing in with email and password or a Google-style OAuth provider, with viewer/editor/admin roles",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Passbook",
+      "slug": "passbook",
+      "access": "own-code",
+      "licence": "proprietary (the user's own code)",
+      "code_reuse": "allowed",
+      "slice": "email and password accounts: register, log in, sessions",
+      "local_path": "sources/passbook",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/passbook"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Linkup",
+      "slug": "linkup",
+      "access": "open-source",
+      "licence": "MIT according to the user; no licence file present in sources/linkup",
+      "code_reuse": "not-allowed",
+      "slice": "sign-in with an OAuth provider (Google-style) callback and account creation",
+      "local_path": "sources/linkup",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/linkup"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Roster",
+      "slug": "roster",
+      "access": "own-code",
+      "licence": "proprietary (the user's own code)",
+      "code_reuse": "allowed",
+      "slice": "roles and permissions: viewer, editor, admin; role changes",
+      "local_path": "sources/roster",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/roster"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-05",
+      "approved_at": "2026-11-05T13:03:15+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "0a80481cf6f1330147738b30baf1a05fa3f1b5165cf52f3ea6efe9078494d010",
+      "note": "auto-pick selection; recommendation pre-approved by the benchmark operator (no user present) | re-recorded after a validation-only change: merge-plan validation untested -> verified with test lists; picks and unified features unchanged"
+    },
+    "compatibility": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-05",
+      "approved_at": "2026-11-05T08:03:05+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "ddc378b5fd428c4c6b36e015075d91f5af2433391160b149d568053dae9d82dc",
+      "note": "all conflict resolutions and the migration plan (no data to migrate) pre-approved by the benchmark operator; linking and role rules are the user's decisions from task.md | re-approval after the architecture draft surfaced migration:passwordcredential, migration:identity, migration:session (plan only; no data to migrate); pre-approved by the benchmark operator"
+    },
+    "architecture": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-05",
+      "approved_at": "2026-11-05T13:03:06+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "cebdeb84790c0be067eb6d30a26979df17e39bd00f4dfbf2b872a33a0bc06791",
+      "note": "modular monolith, roles + identity modules, slices V1-V3; pre-approved by the benchmark operator | re-recorded after a status-only change: slices V1-V3 set to done; no design decision changed (pre-approved architecture)"
+    },
+    "implementation": {
+      "status": "done"
+    },
+    "integration": {
+      "status": "done"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T07:59:30+00:00",
+      "note": "recon done"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T07:59:52+00:00",
+      "note": "menu: 5 rows"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T08:00:06+00:00",
+      "note": "auto-pick: keep M01-M05"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T08:01:37+00:00",
+      "note": "20 conflicts resolved"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T08:03:06+00:00",
+      "note": "architecture approved"
+    },
+    {
+      "id": "CP6",
+      "phase": "implementation",
+      "ref": "snapshot:checkpoints/CP6; target:app",
+      "date": "2026-11-05T13:03:02+00:00",
+      "note": "V1-V3 built; first full run 32/32 passed"
+    },
+    {
+      "id": "CP7",
+      "phase": "integration",
+      "ref": "snapshot:checkpoints/CP7; target:app",
+      "date": "2026-11-05T13:03:37+00:00",
+      "note": "integration verified 32/32"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "run-tests",
+      "target": "the Python unittest suite in app/tests (top folder .)",
+      "approved": true,
+      "by": "benchmark operator",
+      "date": "2026-11-05",
+      "granted_at": "2026-11-05T13:02:53+00:00",
+      "expires_at": "2026-11-05T21:02:53+00:00",
+      "scope": {
+        "cwd": "app",
+        "runner": "unittest",
+        "unittest": {
+          "start": "tests",
+          "top": "."
+        }
+      },
+      "granted_via": "approvals.py grant --user-confirmed",
+      "note": "running the new app's own test suite was pre-approved by the benchmark operator; no installs, no network"
+    }
+  ]
+}

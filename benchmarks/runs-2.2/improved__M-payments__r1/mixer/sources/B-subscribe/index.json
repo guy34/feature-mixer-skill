@@ -1,0 +1,58 @@
+{
+  "root": "../../../sources/subscribe",
+  "indexed_at": "2026-11-05T08:00:09+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 2,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "plans.py",
+      "size": 112,
+      "sha256": "2794c550d6655b738d634e118eb20eecb600ba7f41cfb33285bcfe216d0a96a5",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 2,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 2,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "module_cycles": [],
+  "external_imports": {},
+  "import_coverage": {
+    "python": {
+      "files": 1,
+      "method": "parsed (ast)"
+    }
+  },
+  "aliases": {
+    "paths": {},
+    "workspace_packages": {},
+    "go_modules": []
+  },
+  "skipped": {},
+  "nested_repositories": [],
+  "errors": [],
+  "limits_hit": [],
+  "complete": true,
+  "feature_files": {
+    "B-F01": [
+      "plans.py"
+    ]
+  }
+}

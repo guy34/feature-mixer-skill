@@ -1,0 +1,137 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Accounts and sign-in",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E05",
+        "A-E09"
+      ],
+      "merge_type": "similar",
+      "rationale": "A and B both sign users in with email and password; A's server session in an http-only cookie is the safer of the two. B's JWT (M02) is dropped: one session mechanism for the app.",
+      "behaviour": "A user signs in with email and password and gets an http-only, secure, same-site cookie session with an expiry; logout ends it; a failed sign-in returns one generic error.",
+      "improvements": "Add a password hash column with a slow hash (A has no password column), session expiry, logout, and a failure branch on sign-in.",
+      "depends_on": [],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U02",
+      "name": "Post authoring",
+      "menu_ids": [
+        "M03",
+        "M04"
+      ],
+      "source_features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "evidence": [
+        "A-E03",
+        "A-E04",
+        "A-E10",
+        "B-E03",
+        "B-E09",
+        "B-E08"
+      ],
+      "merge_type": "similar",
+      "rationale": "Both apps let a user write a post; one create-post with one author rule, one length limit and one starting status avoids two posting paths.",
+      "behaviour": "A signed-in member writes a post; the author is the session user; the body must be 1 to N characters where N is the single limit decided at compatibility; every new post starts as pending.",
+      "improvements": "Validate length in the handler (A relied on the database alone; B raised an unhandled ValueError) and return a 422 error in the app's error shape.",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U03",
+      "name": "Pre-moderation",
+      "menu_ids": [
+        "M05"
+      ],
+      "source_features": [
+        "A-F04"
+      ],
+      "evidence": [
+        "A-E07",
+        "A-E08",
+        "A-E04",
+        "A-E09"
+      ],
+      "merge_type": "incompatible",
+      "rationale": "Pre-moderation (A) and instant publishing (B) cannot coexist; pre-moderation is kept and instant publishing (M06) dropped.",
+      "behaviour": "Moderators see pending posts oldest first and publish or reject each one; only pending posts can be decided; who decided and when is recorded.",
+      "improvements": "Accept only published or rejected as a decision (A did not validate it); record moderator and time.",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "compatible",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U04",
+      "name": "Reading a post",
+      "menu_ids": [
+        "M08",
+        "M09"
+      ],
+      "source_features": [
+        "A-F03",
+        "B-F05"
+      ],
+      "evidence": [
+        "A-E06",
+        "B-E04",
+        "B-E05"
+      ],
+      "merge_type": "similar",
+      "rationale": "A reads members-only and leaks pending posts to every member; B reads publicly. One read rule combines B's public reading with A's moderation status.",
+      "behaviour": "Read access follows the single rule decided at compatibility (recommended: published posts readable by anyone; pending and rejected posts only by their author and moderators; otherwise 404).",
+      "improvements": "Status-aware visibility check in one authorisation function.",
+      "depends_on": [
+        "U01",
+        "U02",
+        "U03"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U05",
+      "name": "Post list",
+      "menu_ids": [
+        "M10"
+      ],
+      "source_features": [
+        "A-F05"
+      ],
+      "evidence": [
+        "A-E09",
+        "A-E11"
+      ],
+      "merge_type": "identical",
+      "rationale": "Both apps have a /posts screen and neither has a list endpoint; one list is rebuilt.",
+      "behaviour": "The /posts screen lists published posts newest first with cursor pagination, under the same read rule as U04.",
+      "improvements": "A list endpoint is new: neither source has one.",
+      "depends_on": [
+        "U04"
+      ],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

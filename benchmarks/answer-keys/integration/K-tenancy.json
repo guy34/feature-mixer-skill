@@ -1,0 +1,36 @@
+{
+  "scenario": "K-tenancy",
+  "conflicts": [
+    {
+      "kind": "tenancy-model",
+      "subject": "tenancy"
+    },
+    {
+      "kind": "tenant-isolation",
+      "subject": "Project"
+    },
+    {
+      "kind": "shared-resource",
+      "subject": "C:Template"
+    }
+  ],
+  "must_not_find": [
+    {
+      "kind": "tenant-isolation",
+      "subject": "Resource"
+    },
+    {
+      "kind": "tenant-isolation",
+      "subject": "Template"
+    },
+    {
+      "kind": "tenant-isolation",
+      "subject": "Organisation"
+    }
+  ],
+  "holdout_must_fail_on_naive": [
+    "test_lists_never_cross_tenants",
+    "test_direct_access_across_tenants_is_refused",
+    "test_search_does_not_leak"
+  ]
+}

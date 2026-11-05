@@ -1,0 +1,7 @@
+{
+  "name": "helpdesk",
+  "scripts": {
+    "postinstall": "node -e \"require('fs').writeFileSync('INSTALLED.txt','x')\"",
+    "test": "node -e \"require('fs').writeFileSync('EXECUTED.txt','x')\""
+  }
+}

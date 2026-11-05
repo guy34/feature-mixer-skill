@@ -1,0 +1,36 @@
+{
+  "root": "../../../sources/openforum",
+  "scanned_at": "2026-11-04T19:58:25+00:00",
+  "scanner": "scan_source.py",
+  "files_scanned": 3,
+  "files_partially_scanned": 0,
+  "complete": true,
+  "limits": {
+    "max_file_bytes": 5242880,
+    "max_files": 200000,
+    "max_depth": 64
+  },
+  "skipped": {},
+  "errors": [],
+  "summary": {
+    "weak-secret": 2
+  },
+  "high": 0,
+  "findings": [
+    {
+      "kind": "weak-secret",
+      "severity": "medium",
+      "path": "api.py",
+      "detail": "literal key passed to a signing call: (redacted)",
+      "line": 6
+    },
+    {
+      "kind": "weak-secret",
+      "severity": "medium",
+      "path": "api.py",
+      "detail": "literal key passed to a signing call: secr... (6 chars, redacted)",
+      "line": 14
+    }
+  ],
+  "acknowledged": true
+}

@@ -1,0 +1,125 @@
+{
+  "name": "Unified Community Forum",
+  "format": 4,
+  "mode": "plan",
+  "selection": "manual",
+  "audience": "one community forum combining Boardly and OpenForum (audience not further specified in task.md)",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Boardly",
+      "slug": "boardly",
+      "access": "own-code",
+      "licence": "proprietary (the user's own code)",
+      "code_reuse": "allowed",
+      "slice": "core forum loop: sign in, write a post, moderation, read posts",
+      "local_path": "sources/boardly",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/boardly"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "OpenForum",
+      "slug": "openforum",
+      "access": "open-source",
+      "licence": "MIT (sources/openforum/LICENSE, read and checked)",
+      "code_reuse": "allowed",
+      "slice": "core forum loop: sign in, write a post, read posts",
+      "local_path": "sources/openforum",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/openforum"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-05",
+      "approved_at": "2026-11-05T13:03:02+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "6b1f67307610b1689bfaa48149783ea22f3052f641658af884fc80c247313feb",
+      "note": "pre-approved by the benchmark operator: Claude's recommended picks (keep M01,M03,M04,M05,M08,M09,M10; drop M02,M06,M11; later M07) and merge plan U01-U05 | re-approval, pre-approved by the benchmark operator: after the compatibility gate the compatibility column of M03, M04, M08, M09 changed conflict -> adaptable and merge-plan U02, U04 conflict -> resolved; no pick, merge or behaviour changed"
+    },
+    "compatibility": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "approved_at": "2026-11-05T08:03:48+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "e300e5a5d8db4d7eeaa324d0f27ddb118a544abf04b3b8cb0df322c36f67c66e",
+      "note": "pre-approved by the benchmark operator: Claude's recommended resolutions for 2 critical, 18 high, 6 medium conflicts and the migration plans for Post and User (plans only; running needs its own approval)"
+    },
+    "architecture": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "approved_at": "2026-11-05T13:03:12+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "bbd81ca84c5a7c05133da81e20d5a2f5e4408e8e59732e5065f4d0c6dbe64bbf",
+      "note": "pre-approved by the benchmark operator: modular monolith, Node.js 22 + Express 4 + PostgreSQL 16 + React SPA, modules platform/accounts/posts/moderation/web, merged User/Post, role mapping, REST /api/v1, slices V1-V2"
+    },
+    "implementation": {
+      "status": "pending"
+    },
+    "integration": {
+      "status": "pending"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T08:01:02+00:00",
+      "note": "both sources reported"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T08:01:50+00:00",
+      "note": "menu of 11 rows"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T08:02:21+00:00",
+      "note": "picks approved (benchmark operator, pre-approved)"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T08:03:48+00:00",
+      "note": "26 conflicts resolved, approved (benchmark operator, pre-approved)"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T13:03:13+00:00",
+      "note": "design approved (benchmark operator, pre-approved); plan mode ends here"
+    }
+  ],
+  "approvals": []
+}

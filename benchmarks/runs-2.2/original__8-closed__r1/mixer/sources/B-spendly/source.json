@@ -1,0 +1,61 @@
+{
+  "app": {"id": "B", "name": "Spendly"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/spendly", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/spendly/spendly.py:1", "summary": "A fixed module-level list of four categories: food, travel, home, other."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/spendly/spendly.py:2", "summary": "Expenses are kept in an in-memory list; nothing is persisted."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/spendly/spendly.py:3", "summary": "add(amount_cents, category, note='') records an expense with an amount in cents, a category and an optional note."},
+    {"id": "B-E04", "source": "B-R01", "basis": "observed", "locator": "sources/spendly/spendly.py:4", "summary": "add() rejects a category not in the list with ValueError('unknown category'); the amount is not validated."}
+  ],
+  "stack": {"frontend": [], "backend": ["Python module (no framework)"], "database": ["none (in-memory list)"], "infrastructure": [], "basis": "observed"},
+  "packages": {},
+  "runtimes": {"python": "any Python 3 (no version-specific syntax)"},
+  "architecture": {
+    "frontend": "None: a library function, no user interface.",
+    "backend": "One Python module with a module-level category list and an in-memory expense list.",
+    "evidence": ["B-E01", "B-E02", "B-E03"],
+    "basis": "observed"
+  },
+  "features": [
+    {"id": "B-F01", "name": "Add an expense", "description": "Record an expense with an amount in cents, a category and an optional note.",
+     "observed_behaviour": "add() validates the category, then appends a dict {amount_cents, category, note} to an in-memory list.",
+     "business_logic": "Amount in integer minor units (cents) by naming; no currency; amount not validated (negative or non-integer values accepted); note defaults to empty; no id, date or author.",
+     "data": ["Expense.amount_cents", "Expense.category", "Expense.note"],
+     "depends_on": ["B-F02"], "integration": "Needs persistence, ids, dates and an owner in the unified app.",
+     "evidence": ["B-E02", "B-E03", "B-E04"], "basis": "observed", "confidence": "high"},
+    {"id": "B-F02", "name": "Fixed expense categories", "description": "Every expense must use one of four fixed categories: food, travel, home, other.",
+     "observed_behaviour": "CATEGORIES is a constant list; add() raises ValueError('unknown category') for anything else.",
+     "business_logic": "Allowed values exactly food, travel, home, other (lower case, case-sensitive match). No user-defined categories. 'other' is the catch-all.",
+     "data": ["CATEGORIES list", "Expense.category"],
+     "depends_on": [], "integration": "One category vocabulary for every expense, scanned or typed.",
+     "evidence": ["B-E01", "B-E04"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Expense",
+     "fields": [
+       {"name": "amount_cents", "type": "int", "required": true},
+       {"name": "category", "type": "str", "required": true},
+       {"name": "note", "type": "str", "required": false}
+     ],
+     "features": ["B-F01", "B-F02"], "evidence": ["B-E02", "B-E03"], "basis": "observed"}
+  ],
+  "rules": [
+    {"key": "categories", "value": ["food", "travel", "home", "other"], "features": ["B-F02"], "evidence": ["B-E01"]},
+    {"key": "unknown_category", "value": "rejected with ValueError", "features": ["B-F02", "B-F01"], "evidence": ["B-E04"]},
+    {"key": "amount_unit", "value": "integer cents (by name; not enforced)", "features": ["B-F01"], "evidence": ["B-E03"]}
+  ],
+  "state": [
+    {"key": "CATEGORIES", "scope": "module constant", "features": ["B-F02"]},
+    {"key": "EXPENSES", "scope": "module-level, in-memory, process lifetime", "features": ["B-F01"]}
+  ],
+  "error_handling": [
+    {"case": "unknown category", "behaviour": "ValueError('unknown category'), nothing stored", "evidence": ["B-E04"]},
+    {"case": "invalid amount (negative, float, text)", "behaviour": "accepted without a check", "evidence": ["B-E03"]}
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1},
+  "unknowns": []
+}

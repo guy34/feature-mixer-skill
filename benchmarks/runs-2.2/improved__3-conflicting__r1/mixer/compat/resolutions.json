@@ -1,0 +1,260 @@
+{
+  "database:primary-key:post": {
+    "decision": "uuid primary key for every post (A's type). B's integer post ids are kept in legacy_id (with imported_from = 'B') during any import; nothing is re-keyed until a migration is separately approved.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "database:primary-key:user": {
+    "decision": "uuid primary key for every user (A's type). B's integer user ids kept in legacy_id (imported_from = 'B') during any import.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "database:field-type:post.id": {
+    "decision": "uuid (see database:primary-key:post).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "database:field-type:user.id": {
+    "decision": "uuid (see database:primary-key:user).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "database:field-type:post.author_id": {
+    "decision": "uuid referencing User.id; B's integer author ids are rewritten through the users' legacy_id map on import.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "api:contract:GET /api/posts/{} response": {
+    "decision": "One contract: GET /api/v1/posts/{id} returns {id: uuid string, body, status, author: {id, display_name} or null for imported anonymous posts, created_at: UTC ISO 8601}. Integer ids are not accepted.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC08",
+      "test_read_published_post_public"
+    ]
+  },
+  "api:contract:POST /api/posts response": {
+    "decision": "One contract: POST /api/v1/posts {body} returns 201 with the same post shape as GET.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC03",
+      "test_create_post_pending_with_author"
+    ]
+  },
+  "api:endpoint-auth:GET /api/posts/{}": {
+    "decision": "One auth scheme (cookie session). Reading needs no session for a published post; a pending or rejected post needs the session of its author or a moderator, otherwise 404.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC08",
+      "test_read_published_post_public",
+      "AC09",
+      "test_unpublished_post_hidden_from_others"
+    ]
+  },
+  "api:endpoint-auth:POST /api/posts": {
+    "decision": "Cookie session required (A). No bearer tokens, no anonymous posting (M07 deferred): without a session the answer is 401.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC05",
+      "test_create_post_requires_session"
+    ]
+  },
+  "application:authorization-model:model": {
+    "decision": "One role-based model with explicit permissions and one function can(user, action, post) used by every route and query.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC06",
+      "test_member_cannot_moderate"
+    ]
+  },
+  "application:business-rule:max_post_length": {
+    "decision": "10000 characters for everyone (B's value). Reason: it keeps every existing post from both apps valid (5000 would reject B posts over 5000), and every post is reviewed before it is visible. Enforced in the handler (422) and by a check constraint.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC04",
+      "test_post_length_limit_10000"
+    ]
+  },
+  "application:business-rule:read_requires_account": {
+    "decision": "Published posts are public (B); pending and rejected posts are visible only to their author and moderators; everyone else gets 404. Fixes A's leak of unreviewed posts to every member.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC08",
+      "test_read_published_post_public",
+      "AC09",
+      "test_unpublished_post_hidden_from_others"
+    ]
+  },
+  "application:roles:roles": {
+    "decision": "Unified roles member and moderator; moderate-posts is a permission of moderator. Mapping: A:member -> member, A:moderator -> moderator, B:user -> member, B:admin -> member (B's admin has no observed powers; an existing moderator promotes individual people by hand).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC11",
+      "test_imported_b_admin_is_member"
+    ]
+  },
+  "database:enum:user.role": {
+    "decision": "Value set {member, moderator}; mapping as in application:roles:roles. No source value is left unmapped.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC11",
+      "test_imported_b_admin_is_member"
+    ]
+  },
+  "application:route:/login": {
+    "decision": "One Login screen at /login.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "application:route:/posts": {
+    "decision": "One PostList screen at /posts (published posts).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "application:session:session": {
+    "decision": "Server-side session in an http-only, secure, SameSite=Lax cookie with expiry; no JWT. B's token code and its hard-coded key are not carried over; existing B tokens stop working and B users sign in again.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC12",
+      "test_bearer_token_not_accepted",
+      "AC01",
+      "test_sign_in_sets_httponly_cookie"
+    ]
+  },
+  "database:units:post.created_at.timezone": {
+    "decision": "Store created_at as timestamptz in UTC. A's values are already zoned. B's naive timestamps are converted from B's server time zone, which is unknown: the import migration may not run until the user states it (open question).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC15",
+      "test_created_at_is_utc"
+    ]
+  },
+  "database:data:imported-post-status": {
+    "decision": "Import B's posts as published with imported_from = 'B' (they were already public); moderators may reject any later.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC14",
+      "test_import_rules_for_b_posts"
+    ]
+  },
+  "database:data:imported-anonymous-posts": {
+    "decision": "author_id may be null only on imported B rows: check (author_id is not null or imported_from = 'B'). New posts always need an author.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC14",
+      "test_import_rules_for_b_posts"
+    ]
+  },
+  "api:duplicate-endpoint:GET /api/posts/{}": {
+    "decision": "One endpoint GET /api/v1/posts/{id} in the posts module.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "api:duplicate-endpoint:POST /api/posts": {
+    "decision": "One endpoint POST /api/v1/posts in the posts module.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "application:security:b-hardcoded-signing-key": {
+    "decision": "Nothing from B's token code is reused; every secret comes from environment variables named in .env.example.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "database:duplicate-entity:post": {
+    "decision": "Merge: A's and B's Post are the same thing (a forum post). One Post table; fields' origins listed in architecture.json.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "database:duplicate-entity:user": {
+    "decision": "Merge: same meaning (a person who signs in). One User table; B's name maps to display_name (aliases.json).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator"
+  },
+  "database:nullability:post.author_id": {
+    "decision": "Required for new posts; null only for imported anonymous B posts (see database:data:imported-anonymous-posts).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator",
+    "verified_by": [
+      "AC14",
+      "test_import_rules_for_b_posts"
+    ]
+  },
+  "migration:post": {
+    "decision": "Plan approved: re-key B posts to uuid with legacy_id, rewrite author ids, add status = published and imported_from = 'B', convert created_at to UTC once B's time zone is known. Running it needs its own migration approval; whether either app has real data to move is unknown. Steps in design/migration-plan.md.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator; plan approved, running it needs its own approval"
+  },
+  "migration:user": {
+    "decision": "Plan approved: re-key B users to uuid with legacy_id, name -> display_name, role user/admin -> member. Running it needs its own migration approval. B has no recorded password storage, so B users may need a password reset (unknown).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "pre-approved by the operator; plan approved, running it needs its own approval"
+  }
+}

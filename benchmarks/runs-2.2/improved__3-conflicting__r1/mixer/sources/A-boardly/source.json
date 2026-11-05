@@ -1,0 +1,101 @@
+{
+  "app": {"id": "A", "name": "Boardly"},
+  "coverage": "partial",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/boardly", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/routes.js:4", "summary": "POST /api/login passes the request body to db.users.check and stores the returned user id in req.session.userId, then answers {ok: true}."},
+    {"id": "A-E02", "source": "A-R01", "basis": "documented", "locator": "sources/boardly/routes.js:1", "summary": "Header comment (a claim): cookie sessions; every post waits for a moderator."},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/routes.js:6", "summary": "POST /api/posts (requireSession) creates a post for req.session.userId with req.body.body and answers 201; inline comment says status is pending."},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/schema.sql:2", "summary": "posts table: uuid id, author_id uuid not null references users, body text with length(body) <= 5000, status pending|published|rejected default pending, created_at timestamptz not null."},
+    {"id": "A-E05", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/schema.sql:1", "summary": "users table: uuid id, email unique not null, display_name not null, role member|moderator; no password or password-hash column."},
+    {"id": "A-E06", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/routes.js:5", "summary": "GET /api/posts/:id (requireSession) returns the post {id uuid, body, status} with no check of its status or author."},
+    {"id": "A-E07", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/routes.js:8", "summary": "GET /api/moderation (requireModerator) returns db.posts.pending(): the moderation queue."},
+    {"id": "A-E08", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/routes.js:9", "summary": "POST /api/moderation/:id (requireModerator) sets the post status to req.body.decision; the handler does not validate the value (the schema check constraint limits it to pending|published|rejected)."},
+    {"id": "A-E09", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/client-routes.js:1", "summary": "Client routes: /posts -> PostList, /moderation -> ModerationQueue, /login -> Login."},
+    {"id": "A-E10", "source": "A-R01", "basis": "observed", "locator": "sources/boardly/routes.js:2", "summary": "MAX_POST_LENGTH = 5000 is declared; no handler shown uses it, the limit is enforced by the schema check."},
+    {"id": "A-E11", "source": "A-R01", "basis": "inferred", "locator": "sources/boardly/routes.js:3", "summary": "No endpoint lists posts, so what PostList shows and where it loads it from is inferred only (presumably published posts)."}
+  ],
+  "architecture": {
+    "frontend": "client-side router with screens PostList, ModerationQueue, Login (framework not shown)",
+    "backend": "Node.js HTTP handlers in an Express-style app(app, db) module; session middleware and the db layer are not in the folder",
+    "evidence": ["A-E01", "A-E03", "A-E09"],
+    "basis": "observed"
+  },
+  "stack": {"frontend": ["JavaScript (ES modules)"], "backend": ["Node.js", "Express-style routing (inferred from app.get/app.post and req.session)"], "database": ["SQL with uuid and timestamptz (PostgreSQL-like; engine not stated)"], "basis": "inferred"},
+  "screens": [
+    {"id": "A-S01", "name": "PostList", "route": "/posts", "evidence": ["A-E09", "A-E11"]},
+    {"id": "A-S02", "name": "ModerationQueue", "route": "/moderation", "evidence": ["A-E09", "A-E07"]},
+    {"id": "A-S03", "name": "Login", "route": "/login", "evidence": ["A-E09", "A-E01"]}
+  ],
+  "routes": [
+    {"path": "/posts", "screen": "A-S01"},
+    {"path": "/moderation", "screen": "A-S02"},
+    {"path": "/login", "screen": "A-S03"}
+  ],
+  "workflows": [
+    {"id": "A-W01", "name": "Member posts, moderator publishes", "steps": ["A-S03", "A-S01", "A-S02"], "edge_cases": ["moderator rejects the post", "post longer than 5000 characters is refused by the database", "where a member writes the post on screen is not shown"], "evidence": ["A-E01", "A-E03", "A-E07", "A-E08", "A-E09"]}
+  ],
+  "features": [
+    {"id": "A-F01", "name": "Sign in with a cookie session", "description": "A member signs in and gets a server-side session (req.session.userId).", "observed_behaviour": "POST /api/login checks the body against the user store and stores the user id in the session.", "business_logic": "Credentials checked by db.users.check (not in the folder). Roles member and moderator.", "data": ["User"], "evidence": ["A-E01", "A-E05", "A-E09"], "basis": "observed", "confidence": "medium"},
+    {"id": "A-F02", "name": "Write a post (held for moderation)", "description": "A signed-in member writes a post that starts as pending.", "observed_behaviour": "POST /api/posts with a session creates the post with the session user as author and answers 201.", "business_logic": "Author required; body at most 5000 characters (database check); status starts as pending.", "data": ["Post", "User"], "depends_on": ["A-F01"], "evidence": ["A-E03", "A-E04", "A-E10", "A-E02"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F03", "name": "Read a post (members only)", "description": "A signed-in member opens one post by id.", "observed_behaviour": "GET /api/posts/:id requires a session and returns id, body and status; it does not hide pending or rejected posts.", "business_logic": "Session required to read. No visibility rule by status (weakness: any member can read pending or rejected posts by id).", "data": ["Post"], "depends_on": ["A-F01"], "evidence": ["A-E06"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F04", "name": "Pre-moderation queue", "description": "Moderators see every pending post and publish or reject it.", "observed_behaviour": "GET /api/moderation lists pending posts; POST /api/moderation/:id sets the status from the decision field. Both require the moderator role.", "business_logic": "Only moderators; statuses pending -> published or rejected; the decision value is not validated in the handler.", "data": ["Post", "User"], "depends_on": ["A-F01", "A-F02"], "evidence": ["A-E07", "A-E08", "A-E04", "A-E09", "A-E02"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F05", "name": "Post list screen", "description": "A /posts screen (PostList) for browsing posts.", "observed_behaviour": "The client route exists; no list endpoint exists, so its content is not established.", "business_logic": "unknown", "data": ["Post"], "depends_on": ["A-F03"], "evidence": ["A-E09", "A-E11"], "basis": "observed", "confidence": "medium"}
+  ],
+  "entities": [
+    {"name": "User", "description": "A person who signs in to the forum (member or moderator).", "primary_key": {"name": "id", "type": "uuid"},
+     "fields": [
+       {"name": "id", "type": "uuid", "required": true},
+       {"name": "email", "type": "text", "required": true, "nullable": false, "unique": true},
+       {"name": "display_name", "type": "text", "required": true, "nullable": false, "description": "name shown on posts"},
+       {"name": "role", "type": "text", "required": true, "nullable": false, "enum": ["member", "moderator"]}
+     ],
+     "features": ["A-F01", "A-F02", "A-F04"], "evidence": ["A-E05"], "basis": "observed"},
+    {"name": "Post", "description": "A forum post written by a member and moderated before it is published.", "primary_key": {"name": "id", "type": "uuid"},
+     "fields": [
+       {"name": "id", "type": "uuid", "required": true},
+       {"name": "author_id", "type": "uuid", "required": true, "nullable": false, "description": "the member who wrote it"},
+       {"name": "body", "type": "text", "required": true, "nullable": false, "description": "post text, at most 5000 characters"},
+       {"name": "status", "type": "text", "required": true, "nullable": false, "enum": ["pending", "published", "rejected"], "default": "pending"},
+       {"name": "created_at", "type": "timestamptz", "required": true, "nullable": false, "timezone": "stored with time zone"}
+     ],
+     "foreign_keys": [{"field": "author_id", "references": "User"}],
+     "relations": [{"to": "User", "kind": "many-to-one"}],
+     "features": ["A-F02", "A-F03", "A-F04", "A-F05"], "evidence": ["A-E04"], "basis": "observed"}
+  ],
+  "endpoints": [
+    {"method": "POST", "path": "/api/login", "auth": "none", "request": {"email": "text", "password": "text (inferred; body passed whole to db.users.check)"}, "response": {"ok": "boolean"}, "features": ["A-F01"], "evidence": ["A-E01"], "basis": "observed"},
+    {"method": "GET", "path": "/api/posts/:id", "auth": "session", "response": {"id": "uuid", "body": "text", "status": "text"}, "features": ["A-F03"], "evidence": ["A-E06"], "basis": "observed"},
+    {"method": "POST", "path": "/api/posts", "auth": "session", "request": {"body": "text"}, "response": {"id": "uuid", "body": "text", "status": "text"}, "features": ["A-F02"], "evidence": ["A-E03"], "basis": "observed"},
+    {"method": "GET", "path": "/api/moderation", "auth": "session (moderator)", "response": {"posts": "array of pending posts"}, "features": ["A-F04"], "evidence": ["A-E07"], "basis": "observed"},
+    {"method": "POST", "path": "/api/moderation/:id", "auth": "session (moderator)", "request": {"decision": "text"}, "response": {"post": "the updated post"}, "features": ["A-F04"], "evidence": ["A-E08"], "basis": "observed"}
+  ],
+  "auth": {"provider": "local", "methods": ["password"], "session": "cookie session", "model": "role-based", "roles": ["member", "moderator"],
+    "role_permissions": {"member": ["sign-in", "create-post", "read-post"], "moderator": ["sign-in", "create-post", "read-post", "moderate-posts"]},
+    "evidence": ["A-E01", "A-E02", "A-E05", "A-E07"], "basis": "observed"},
+  "tenancy": {"model": "none"},
+  "rules": [
+    {"key": "max_post_length", "value": 5000, "features": ["A-F02"], "evidence": ["A-E04", "A-E10"]},
+    {"key": "post_initial_status", "value": "pending", "features": ["A-F02", "A-F04"], "evidence": ["A-E04", "A-E03"]},
+    {"key": "posting_requires_account", "value": true, "features": ["A-F02"], "evidence": ["A-E03", "A-E04"]},
+    {"key": "read_requires_account", "value": true, "features": ["A-F03"], "evidence": ["A-E06"]}
+  ],
+  "configuration": [],
+  "error_handling": [
+    {"case": "any handler error", "behaviour": "no try/catch or error responses in the handlers shown; behaviour depends on the unseen framework setup", "evidence": ["A-E01", "A-E03"]},
+    {"case": "body over 5000 characters", "behaviour": "rejected by the database check constraint; the HTTP response for it is not shown", "evidence": ["A-E04"]}
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 3},
+  "unknowns": [
+    "How passwords are stored and checked: users has no password column and db.users.check is not in the folder. Settled by the db layer code.",
+    "What happens on a failed login: the handler reads .id of the check result with no failure branch. Settled by the db layer code or running the app (not approved).",
+    "requireSession and requireModerator, the session store and cookie flags (http-only, secure, expiry) are not in the folder.",
+    "No list endpoint exists, so what PostList shows (published only? all?) is unknown.",
+    "Where a member writes a post on screen: no compose screen in client-routes.js.",
+    "No logout endpoint is shown.",
+    "Database engine and package versions: no manifest in the folder; the files are marked illustrative."
+  ]
+}

@@ -9,17 +9,22 @@ fix (or, for the scanners, something to show the user), `2` a file or
 argument could not be read.
 
 v2.0 workspaces (`project.json` `"format": 2`) get warnings for the v2.1
-checks; v2.1 workspaces (`"format": 3`) get errors. Credentials in `mixer/`
-are an error in both.
+checks; v2.1 workspaces (`"format": 3`) get errors for them; v2.2 workspaces
+(`"format": 4`) also get errors for the v2.2 checks (recorded phase
+approvals, journey tests, honesty of observed vs documented, evidence
+ledger and code fingerprint). Runs recorded by the 2.2 `run_tests.py` are
+held to the 2.2 evidence rules in every format. Credentials in `mixer/` are
+an error in all.
 
 ## Before reading sources
 
 | script | does |
 | --- | --- |
 | `check_environment.py --mixer mixer/ [--target app/] [--set NAME=STATUS "why"]` | records what the session can do in `capabilities.json`: terminal, test runners, git, node, docker or podman for isolation, audit tools, the Claude CLI, write access; Claude adds `browser`, `web_fetch`, `repository_access`, `external_api` with `--set` |
-| `scan_source.py <folder> --out .../security-scan.json` | secrets (redacted), environment files, AI-instruction files and text, install and build hooks, CI, submodules, registry overrides, links escaping the folder, binaries, oversized files; exit 1 when there are high findings to show the user |
+| `scan_source.py <folder> --out .../security-scan.json [--max-file-mb 5] [--max-files N] [--max-depth N]` | secrets (redacted; also base64-encoded, split into pieces, in connection strings; placeholders reported as info), random-looking literals (low), environment files, AI-instruction files and text (also split across lines, hidden in HTML, base64, zero-width or full-width characters), install, build, IDE, direnv, dev-container and git-config hooks, CI, submodules, registry overrides, links escaping the folder, unusual file names (shown escaped), named pipes and devices (never opened), binaries, oversized files (first part scanned), and every part not scanned (depth, file limit, unreadable: `complete: false`); never follows a link, walks by file descriptor where the OS allows; exit 1 when there are high findings to show the user. Pattern scanning misses things and flags harmless text |
+| `approvals.py request / grant / check / list / revoke / approve-phase` | scoped approvals for running code and recorded phase sign-offs (`engines/security.md` section 5) |
 | `checkpoint.py mixer/ --phase P [--include-target] [--note ...]`, `--list`, `--restore CPn --to NEW` | copies the workspace (and app) into `mixer/checkpoints/CPn/`, records the git commit if any, adds the row to `project.json`; restores only into a new folder; never commits, resets or deletes |
-| `index_repo.py <folder> --out .../index.json [--previous old.json] [--source-json source.json]` | file inventory with fingerprints, languages and modules; module dependency map and external imports (approximate); feature-to-file map; changed files and stale features since a previous index (exit 1 when features are stale) |
+| `index_repo.py <folder> --out .../index.json [--previous old.json] [--source-json source.json] [--progress N] [--include-nested]` | file inventory with fingerprints, languages, modules and generated-code flags; imports (Python parsed with `ast`, including relative, optional and dynamic imports; JS/TS with path aliases, workspace packages, barrels and `import()`; Go, Rust, Java by pattern) with `import_coverage` per language and the count of unresolved dynamic imports; module dependency map and cycles; nested repositories as boundaries (not indexed); feature-to-file map; changed files and stale features since a previous index (exit 1 when features are stale); bounded memory, limits and unreadable parts reported (`complete`) |
 
 ## Checking work
 
@@ -41,7 +46,9 @@ feature; several kept `similar` features not all `combine`; several kept
 `incompatible` features; `incompatible` without `conflicts_with`; kept
 `separate` rows that are combined or have no boundary note; kept `improve`
 rows with no note; kept rows without evidence, rejected, or incompatible
-without `rebuild` or `adapt`; malformed evidence or source feature ids.
+without `rebuild` or `adapt`; malformed evidence or source feature ids; a
+row from no source (`source_app` `new`) whose notes do not say the user
+requested it (an invented feature).
 `conflicting` and `independent` are read as `incompatible` and `unique`.
 `check_menu.py` is the same tool under its v1 name.
 
@@ -71,7 +78,12 @@ python3 scripts/validate_artifacts.py --source mixer/sources/A-taskboard
   unknowns; no evidence from an input the session had no capability to
   read; with an index: every module analysed or skipped before `complete`,
   a summary per analysed module, evidence pointing at indexed files, no
-  stale features; high scan findings acknowledged.
+  stale features; high scan findings acknowledged. v2.2: a feature claiming
+  `observed` needs at least one observed piece of evidence (documentation
+  describes, it does not show); a closed source cites no code and marks no
+  entity or endpoint `observed` unless it was seen in the running product;
+  every `contradictions` entry (documentation vs code) resolves and no
+  feature rests only on contradicted documentation.
 - **Design**: sections; schema; modules unique, known and acyclic; one owner
   per entity; every kept feature in a module and a slice, nothing extra; no
   duplicate endpoints or routes; the architecture style with at least two
@@ -79,7 +91,9 @@ python3 scripts/validate_artifacts.py --source mixer/sources/A-taskboard
   `engines/feature-intelligence.md`).
 - **Integration**: everything `verify_tests.py` checks, the report's
   sections, and the merge plan's `validation` against verified results.
-- **Secrets**: no credential pattern in any file under `mixer/`.
+- **Secrets**: no credential in any file under `mixer/` (connection-string
+  passwords included; documented placeholders such as `AKIA...EXAMPLE` are
+  allowed).
 
 ### validate_project.py
 
@@ -88,7 +102,10 @@ python3 scripts/validate_project.py mixer/ [--phase PHASE]
 ```
 
 Runs the checks above as each phase requires, plus `project.json` against
-its schema, unique app ids and slugs, phases in order, phase approvals,
+its schema, unique app ids and slugs, phases in order, phase approvals (and,
+v2.2, that nothing a phase approval covered has changed since: the menu's
+picks and merge plan, the compatibility decisions, the design; plan mode
+never marks a build phase started),
 checkpoints, failed phases (with the checkpoint to roll back to), the
 capabilities file, a security scan for every source with code, undecided
 menu rows, `reuse` or `adapt` only where `code_reuse` is `allowed`, open
@@ -101,23 +118,50 @@ started; the errors for that phase are what is left to do.
 
 ### run_tests.py
 
-Runs the tests itself and writes the evidence, so results never come from a
-claim:
+Runs the tests itself, under a scoped approval, and writes the evidence, so
+results never come from a claim:
 
 ```bash
 # Python unittest (built-in harness that records every test)
-python3 scripts/run_tests.py --mixer mixer/ --cwd app/ --unittest tests --approval A03
+python3 scripts/approvals.py grant --mixer mixer/ --cwd app/ --unittest tests --granted-by "<name>" --user-confirmed
+python3 scripts/run_tests.py --mixer mixer/ --cwd app/ --unittest tests --approval A04
 
-# any framework that writes JUnit XML
+# any framework that writes JUnit XML (the approval names the exact command)
 python3 scripts/run_tests.py --mixer mixer/ --cwd app/ --junit reports/junit.xml --framework pytest \
-    --tags mixer/test-tags.json --approval A03 -- pytest --junitxml=reports/junit.xml
+    --tags mixer/test-tags.json --approval A05 -- pytest --junitxml=reports/junit.xml
 ```
 
-It saves `mixer/test-runs/<run-id>/` with `output.log` (everything printed),
-`results.xml` (per-test results) and `run.json` (command, framework,
-folder, start and finish times in UTC, exit code, SHA-256 of the log and
-results, approval id), then writes `integration-report.json` and `.md`
-from those files only. It refuses a JUnit file older than the run.
+Nothing runs without an approval covering exactly this run (`engines/security.md`
+section 5); a refusal exits 3 and is logged. Limits, all recorded in the run:
+`--timeout` (default 1800 s: the whole process group gets SIGTERM, then
+SIGKILL after `--kill-grace`; on Windows `taskkill /T /F`; processes the
+tests leave behind are terminated too), `--max-log-mb` (default 50: the log
+keeps its first and last halves and says how much was left out),
+`--max-results-mb` (50), and `--expect-tests N`.
+
+It saves `mixer/test-runs/<run-id>/` with `output.log`, `results.xml` and
+`run.json` (command with secrets redacted and its SHA-256, folder, times,
+exit code, outcome, results status, counts, verdict, fingerprints of the log,
+the results and the tested code before and after, the approval, and an HMAC
+signature with `--evidence-key FILE`), makes them read-only, appends the run
+to the hash-chained `test-runs/ledger.jsonl`, and (with `--evidence-copy DIR`)
+copies them elsewhere. Then it writes `integration-report.json` and `.md`
+for this run **whatever its verdict**, so an earlier green report never
+outlives a later run. A JUnit file present before the run is moved into the
+run folder first: only a file written by this run counts. One run at a time
+per workspace (a lock in `test-runs/`).
+
+Verdicts, and only `passed` exits 0:
+
+| verdict | meaning |
+| --- | --- |
+| `passed` | exit 0, at least one test executed, none failed, results consistent |
+| `failed` | at least one test failed |
+| `no-tests` | nothing executed: none discovered, or all skipped |
+| `incomplete` | fewer tests executed than `--expect-tests` |
+| `inconsistent` | the exit code and the results disagree, the file's totals contradict its test cases, or a test has an unknown result element |
+| `invalid-results` | no results file from this run, malformed, or too large |
+| `timed-out`, `interrupted` | stopped; whatever ran proves nothing |
 
 Statuses:
 
@@ -146,20 +190,33 @@ For other frameworks, a tags file:
 ### verify_tests.py
 
 ```bash
-python3 scripts/verify_tests.py mixer/ [--rerun] [--update-baseline]
+python3 scripts/verify_tests.py mixer/ [--rerun [--approval A06]] [--update-baseline]
+                                       [--evidence-key FILE] [--evidence-copy DIR]
 ```
 
-A result counts only when the report's execution block matches
-`run.json`, the log and results files exist with matching fingerprints, the
-test is in the results file with the same status, and the exit code agrees.
-Anything else is `unverified`. It also checks summary counts and times,
-regressions against `mixer/test-baseline.json` (a test that passed before
-and now fails, is missing or did not run), and that every acceptance
-criterion in `design/prd.md` has a verified passing test. It writes
-`mixer/test-verification.json`. `--rerun` executes the recorded run again
-and compares (it runs code, so only with approval); it is the strongest
-proof, because fingerprints show the report matches the log, not that the
-log is genuine. `--update-baseline` saves the verified statuses after a
+A result counts only when the report's execution block matches `run.json`
+(including outcome, verdict and the run record's own fingerprint), the run
+is in the ledger with an intact chain, the log and results files match
+their fingerprints, re-reading the results gives the same counts and
+verdict, the verdict is `passed` or `failed`, the test is in the results
+file with the same status, every test in the results file is in the report
+(a failing test left out is an error), and the exit code agrees. Anything
+else is `unverified`. It also checks that the tested code has not changed
+since the run (a fingerprint of the run's folder), regressions against
+`mixer/test-baseline.json`, that every acceptance criterion in
+`design/prd.md` has a verified passing test, and that every decision in
+`compat/resolutions.json` with `"verified_by": ["AC03", "test_name"]` has
+those tests passing.
+
+What fingerprints can and cannot do: they detect a change relative to a
+fingerprint you already trust. Editing one file is caught; rewriting the
+files, `run.json`, the report and the whole ledger consistently is not,
+unless the runs were signed with an `--evidence-key` the writer of the
+forgery did not have, or compared with an `--evidence-copy` kept out of
+its reach. None of this shows the evidence was genuine in the first place.
+`--rerun` executes the recorded run again under an approval (the original
+one if still valid, otherwise `--approval`) and compares: that is the
+strongest proof. `--update-baseline` saves the verified statuses after a
 clean verification.
 
 ## Integration testing
@@ -176,7 +233,7 @@ built, then run the full set.
 | auth / authorization | sign in and out, expiry, wrong password, every role and permission including denials, a second user cannot see the first user's data |
 | dependency | the app starts and runs with exactly the declared dependencies; nothing relies on an undeclared package |
 | navigation / form / error | routes, required fields and limits, double submit, external failures, missing records |
-| journey | the core loop and each merged workflow end to end (a real browser where the project can install one; otherwise HTTP) |
+| journey | the core loop and each merged workflow end to end (a real browser where the project can install one; otherwise HTTP). v2.2 workspaces need at least one passing journey test: unit tests can all pass while the workflow is broken |
 | regression | every PRD acceptance criterion, and every previously passing test |
 
 Each retained feature maps to its tests through the tags; the report shows

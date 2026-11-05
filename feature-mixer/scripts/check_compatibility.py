@@ -44,7 +44,8 @@ GUIDE = {
     "duplicate-entity": {
         "solutions": ["Merge into one table holding the fields kept features need",
                       "Keep separate tables if the two only share a name, and rename one"],
-        "recommended": "Merge into one entity; list every field's origin in architecture.json",
+        "recommended": "Merge only once it is confirmed they mean the same thing; then list every field's origin in "
+                       "architecture.json",
     },
     "primary-key": {
         "solutions": ["Pick one key type for the merged entity and re-key the other source's rows",
@@ -136,6 +137,135 @@ GUIDE = {
         "solutions": ["Read the source's schema or migrations for the type", "Record it as unknown and decide in the architecture"],
         "recommended": "Find the real type before designing the merged entity",
     },
+    "entity-meaning": {
+        "solutions": ["Keep them as separate entities with distinct names (for example UserAccount and LedgerAccount)",
+                      "Merge them only if the user confirms they describe the same thing"],
+        "recommended": "Ask the user; never merge entities because their names match",
+    },
+    "possible-alias": {
+        "solutions": ["Record them as one entity in compat/aliases.json, with the reason",
+                      "Record that they are different, so they are never merged"],
+        "recommended": "Ask the user whether these are the same thing; never assume either way",
+    },
+    "alias-unexplained": {
+        "solutions": ["Add the reason to compat/aliases.json: {\"entities\": {\"Ticket\": {\"to\": \"Task\", "
+                      "\"reason\": \"...\"}}}"],
+        "recommended": "Every alias says why the two names mean the same thing",
+    },
+    "enum": {
+        "solutions": ["Define one value set and a mapping from every source value to it",
+                      "Keep the field per source if the states really differ"],
+        "recommended": "One value set with an explicit mapping; values without a mapping block the migration",
+    },
+    "nullability": {
+        "solutions": ["Keep the field nullable", "Make it required with a default for rows that have no value"],
+        "recommended": "Do not make a field required until every source row has a value or a default is agreed",
+    },
+    "unique-constraint": {
+        "solutions": ["Find duplicates across sources before adding the constraint, and decide how to resolve them",
+                      "Drop the constraint if the merged data legitimately repeats values"],
+        "recommended": "Check the merged data for duplicates first; never drop rows to satisfy a constraint",
+    },
+    "default-value": {
+        "solutions": ["Choose one default and record why"],
+        "recommended": "One default, chosen with the user",
+    },
+    "exposure-default": {
+        "solutions": ["Default to private and let owners share explicitly"],
+        "recommended": "Private by default; nothing becomes public through a merge",
+    },
+    "field-meaning": {
+        "solutions": ["Keep two fields with distinct names (for example owner_id and created_by)",
+                      "Merge them only if the user confirms they mean the same"],
+        "recommended": "Ask the user; never merge fields because their names match or an alias says so",
+    },
+    "units": {
+        "solutions": ["Store one unit (for example integer cents in UTC) and convert at import",
+                      "Store the unit with the value"],
+        "recommended": "One unit per field, converted in the migration and tested",
+    },
+    "delete-policy": {
+        "solutions": ["Choose one delete behaviour for the relation (restrict is the safe default)",
+                      "Use soft deletes so nothing is removed implicitly"],
+        "recommended": "Pick with the user; cascading deletes can remove data another source expected to keep",
+    },
+    "deletion-semantics": {
+        "solutions": ["Choose soft or hard delete for the merged entity and convert the other source's rows",
+                      "Keep deleted rows from the soft-delete source as archived"],
+        "recommended": "Soft delete for merged data unless the user decides otherwise",
+    },
+    "cardinality": {
+        "solutions": ["Model the relation as many-to-many (a join table) so neither source loses links",
+                      "Keep one-to-many only if the user confirms the extra links can be dropped"],
+        "recommended": "Use the more general relation; never drop links silently",
+    },
+    "relationship": {
+        "solutions": ["Keep every relation a kept feature needs in the merged entity"],
+        "recommended": "List each relation's origin in architecture.json",
+    },
+    "identity-linking": {
+        "solutions": ["Link a social or SSO login to an existing account only through a verified email",
+                      "Keep separate accounts and offer a manual, authenticated link step"],
+        "recommended": "Never merge accounts on an unverified email: that is an account-takeover path",
+    },
+    "role-map": {
+        "solutions": ["Map every source role to a unified role in architecture.json auth.role_mapping"],
+        "recommended": "No source role left unmapped",
+    },
+    "privilege-escalation": {
+        "solutions": ["Map the role to a role with the same or fewer permissions",
+                      "Record the user's explicit approval if the escalation is intended"],
+        "recommended": "Never give a source role more power through the merge without the user's approval",
+    },
+    "role-meaning": {
+        "solutions": ["Define the unified role's permissions explicitly and map each source role by permissions"],
+        "recommended": "Same role name does not mean same permissions: compare them",
+    },
+    "tenancy-model": {
+        "solutions": ["Choose one tenant boundary (organisation, workspace...) and assign every row to a tenant",
+                      "Keep single-tenant data in one default tenant, decided with the user"],
+        "recommended": "One tenant model; every tenant-owned row has a tenant key and every query filters by it",
+    },
+    "tenant-isolation": {
+        "solutions": ["Add the tenant key to the entity and filter every query and API by it",
+                      "Mark the entity as shared (global) if the user decides it is not tenant data"],
+        "recommended": "No tenant-owned entity without a tenant key; test cross-tenant access is refused",
+    },
+    "shared-resource": {
+        "solutions": ["Decide which tenants can see the shared resource and enforce it",
+                      "Make the resource per-tenant"],
+        "recommended": "Ask the user how shared resources cross tenant boundaries",
+    },
+    "idempotency": {
+        "solutions": ["Store processed event ids and ignore repeats", "Make each state change conditional on the "
+                      "current state, inside one transaction"],
+        "recommended": "Every webhook and retry is idempotent; test duplicate delivery and retry after partial "
+                       "success",
+    },
+    "payment-flow": {
+        "solutions": ["One billing module owns charges, refunds and their states; the others call it"],
+        "recommended": "One source of truth for money movement",
+    },
+    "storage-provider": {
+        "solutions": ["Choose one storage provider and migrate objects with their ids and access rules"],
+        "recommended": "One storage service; object ids and permissions carried over and tested",
+    },
+    "pagination": {
+        "solutions": ["Choose one pagination style for the unified API and adapt the others at the edge"],
+        "recommended": "One pagination convention, written into the API spec",
+    },
+    "error-format": {
+        "solutions": ["Choose one error format (for example RFC 9457 problem+json) and map the others"],
+        "recommended": "One error format, written into the API spec",
+    },
+    "rate-limit": {
+        "solutions": ["Set limits per endpoint in the unified API"],
+        "recommended": "Write the limits into the API spec",
+    },
+    "endpoint-origin": {
+        "solutions": ["Point the endpoint's origin at a real source endpoint", "Mark it as new (no origin)"],
+        "recommended": "No endpoint claims to come from a source that does not have it",
+    },
 }
 
 SEVERITY = {
@@ -145,6 +275,13 @@ SEVERITY = {
     "auth-provider": "high", "auth-methods": "medium", "session": "high",
     "authorization-model": "high", "roles": "high", "state": "medium", "route": "high",
     "component": "low", "business-rule": "high", "integration": "low", "unknown-type": "info",
+    "entity-meaning": "high", "possible-alias": "medium", "alias-unexplained": "low", "enum": "high",
+    "nullability": "medium", "unique-constraint": "high", "default-value": "low", "exposure-default": "high",
+    "field-meaning": "high", "units": "high", "delete-policy": "high", "deletion-semantics": "medium",
+    "cardinality": "high", "relationship": "medium", "identity-linking": "high", "role-map": "high",
+    "privilege-escalation": "critical", "role-meaning": "high", "tenancy-model": "high", "tenant-isolation": "critical",
+    "shared-resource": "medium", "idempotency": "high", "payment-flow": "high", "storage-provider": "medium",
+    "pagination": "medium", "error-format": "medium", "rate-limit": "low", "endpoint-origin": "high",
 }
 
 TYPE_SYNONYMS = {
@@ -185,6 +322,16 @@ def norm_path(path):
         p = p[:m.start()] + p[m.end():]
     p = re.sub(r"\{[^}]*\}|:[a-z0-9_]+|<[^>]*>|\[[^\]]*\]", "{}", p)
     return p or "/", version
+
+
+def singular(v):
+    if v.endswith("ies") and len(v) > 4:
+        return v[:-3] + "y"
+    if v.endswith(("sses", "uses", "xes", "zes", "ches", "shes")):
+        return v[:-2]
+    if v.endswith("s") and not v.endswith(("ss", "us", "is")):
+        return v[:-1]
+    return v
 
 
 def _style(name):
@@ -243,10 +390,13 @@ def menu_ids_by_source_feature(mixer_dir, kept_only=False):
 
 
 DB_KINDS = ("duplicate-entity", "primary-key", "field-type", "foreign-key", "naming-style", "schema", "data",
-            "migration")
-API_KINDS = ("duplicate-endpoint", "contract", "endpoint-auth", "api-version", "method", "api")
-DEP_KINDS = ("version", "runtime", "runtime-mix", "framework", "duplicate-library", "circular-module",
-             "vulnerability", "dependency")
+            "migration", "entity-meaning", "possible-alias", "alias-unexplained", "enum", "nullability",
+            "unique-constraint", "default-value", "exposure-default", "field-meaning", "units", "delete-policy",
+            "deletion-semantics", "cardinality", "relationship", "tenant-isolation")
+API_KINDS = ("duplicate-endpoint", "contract", "endpoint-auth", "api-version", "method", "api", "pagination",
+             "error-format", "rate-limit", "endpoint-origin")
+DEP_KINDS = ("version", "version-uncertain", "runtime", "runtime-mix", "framework", "duplicate-library",
+             "circular-module", "vulnerability", "dependency")
 
 
 def category_of(kind):
@@ -286,14 +436,381 @@ def _arch_entities(arch):
     return out
 
 
+GENERIC_FIELDS = {"id", "created_at", "updated_at", "createdat", "updatedat", "created", "updated", "name", "uuid"}
+SYNONYMS = [
+    {"user", "account", "member", "person", "profile", "customer", "client", "participant", "employee"},
+    {"organization", "organisation", "org", "company", "tenant", "workspace", "team"},
+    {"project", "board", "space"},
+    {"task", "ticket", "issue", "todo", "card", "job"},
+    {"comment", "note", "reply", "remark"},
+    {"document", "file", "attachment", "asset", "upload"},
+    {"order", "purchase", "checkout"},
+    {"payment", "charge", "transaction"},
+    {"invoice", "bill"},
+    {"product", "item", "sku", "article"},
+    {"tag", "label", "category"},
+    {"message", "notification", "alert"},
+]
+UNIT_KEYS = ("unit", "currency", "timezone", "time_zone", "format", "precision", "scale", "epoch")
+TENANT_KEYS = ("tenant_id", "org_id", "organization_id", "organisation_id", "workspace_id", "account_id", "team_id",
+               "company_id")
+PASSWORD_METHODS = {"password", "email", "email-password", "email/password", "credentials", "local", "username"}
+FEDERATED_METHODS = {"oauth", "oauth2", "google", "github", "microsoft", "apple", "sso", "saml", "oidc",
+                     "openid", "facebook", "gitlab", "okta", "auth0"}
+PRIVILEGED = re.compile(r"(?i)^(?:admin|administrator|owner|superuser|super[-_ ]?admin|root|sysadmin)$")
+PAYMENT_NAMES = {"stripe", "paypal", "braintree", "adyen", "square", "razorpay", "paddle", "mollie", "checkout.com"}
+STORAGE_NAMES = {"s3", "aws s3", "gcs", "google cloud storage", "azure blob", "azure-blob", "cloudinary", "minio",
+                 "local disk", "local-disk", "r2", "backblaze", "dropbox"}
+
+
+def _words(text):
+    return {w for w in re.findall(r"[a-z]{3,}", str(text).lower())} - {"the", "and", "for", "that", "with", "this",
+                                                                        "are", "who", "which", "from", "has"}
+
+
+def _differs(a, b):
+    """Two descriptions that share too few words to be the same idea."""
+    wa, wb = _words(a), _words(b)
+    if not wa or not wb:
+        return False
+    return len(wa & wb) / min(len(wa), len(wb)) < 0.34
+
+
+def _nullable(f):
+    if "nullable" in f:
+        return bool(f["nullable"])
+    if "required" in f:
+        return not bool(f["required"])
+    return None
+
+
+def _finalise(m):
+    if not m["steps"]:
+        m["steps"].append({"change": "merge rows from every source into one table", "risk": "low", "data_loss": []})
+    m["changes"] = [st["change"] for st in m["steps"]]
+    m["risk"] = max((st["risk"] for st in m["steps"]), key=RISK_ORDER.get)
+    m["data_loss"] = sorted({x for st in m["steps"] for x in st["data_loss"]})
+    m["destructive"] = m["risk"] == "high"
+
+
+def _relations(ents, ent_alias, ref_name):
+    """{(entity, target): kind} for one app: foreign keys are many-to-one; a table made only of two or more
+    foreign keys links its targets many-to-many; explicit "relations" override."""
+    canon = lambda n: ent_alias.get(str(n).lower(), n).lower()  # noqa: E731
+    by_ref = {ref_name(e["name"]): e["name"] for e in ents}
+    out = {}
+    for e in ents:
+        fks = [fk for fk in e.get("foreign_keys", []) if ref_name(fk.get("references")) in by_ref]
+        own = {fl.get("name") for fl in e.get("fields", [])}
+        fk_fields = {fk.get("field") for fk in fks}
+        targets = [canon(by_ref[ref_name(fk.get("references"))]) for fk in fks]
+        if len(fks) >= 2 and own - fk_fields <= GENERIC_FIELDS | {None}:
+            for i, a in enumerate(targets):
+                for b in targets[i + 1:]:
+                    out[(a, b)] = out[(b, a)] = "many-to-many"
+        else:
+            for t in targets:
+                out.setdefault((canon(e["name"]), t), "many-to-one")
+        for r in e.get("relations", []) or []:
+            if r.get("to") and r.get("kind"):
+                out[(canon(e["name"]), canon(r["to"]))] = str(r["kind"]).lower()
+    return out
+
+
+def semantic_checks(reports, apps, in_scope, entities, ent_alias, fname, ref_name, conflicts, migrations_by_id):
+    """Meaning, constraints, units, deletes and relations of entities that several sources share, plus entities
+    with different names that may be the same thing. Nothing here merges anything: it asks."""
+    for name, per_app in sorted(entities.items()):
+        if len(per_app) < 2:
+            continue
+        involved = sorted(per_app)
+        label = next(iter(per_app.values()))["name"]
+        feats = [f for e in per_app.values() for f in e.get("features", [])]
+        mig = migrations_by_id.get(f"migration:{name}")
+
+        def step(change, risk, loss=()):
+            if mig is not None:
+                mig["steps"].append({"change": change, "risk": risk, "data_loss": list(loss)})
+
+        # does the shared name mean the same thing?
+        descs = {a: (per_app[a].get("description") or per_app[a].get("meaning") or "").strip() for a in involved}
+        fsets = {a: {fname(f["name"]) for f in per_app[a].get("fields", [])} - GENERIC_FIELDS for a in involved}
+        reasons = []
+        pairs = [(x, y) for i, x in enumerate(involved) for y in involved[i + 1:]]
+        for x, y in pairs:
+            if descs[x] and descs[y] and _differs(descs[x], descs[y]):
+                reasons.append(f"{x} describes it as '{descs[x][:80]}', {y} as '{descs[y][:80]}'")
+            if len(fsets[x]) >= 2 and len(fsets[y]) >= 2:
+                j = len(fsets[x] & fsets[y]) / len(fsets[x] | fsets[y])
+                if j < 0.2:
+                    reasons.append(f"{x} and {y} share {len(fsets[x] & fsets[y])} of "
+                                   f"{len(fsets[x] | fsets[y])} non-generic fields")
+        if reasons:
+            conflicts.append(_c("entity-meaning", name, involved, f"{label} may not mean the same thing in "
+                                f"{', '.join(involved)}: " + "; ".join(reasons), feats))
+
+        objs = {a: {fname(f["name"]): f for f in per_app[a].get("fields", [])} for a in involved}
+        shared = sorted(set.intersection(*[set(o) for o in objs.values()]))
+        for f in shared:
+            fo = {a: objs[a][f] for a in involved}
+            enums = {a: tuple(sorted(map(str, o.get("enum") or o.get("values") or []))) for a, o in fo.items()
+                     if o.get("enum") or o.get("values")}
+            if len(set(enums.values())) > 1:
+                allv = set().union(*map(set, enums.values()))
+                only = "; ".join(f"{a} only: {', '.join(sorted(set(v) - set().union(*[set(w) for b, w in enums.items() if b != a])) or '-')}"
+                                 for a, v in sorted(enums.items()))
+                conflicts.append(_c("enum", f"{name}.{f}", list(enums), f"{label}.{f} allows different values "
+                                    f"({only}; {len(allv)} values in all)", feats))
+                step(f"map every value of {f} to one value set ({only})", "high")
+            nul = {a: _nullable(o) for a, o in fo.items() if _nullable(o) is not None}
+            if len(set(nul.values())) > 1:
+                d = ", ".join(f"{a}: {'optional' if v else 'required'}" for a, v in sorted(nul.items()))
+                conflicts.append(_c("nullability", f"{name}.{f}", list(nul), f"{label}.{f} is {d}", feats))
+                step(f"{f}: rows from {', '.join(a for a, v in sorted(nul.items()) if v)} may have no value; "
+                     "making it required rejects them unless a default is agreed", "high")
+            uniq = {a: bool(o["unique"]) for a, o in fo.items() if "unique" in o}
+            if len(uniq) > 1 and len(set(uniq.values())) > 1:
+                d = ", ".join(f"{a}: {'unique' if v else 'not unique'}" for a, v in sorted(uniq.items()))
+                conflicts.append(_c("unique-constraint", f"{name}.{f}", list(uniq), f"{label}.{f} is {d}; merged "
+                                    "rows can repeat values", feats))
+                step(f"{f}: find duplicate values across sources before adding the unique constraint", "high")
+            defaults = {a: json.dumps(o.get("default"), sort_keys=True) for a, o in fo.items() if "default" in o}
+            if len(defaults) > 1 and len(set(defaults.values())) > 1:
+                d = ", ".join(f"{a}: {v}" for a, v in sorted(defaults.items()))
+                public = re.search(r"(?i)public|visib|shared|is_public|published", f) and any(
+                    re.search(r'(?i)^(true|"public"|"shared"|"anyone"|1)$', v) for v in defaults.values())
+                conflicts.append(_c("exposure-default" if public else "default-value", f"{name}.{f}", list(defaults),
+                                    f"{label}.{f} defaults differ ({d})" + ("; one source makes new items visible "
+                                                                             "to others by default" if public else ""),
+                                    feats))
+            meanings = {a: (o.get("description") or o.get("meaning") or "").strip() for a, o in fo.items()}
+            meanings = {a: v for a, v in meanings.items() if v}
+            if len(meanings) > 1 and any(_differs(meanings[x], meanings[y]) for x in meanings for y in meanings
+                                         if x < y):
+                d = "; ".join(f"{a}: '{v[:60]}'" for a, v in sorted(meanings.items()))
+                originals = ", ".join(f"{a}:{fo[a]['name']}" for a in sorted(meanings))
+                conflicts.append(_c("field-meaning", f"{name}.{f}", list(meanings),
+                                    f"{label}.{f} ({originals}) means different things ({d})", feats))
+            for key in UNIT_KEYS:
+                units = {a: str(o[key]).lower() for a, o in fo.items() if o.get(key) not in (None, "")}
+                if len(units) > 1 and len(set(units.values())) > 1:
+                    d = ", ".join(f"{a}: {v}" for a, v in sorted(units.items()))
+                    conflicts.append(_c("units", f"{name}.{f}.{key}", list(units), f"{label}.{f} {key} differs ({d})",
+                                        feats))
+                    step(f"convert {f} to one {key} ({d}) and test the conversion", "high")
+
+        # deletes: per relation and per entity
+        pol = {}
+        for a in involved:
+            for fk in per_app[a].get("foreign_keys", []):
+                if fk.get("on_delete"):
+                    pol.setdefault(fname(fk.get("field")), {})[a] = str(fk["on_delete"]).lower()
+        for field, by in sorted(pol.items()):
+            if len(by) > 1 and len(set(by.values())) > 1:
+                d = ", ".join(f"{a}: {v}" for a, v in sorted(by.items()))
+                conflicts.append(_c("delete-policy", f"{name}.{field}", list(by),
+                                    f"deleting what {label}.{field} points at does different things ({d})", feats))
+        soft = {}
+        for a in involved:
+            e = per_app[a]
+            mode = e.get("deletion")
+            if not mode:
+                names = {fl.get("name", "").lower() for fl in e.get("fields", [])}
+                mode = "soft" if names & {"deleted_at", "is_deleted", "deleted", "archived_at", "removed_at"} else None
+            if mode:
+                soft[a] = str(mode).lower()
+        if soft and (len(set(soft.values())) > 1 or len(soft) < len(involved)):
+            d = ", ".join(f"{a}: {soft.get(a, 'hard delete (no marker found)')}" for a in involved)
+            conflicts.append(_c("deletion-semantics", name, involved, f"deleting a {label} means different things "
+                                f"({d})", feats))
+            step("decide soft or hard delete; rows marked deleted in one source must not reappear or vanish", "high")
+
+    # relations between merged entities: one-to-many in one source, many-to-many in another
+    rels = {a: _relations([e for e in reports[a].get("entities", []) if e["name"] in in_scope[a]], ent_alias,
+                          ref_name) for a in apps}
+    seen = set()
+    for a in apps:
+        for (x, y), kind in rels[a].items():
+            key = tuple(sorted((x, y)))
+            if key in seen:
+                continue
+            kinds = {}
+            for b in apps:
+                k = rels[b].get((x, y)) or rels[b].get((y, x))
+                if k:
+                    kinds[b] = k
+            if len(set(kinds.values())) > 1:
+                seen.add(key)
+                d = ", ".join(f"{b}: {k}" for b, k in sorted(kinds.items()))
+                conflicts.append(_c("cardinality", f"{key[0]}-{key[1]}", list(kinds),
+                                    f"{key[0]} and {key[1]} are related differently ({d})"))
+                m = migrations_by_id.get(f"migration:{x}") or migrations_by_id.get(f"migration:{y}")
+                if m is not None:
+                    m["steps"].append({"change": f"relation {key[0]}-{key[1]}: keep every link ({d})", "risk": "high",
+                                       "data_loss": []})
+
+    # different names, possibly the same thing: ask, never assume
+    names = {}
+    for a in apps:
+        for e in reports[a].get("entities", []):
+            if e["name"] in in_scope[a]:
+                canon = ent_alias.get(e["name"].lower(), e["name"]).lower()
+                names.setdefault(canon, {})[a] = e
+    keys = sorted(names)
+    for i, x in enumerate(keys):
+        for y in keys[i + 1:]:
+            ax, ay = set(names[x]), set(names[y])
+            if not (ax - ay or ay - ax) or (ax == ay and len(ax) == 1):
+                continue
+            if ax == ay:
+                continue
+            group = any(singular(x) in g and singular(y) in g for g in SYNONYMS)
+            fx = {fname(f["name"]) for e in names[x].values() for f in e.get("fields", [])} - GENERIC_FIELDS
+            fy = {fname(f["name"]) for e in names[y].values() for f in e.get("fields", [])} - GENERIC_FIELDS
+            overlap = len(fx & fy) >= 3 and len(fx & fy) / max(1, len(fx | fy)) >= 0.6
+            if group or overlap:
+                why = "the names are often used for the same thing" if group else \
+                    f"they share {len(fx & fy)} of {len(fx | fy)} non-generic fields"
+                ex = ", ".join(f"{b}:{names[x][b]['name']}" for b in sorted(names[x]))
+                ey = ", ".join(f"{b}:{names[y][b]['name']}" for b in sorted(names[y]))
+                conflicts.append(_c("possible-alias", f"{x}~{y}", sorted(ax | ay),
+                                    f"{ex} and {ey} may be the same thing ({why}); record the decision in "
+                                    "compat/aliases.json either way"))
+
+    for m in migrations_by_id.values():
+        _finalise(m)
+
+
+def application_checks(reports, apps, scope, arch, conflicts):
+    """Identity, roles, tenancy, payments, storage and API conventions across the sources."""
+    auths = {a: reports[a].get("auth") or {} for a in apps}
+    methods = {a: {str(m).lower() for m in (au.get("methods") or [])} for a, au in auths.items()}
+    pw = sorted(a for a, ms in methods.items() if ms & PASSWORD_METHODS)
+    fed = sorted(a for a, ms in methods.items() if ms & FEDERATED_METHODS)
+    if pw and fed and set(pw) | set(fed) and len(set(pw) | set(fed)) > 1:
+        conflicts.append(_c("identity-linking", "accounts", sorted(set(pw) | set(fed)),
+                            f"password sign-in ({', '.join(pw)}) and federated sign-in ({', '.join(fed)}) will meet in "
+                            "one account table: the same person can arrive twice, or an attacker can claim an account "
+                            "through an unverified email"))
+    perms = {}
+    for a, au in auths.items():
+        for role, ps in (au.get("role_permissions") or {}).items():
+            perms.setdefault(str(role).lower(), {})[a] = tuple(sorted(map(str, ps)))
+    for role, by in sorted(perms.items()):
+        if len(by) > 1 and len(set(by.values())) > 1:
+            d = "; ".join(f"{a}: {', '.join(v) or 'none'}" for a, v in sorted(by.items()))
+            conflicts.append(_c("role-meaning", role, list(by), f"role '{role}' has different permissions ({d})"))
+    roles = {a: [str(r) for r in (au.get("roles") or [])] for a, au in auths.items() if au.get("roles")}
+    mapping = ((arch or {}).get("auth") or {}).get("role_mapping")
+    if roles and isinstance(mapping, dict):
+        flat = {str(k).lower(): str(v) for k, v in mapping.items()}
+        for a, rs in sorted(roles.items()):
+            for r in rs:
+                target = flat.get(f"{a.lower()}:{r.lower()}") or flat.get(r.lower())
+                if target is None:
+                    conflicts.append(_c("role-map", f"{a}:{r}", [a], f"source role {a}:{r} is not in "
+                                        "architecture.json auth.role_mapping"))
+                elif PRIVILEGED.match(target) and not PRIVILEGED.match(r):
+                    conflicts.append(_c("privilege-escalation", f"{a}:{r}->{target}", [a],
+                                        f"{a}:{r} is mapped to {target}, which looks more powerful"))
+
+    ten = {a: reports[a].get("tenancy") or {} for a in apps}
+    models = {a: str(t.get("model") or "none").lower() for a, t in ten.items() if t}
+    if len(set(models.values())) > 1:
+        d = ", ".join(f"{a}: {m}" for a, m in sorted(models.items()))
+        conflicts.append(_c("tenancy-model", "tenancy", list(models), f"tenant boundaries differ ({d})"))
+    if any(m != "none" for m in models.values()):
+        keys = {str(t.get("key")).lower() for t in ten.values() if t.get("key")} | set(TENANT_KEYS)
+        roots = {singular(m) for m in models.values() if m != "none"} | \
+            {"organization", "organisation", "org", "tenant", "workspace", "team", "company"}
+        for e in (arch or {}).get("entities", []):
+            fields = {str(f.get("name", "")).lower() for f in e.get("fields", [])}
+            if singular(str(e.get("name", "")).lower()) in roots:
+                continue  # the tenant itself
+            if e.get("shared") or e.get("global") or e.get("tenant_key") or fields & keys:
+                continue
+            if not e.get("fields"):
+                continue
+            conflicts.append(_c("tenant-isolation", e["name"], sorted(models),
+                                f"{e['name']} has no tenant key in the unified design, so its queries cannot be "
+                                "limited to one tenant"))
+        for a in apps:
+            for e in reports[a].get("entities", []):
+                if e.get("shared") and scope.item_in(a, e):
+                    conflicts.append(_c("shared-resource", f"{a}:{e['name']}", [a],
+                                        f"{a}:{e['name']} is shared across tenants: decide who may see it"))
+    for a in apps:
+        for i in reports[a].get("integrations", []):
+            if not scope.item_in(a, i):
+                continue
+            if i.get("webhooks") and str(i.get("idempotency") or "none").lower() in ("none", "no", "false", ""):
+                conflicts.append(_c("idempotency", f"{a}:{i.get('name')}", [a],
+                                    f"{a}'s {i.get('name')} webhooks have no recorded idempotency: a repeated "
+                                    "delivery can apply twice"))
+    pay = {a: sorted({str(i.get("name")).lower() for i in reports[a].get("integrations", [])
+                      if str(i.get("kind", "")).lower() in ("payments", "billing") or
+                      str(i.get("name", "")).lower() in PAYMENT_NAMES}) for a in apps}
+    pay = {a: v for a, v in pay.items() if v}
+    if len(pay) > 1:
+        d = ", ".join(f"{a}: {', '.join(v)}" for a, v in sorted(pay.items()))
+        conflicts.append(_c("payment-flow", "payments", list(pay), f"several sources move money ({d})"))
+    store = {}
+    for a in apps:
+        for i in reports[a].get("integrations", []):
+            n = str(i.get("provider") or i.get("name") or "").lower()
+            if str(i.get("kind", "")).lower() == "storage" or n in STORAGE_NAMES:
+                store.setdefault(a, set()).add(n)
+    if len({frozenset(v) for v in store.values()}) > 1:
+        d = ", ".join(f"{a}: {', '.join(sorted(v))}" for a, v in sorted(store.items()))
+        conflicts.append(_c("storage-provider", "files", list(store), f"files live in different places ({d})"))
+    for key, kind in (("pagination", "pagination"), ("error_format", "error-format"), ("rate_limit", "rate-limit")):
+        vals = {}
+        for a in apps:
+            v = (reports[a].get("api") or {}).get(key)
+            eps = {str(ep.get(key)).lower() for ep in reports[a].get("endpoints", []) if ep.get(key)}
+            if v:
+                eps.add(str(v).lower())
+            if eps:
+                vals[a] = tuple(sorted(eps))
+        if vals and key == "rate_limit":  # an API with no recorded limit differs from one that has a limit
+            for a in apps:
+                if reports[a].get("endpoints") and a not in vals:
+                    vals[a] = ("none recorded",)
+        if len(set(vals.values())) > 1:
+            d = ", ".join(f"{a}: {', '.join(v)}" for a, v in sorted(vals.items()))
+            conflicts.append(_c(kind, key, list(vals), f"API {key.replace('_', ' ')} differs ({d})"))
+    known = {}
+    for a in apps:
+        for ep in reports[a].get("endpoints", []):
+            known.setdefault(a, set()).add((str(ep.get("method", "")).upper(), norm_path(ep.get("path", ""))[0]))
+    for ep in (arch or {}).get("api", []) or []:
+        for origin in ep.get("from", []) or []:
+            m = re.match(r"^([A-Z]{1,3}):\s*([A-Za-z]+)\s+(\S+)$", str(origin))
+            if not m:
+                continue
+            a, meth, path = m.groups()
+            if (meth.upper(), norm_path(path)[0]) not in known.get(a, set()):
+                conflicts.append(_c("endpoint-origin", f"{ep.get('method')} {ep.get('path')}", [a],
+                                    f"the unified {ep.get('method')} {ep.get('path')} says it comes from {origin}, "
+                                    f"which is not in {a}'s extracted endpoints"))
+
+
 def analyse(reports, scope=None, aliases=None, arch=None):
     """reports: {app_id: source.json}. Returns (conflicts, migrations).
     arch (architecture.json) is optional: with entity fields it finds data that would be dropped."""
     scope = scope or Scope()
     aliases = aliases or {}
-    ent_alias = {k.lower(): v for k, v in (aliases.get("entities") or {}).items()}
-    field_alias = {k.lower(): v.lower() for k, v in (aliases.get("fields") or {}).items()}
     conflicts, migrations = [], []
+    ent_alias, field_alias = {}, {}
+    for table, out in (("entities", ent_alias), ("fields", field_alias)):
+        for k, v in (aliases.get(table) or {}).items():
+            target, reason = (v.get("to"), v.get("reason")) if isinstance(v, dict) else (v, None)
+            if not target:
+                continue
+            out[k.lower()] = target if table == "entities" else str(target).lower()
+            if not str(reason or "").strip():
+                conflicts.append(_c("alias-unexplained", f"{table}:{k}->{target}", [],
+                                    f"compat/aliases.json says {k} means {target} but gives no reason"))
     apps = sorted(a for a in reports if scope.app_in(a))
 
     def fname(n):
@@ -301,9 +818,8 @@ def analyse(reports, scope=None, aliases=None, arch=None):
         return field_alias.get(n, n)
 
     def ref_name(value):
-        """'User', 'User.id', 'users(id)' -> 'user' (singular, lower-case)."""
-        v = re.split(r"[.(]", str(value or ""))[0].strip().lower()
-        return v[:-1] if v.endswith("s") and not v.endswith("ss") else v
+        """'User', 'User.id', 'users(id)', 'statuses' -> 'user', 'status' (singular, lower-case)."""
+        return singular(re.split(r"[.(]", str(value or ""))[0].strip().lower())
 
     # entities in scope, plus every entity they point at (shared data stays in scope)
     in_scope = {}
@@ -442,13 +958,10 @@ def analyse(reports, scope=None, aliases=None, arch=None):
                         m["steps"].append({"change": f"{app}.{e['name']}.{fl['name']}: {why}", "risk": risk,
                                            "data_loss": [fl["name"]] if risk == "high" else []})
     for m in migrations:
-        if not m["steps"]:
-            m["steps"].append({"change": "merge rows from every source into one table", "risk": "low",
-                               "data_loss": []})
-        m["changes"] = [st["change"] for st in m["steps"]]
-        m["risk"] = max((st["risk"] for st in m["steps"]), key=RISK_ORDER.get)
-        m["data_loss"] = sorted({x for st in m["steps"] for x in st["data_loss"]})
-        m["destructive"] = m["risk"] == "high"
+        _finalise(m)
+
+    semantic_checks(reports, apps, in_scope, entities, ent_alias, fname, ref_name, conflicts, by_id)
+    application_checks(reports, apps, scope, arch, conflicts)
 
     if len(styles) > 1:
         d = "; ".join(f"{s}: {', '.join(sorted(a))}" for s, a in sorted(styles.items()))

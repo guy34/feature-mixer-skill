@@ -1,0 +1,696 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 9,
+    "medium": 4,
+    "low": 0,
+    "info": 1
+  },
+  "conflicts": [
+    {
+      "id": "application:authorization-model:model",
+      "category": "application",
+      "kind": "authorization-model",
+      "subject": "model",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Authorization models differ (A: budget membership: members see a budget's expenses; owner manages members; B: none (single-user library function))",
+      "solutions": [
+        "Choose one authorization model and express the others' rules in it"
+      ],
+      "recommended": "One authorization model with one permission check function",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One model: budget membership with roles owner and member. Every expense belongs to a budget; each user gets a personal budget at sign-up (Spendly's single-user use). One can_access(user, action, record) function used by every route and query.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC05",
+          "test_non_member_cannot_read_or_add_budget_expenses"
+        ]
+      }
+    },
+    {
+      "id": "application:business-rule:conversion-target-currency",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "conversion-target-currency",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03",
+        "B-F01"
+      ],
+      "severity": "high",
+      "detail": "Tallyho converts foreign receipts to the user's home currency (documented), but its shared budget totals are in one budget currency (screenshot: EUR). Members of one budget can have different home currencies, so 'home currency' totals would disagree between members. Spendly records no currency at all.",
+      "solutions": [
+        "Convert to the budget's currency for the expense and its totals; keep the original amount and currency",
+        "Convert to each viewer's home currency at display time",
+        "No conversion: reject expenses not in the budget currency"
+      ],
+      "recommended": "Convert to the budget's currency, store original amount, currency, rate and rate date; every member sees the same totals",
+      "needs_approval": true,
+      "menu_features": [
+        "M02",
+        "M03",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Convert to the budget's currency. Store original amount and currency, converted amount in budget currency, rate and rate date (receipt date). Totals use the converted amount; every member sees the same totals.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC04",
+          "test_foreign_expense_converted_to_budget_currency"
+        ]
+      }
+    },
+    {
+      "id": "application:permission:access-after-member-removal",
+      "category": "application",
+      "kind": "permission",
+      "subject": "access-after-member-removal",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F03",
+        "A-F05"
+      ],
+      "severity": "high",
+      "detail": "Tallyho documents that the owner can remove members, and the user saw that a removed member's earlier expenses stay in the budget; whether the removed member can still see the budget is not known. Left unclear, a removed person might keep seeing everyone's spending.",
+      "solutions": [
+        "Keep their expenses in the budget, end their access at once",
+        "Delete or move their expenses out of the budget on removal",
+        "Let them keep read access to their own past expenses"
+      ],
+      "recommended": "Keep their expenses (totals stay correct, as in Tallyho) and end all their access to the budget at once",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M07"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "On removal, the member loses all access to the budget immediately; their earlier expenses stay in the budget, attributed to them, and keep counting in totals. Only the owner may remove; the owner cannot remove themself.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC07",
+          "test_removed_member_loses_access_expenses_stay"
+        ]
+      }
+    },
+    {
+      "id": "application:session:session",
+      "category": "application",
+      "kind": "session",
+      "subject": "session",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Session mechanisms differ (A: unknown for the app; bearer token in the authorization header for the api; B: none)",
+      "solutions": [
+        "Choose one session mechanism (http-only cookie sessions are the safer default for web apps)",
+        "Use tokens only where a client cannot hold cookies"
+      ],
+      "recommended": "One session mechanism for the whole app",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Server-side sessions in http-only, Secure, SameSite=Lax cookies for the web app. Tallyho's personal access tokens are not built (M11 deferred).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC09",
+          "test_unauthenticated_requests_are_rejected"
+        ]
+      }
+    },
+    {
+      "id": "application:tenancy-model:tenancy",
+      "category": "application",
+      "kind": "tenancy-model",
+      "subject": "tenancy",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "tenant boundaries differ (A: budget (inferred), B: none)",
+      "solutions": [
+        "Choose one tenant boundary (organisation, workspace...) and assign every row to a tenant",
+        "Keep single-tenant data in one default tenant, decided with the user"
+      ],
+      "recommended": "One tenant model; every tenant-owned row has a tenant key and every query filters by it",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "The budget is the tenant boundary: Expense, BudgetMember and Invitation carry budget_id and every query filters by the caller's memberships. Nothing is shared across budgets.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC05",
+          "test_non_member_cannot_read_or_add_budget_expenses"
+        ]
+      }
+    },
+    {
+      "id": "application:workflow:scanned-expense-category",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "scanned-expense-category",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Tallyho's scan fills merchant, date and total but no category is documented; Spendly rejects any expense without a known category. A scanned receipt would either fail to save or need a silent default.",
+      "solutions": [
+        "Require the user to pick a category on the review screen before saving",
+        "Default scanned expenses to 'other'",
+        "Guess a category from the merchant"
+      ],
+      "recommended": "Require a category on the review screen (no silent default); Spendly's rule stays intact",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M06",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Category is required on the scan review screen; no silent default; Spendly's reject-unknown rule applies to scanned expenses too.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC03",
+          "test_scanned_expense_needs_category_before_save"
+        ]
+      }
+    },
+    {
+      "id": "database:entity-meaning:expense",
+      "category": "database",
+      "kind": "entity-meaning",
+      "subject": "expense",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F07",
+        "A-F08",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Expense may not mean the same thing in A, B: A describes it as 'A spending record in a budget, as exposed by the public API', B as 'A spending record: amount in cents, a category, an optional note'",
+      "solutions": [
+        "Keep them as separate entities with distinct names (for example UserAccount and LedgerAccount)",
+        "Merge them only if the user confirms they describe the same thing"
+      ],
+      "recommended": "Ask the user; never merge entities because their names match",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M05",
+        "M06",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Same concept in both (one spending record). One Expense entity: Tallyho's merchant, currency, date, budget plus Spendly's integer amount, category and note.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:field-type:expense.amount",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "expense.amount",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F07",
+        "A-F08",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Expense.amount types differ (A: number, B: integer)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M05",
+        "M06",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "amount_minor: integer (bigint) minor units. Decimal user input such as 12.40 is parsed to 1240 using the currency's exponent; zero and negative rejected.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC10",
+          "test_amount_stored_as_integer_minor_units"
+        ]
+      }
+    },
+    {
+      "id": "database:units:expense.amount.unit",
+      "category": "database",
+      "kind": "units",
+      "subject": "expense.amount.unit",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F07",
+        "A-F08",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Expense.amount unit differs (A: major units, B: minor units (cents))",
+      "solutions": [
+        "Store one unit (for example integer cents in UTC) and convert at import",
+        "Store the unit with the value"
+      ],
+      "recommended": "One unit per field, converted in the migration and tested",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M05",
+        "M06",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Minor units everywhere (Spendly's unit), with an ISO 4217 currency on every amount; display formats to major units.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC10",
+          "test_amount_stored_as_integer_minor_units"
+        ]
+      }
+    },
+    {
+      "id": "application:business-rule:monthly-reset-meaning",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "monthly-reset-meaning",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F06"
+      ],
+      "severity": "medium",
+      "detail": "'Budgets reset monthly' does not say what resets, on which day or in which time zone.",
+      "solutions": [
+        "Calendar-month period in the budget's time zone; spent counts expenses dated in it; nothing deleted",
+        "Rolling 30-day window",
+        "Archive expenses at month end"
+      ],
+      "recommended": "Calendar-month period in the budget's time zone, by expense date; nothing deleted",
+      "needs_approval": false,
+      "menu_features": [
+        "M08"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Budget period is the calendar month in the budget's time zone; spent vs limit counts expenses dated in that month; nothing is deleted; past months stay viewable. To confirm with the user.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC08",
+          "test_spent_counts_only_current_month"
+        ]
+      }
+    },
+    {
+      "id": "database:data:expense-currency-missing-in-b",
+      "category": "database",
+      "kind": "data",
+      "subject": "expense-currency-missing-in-b",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F08",
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "Spendly expenses have no currency or date; Tallyho expenses need both.",
+      "solutions": [
+        "Currency defaults to the budget currency and date to today when not given",
+        "Make both required on every entry"
+      ],
+      "recommended": "Default currency to the budget currency and date to today in the entry form; both stored as required columns",
+      "needs_approval": false,
+      "menu_features": [
+        "M05",
+        "M06"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "currency and date are required columns; the entry form defaults currency to the budget currency and date to today.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:deletion-semantics:expense",
+      "category": "database",
+      "kind": "deletion-semantics",
+      "subject": "expense",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F07",
+        "A-F08",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "deleting a Expense means different things (A: hard delete (no marker found), B: hard)",
+      "solutions": [
+        "Choose soft or hard delete for the merged entity and convert the other source's rows",
+        "Keep deleted rows from the soft-delete source as archived"
+      ],
+      "recommended": "Soft delete for merged data unless the user decides otherwise",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M05",
+        "M06",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Hard delete, allowed to the member who added the expense or the budget owner (Tallyho's delete behaviour is unknown; Spendly has none).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:expense",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "expense",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F07",
+        "A-F08",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "Expense exists in A:Expense, B:Expense; fields not shared: budget_id (only A), currency (only A), date (only A), merchant (only A), note (only B)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge only once it is confirmed they mean the same thing; then list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M05",
+        "M06",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merged into one Expense entity (see entity-meaning).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "database:unknown-type:expense.primary-key",
+      "category": "database",
+      "kind": "unknown-type",
+      "subject": "expense.primary-key",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F07",
+        "A-F08",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "info",
+      "detail": "Expense primary key type is not known for A, B; find it before deciding the merged key",
+      "solutions": [
+        "Read the source's schema or migrations for the type",
+        "Record it as unknown and decide in the architecture"
+      ],
+      "recommended": "Find the real type before designing the merged entity",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M05",
+        "M06",
+        "M09"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "New uuid primary key; neither source's key is carried over (no data is migrated).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:expense",
+      "entity": "Expense",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "convert amount to one type (A: number, B: integer)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "add fields that only some sources have: budget_id (only A), currency (only A), date (only A), merchant (only A), note (only B)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "A.Expense.amount: number to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "amount"
+          ]
+        },
+        {
+          "change": "A.Expense.budget_id: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "budget_id"
+          ]
+        },
+        {
+          "change": "convert amount to one unit (A: major units, B: minor units (cents)) and test the conversion",
+          "risk": "high",
+          "data_loss": []
+        },
+        {
+          "change": "decide soft or hard delete; rows marked deleted in one source must not reappear or vanish",
+          "risk": "high",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "convert amount to one type (A: number, B: integer)",
+        "add fields that only some sources have: budget_id (only A), currency (only A), date (only A), merchant (only A), note (only B)",
+        "A.Expense.amount: number to integer can lose or reject values",
+        "A.Expense.budget_id: unknown to uuid can lose or reject values",
+        "convert amount to one unit (A: major units, B: minor units (cents)) and test the conversion",
+        "decide soft or hard delete; rows marked deleted in one source must not reappear or vanish"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "amount",
+        "budget_id"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:budget",
+      "entity": "Budget",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "A.Budget.limit: number to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "limit"
+          ]
+        },
+        {
+          "change": "A.Budget.owner_id: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "owner_id"
+          ]
+        }
+      ],
+      "changes": [
+        "A.Budget.limit: number to integer can lose or reject values",
+        "A.Budget.owner_id: unknown to uuid can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "limit",
+        "owner_id"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:budgetmember",
+      "entity": "BudgetMember",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "A.BudgetMember.budget_id: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "budget_id"
+          ]
+        },
+        {
+          "change": "A.BudgetMember.user_id: unknown to uuid can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "user_id"
+          ]
+        }
+      ],
+      "changes": [
+        "A.BudgetMember.budget_id: unknown to uuid can lose or reject values",
+        "A.BudgetMember.user_id: unknown to uuid can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "budget_id",
+        "user_id"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:user",
+      "entity": "User",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": true,
+      "needs_approval": false
+    }
+  ]
+}

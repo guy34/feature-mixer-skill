@@ -1,0 +1,186 @@
+{
+  "app": {"id": "A", "name": "Tallyho"},
+  "coverage": "partial",
+  "size": "M",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "documentation", "location": "sources/tallyho/help (budgets.md, receipts.md)", "accessed": "2026-11-04"},
+    {"ref": "A-R02", "kind": "api-spec", "location": "sources/tallyho/api.md", "accessed": "2026-11-04"},
+    {"ref": "A-R03", "kind": "screenshots", "location": "sources/tallyho/screens (scan.svg, budget.svg)", "accessed": "2026-11-04"},
+    {"ref": "A-R04", "kind": "documentation", "location": "sources/tallyho/my-notes.md (the user's own notes from using Tallyho)", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "documented", "locator": "sources/tallyho/help/receipts.md:2", "summary": "Taking a photo of a receipt fills in merchant, date and total; the user can correct any field."},
+    {"id": "A-E02", "source": "A-R01", "basis": "documented", "locator": "sources/tallyho/help/receipts.md:3", "summary": "Receipts in a foreign currency are converted to the user's home currency."},
+    {"id": "A-E03", "source": "A-R03", "basis": "observed", "locator": "sources/tallyho/screens/scan.svg", "summary": "Scanned-receipt screen shows Merchant, Total in the receipt currency with an approximate home-currency amount (12.40 GBP, about 14.43 EUR) and Edit and Save actions; no date or category is shown."},
+    {"id": "A-E04", "source": "A-R04", "basis": "observed", "locator": "sources/tallyho/my-notes.md:1", "summary": "The user reports (own use, on a phone) that after scanning the total is usually right but the date is often wrong and they fix it by hand."},
+    {"id": "A-E05", "source": "A-R01", "basis": "documented", "locator": "sources/tallyho/help/budgets.md:2", "summary": "People are invited to a budget by email; everyone in a budget sees its expenses; the budget owner can remove members."},
+    {"id": "A-E06", "source": "A-R01", "basis": "documented", "locator": "sources/tallyho/help/budgets.md:3", "summary": "Budgets reset monthly."},
+    {"id": "A-E07", "source": "A-R03", "basis": "observed", "locator": "sources/tallyho/screens/budget.svg", "summary": "Budget screen shows a named budget with member count, amount spent of a limit in one currency (412.30 of 600.00 EUR), the member list with the owner marked, and Invite and Remove member actions."},
+    {"id": "A-E08", "source": "A-R04", "basis": "observed", "locator": "sources/tallyho/my-notes.md:2", "summary": "The user reports that after removing a member (Bo) from a budget, that member's earlier expenses stayed in the budget."},
+    {"id": "A-E09", "source": "A-R02", "basis": "documented", "locator": "sources/tallyho/api.md:2", "summary": "GET /v2/expenses filtered by budget_id returns expenses with id, merchant, amount, currency, date and category (no field types given)."},
+    {"id": "A-E10", "source": "A-R02", "basis": "documented", "locator": "sources/tallyho/api.md:3", "summary": "POST /v2/expenses creates an expense; the request body is not documented."},
+    {"id": "A-E11", "source": "A-R02", "basis": "documented", "locator": "sources/tallyho/api.md:4", "summary": "GET /v2/budgets returns the budgets the token's user belongs to."},
+    {"id": "A-E12", "source": "A-R02", "basis": "documented", "locator": "sources/tallyho/api.md:5", "summary": "The API authenticates with a personal access token in the Authorization header and is limited to 60 requests per minute."}
+  ],
+  "stack": {
+    "frontend": ["mobile app (used on a phone, per the user's notes); web client unknown"],
+    "backend": ["public REST-style JSON API, version v2"],
+    "database": ["unknown"],
+    "infrastructure": ["unknown"],
+    "basis": "documented"
+  },
+  "architecture": {
+    "frontend": "A phone app is in use (user's notes); whether a web client exists is unknown.",
+    "backend": "A versioned public HTTP API (v2) with token auth and rate limiting; internal services, OCR engine and storage are not documented.",
+    "evidence": ["A-E04", "A-E09", "A-E12"],
+    "basis": "documented"
+  },
+  "screens": [
+    {"id": "A-S01", "name": "Scanned receipt", "components": ["field list (merchant, total with converted amount)", "Edit button", "Save button"], "states": ["filled after scan"], "evidence": ["A-E03"]},
+    {"id": "A-S02", "name": "Budget overview", "components": ["budget header with member count", "spent-of-limit summary", "member list with owner marker", "Invite button", "Remove member button"], "states": ["filled, 3 members"], "evidence": ["A-E07"]}
+  ],
+  "workflows": [
+    {"id": "A-W01", "name": "Scan a receipt into an expense", "steps": ["A-S01"], "edge_cases": ["date read wrongly and corrected by hand (user's notes)", "receipt in a foreign currency is shown with a converted amount", "camera and capture screens were not seen"], "evidence": ["A-E01", "A-E03", "A-E04"]},
+    {"id": "A-W02", "name": "Manage who is in a shared budget", "steps": ["A-S02"], "edge_cases": ["removed member's earlier expenses stay in the budget (user's notes)", "invite acceptance screens were not seen"], "evidence": ["A-E05", "A-E07", "A-E08"]}
+  ],
+  "features": [
+    {"id": "A-F01", "name": "Receipt scanning", "description": "Photograph a receipt and have merchant, date and total filled in, then correct any field and save it as an expense.",
+     "observed_behaviour": "Docs: photo -> merchant, date, total filled in; any field editable. Screenshot: result screen with merchant and total plus Edit and Save. User's notes: total usually right, date often wrong.",
+     "business_logic": "Extracted fields: merchant, date, total. All fields user-editable before saving. Category is not documented as extracted.",
+     "data": ["Expense.merchant", "Expense.date", "Expense.amount", "Expense.currency", "receipt image (storage unknown)"],
+     "depends_on": ["A-F07"], "integration": "Needs an OCR or receipt-parsing engine (Tallyho's own is not documented), image upload and storage, and the expense store.",
+     "evidence": ["A-E01", "A-E03", "A-E04"], "basis": "observed", "confidence": "medium"},
+    {"id": "A-F02", "name": "Foreign-currency conversion", "description": "Receipts in a foreign currency are converted to the user's home currency.",
+     "observed_behaviour": "Scan screen shows the receipt total in its own currency and an approximate home-currency amount (12.40 GBP, about 14.43 EUR).",
+     "business_logic": "Converts to the user's home currency. Rate source, rate date (receipt date or scan date) and rounding are unknown. Documented only for receipts.",
+     "data": ["Expense.amount", "Expense.currency", "User home currency (inferred)"],
+     "depends_on": ["A-F01"], "integration": "Needs an exchange-rate provider (unknown which).",
+     "evidence": ["A-E02", "A-E03"], "basis": "observed", "confidence": "medium"},
+    {"id": "A-F03", "name": "Shared budgets", "description": "A budget several people belong to; every member sees all of its expenses and the amount spent against its limit.",
+     "observed_behaviour": "Budget screen shows name, member count, spent of limit in one currency, member list with owner. API lists budgets the user belongs to and expenses per budget.",
+     "business_logic": "Members see all expenses of the budget. One owner per budget (inferred from the single owner marker). A budget has a limit and a currency.",
+     "data": ["Budget.name", "Budget.limit", "Budget.currency", "membership (user, role)", "Expense.budget_id"],
+     "depends_on": ["A-F07"], "integration": "Needs user accounts and a membership-based permission check on every budget and expense read.",
+     "evidence": ["A-E05", "A-E07", "A-E11"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F04", "name": "Invite members by email", "description": "The budget's people invite others to it by email address.",
+     "observed_behaviour": "Docs state email invitations; an Invite button is on the budget screen. The invitation email, acceptance flow and who may invite were not seen.",
+     "business_logic": "Invite by email. Whether only the owner or any member can invite is unknown; expiry unknown.",
+     "data": ["invitation (email, budget, status) (inferred)"],
+     "depends_on": ["A-F03"], "integration": "Needs outbound email and accounts for invitees.",
+     "evidence": ["A-E05", "A-E07"], "basis": "observed", "confidence": "medium"},
+    {"id": "A-F05", "name": "Owner removes members", "description": "The budget owner can remove a member from the budget.",
+     "observed_behaviour": "Remove member button on the budget screen; docs say the owner can remove members; the user saw a removed member's earlier expenses stay in the budget.",
+     "business_logic": "Only the owner removes members. Removing a member keeps that member's existing expenses in the budget. Whether the removed member can still see them is unknown.",
+     "data": ["membership", "Expense.budget_id", "expense author (inferred)"],
+     "depends_on": ["A-F03"], "integration": "Needs the permission model to drop the removed member's access.",
+     "evidence": ["A-E05", "A-E07", "A-E08"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F06", "name": "Monthly budget reset", "description": "A budget's spending period restarts every month.",
+     "observed_behaviour": "Documented in one line only; not seen happening.",
+     "business_logic": "Monthly period. Whether expenses are kept (only the spent total restarts), the reset day, time zone, and rollover of unspent amounts are unknown.",
+     "data": ["Budget period (inferred)"],
+     "depends_on": ["A-F03"], "integration": "Spent total computed per calendar month, or a scheduled job.",
+     "evidence": ["A-E06"], "basis": "documented", "confidence": "medium"},
+    {"id": "A-F07", "name": "Expense records", "description": "Create expenses and list a budget's expenses, each with merchant, amount, currency, date and category.",
+     "observed_behaviour": "API: POST creates an expense; GET lists expenses by budget with id, merchant, amount, currency, date, category.",
+     "business_logic": "Each expense belongs to a budget (filtered by budget_id). Field types, required fields and validation are not documented.",
+     "data": ["Expense.id", "Expense.merchant", "Expense.amount", "Expense.currency", "Expense.date", "Expense.category", "Expense.budget_id"],
+     "depends_on": [], "integration": "The core record every other Tallyho feature writes or reads.",
+     "evidence": ["A-E09", "A-E10"], "basis": "documented", "confidence": "medium"},
+    {"id": "A-F08", "name": "Public API with personal access tokens", "description": "A versioned HTTP API for expenses and budgets, authenticated with personal access tokens and rate-limited.",
+     "observed_behaviour": "Documented only: three endpoints, token in the Authorization header, 60 requests per minute.",
+     "business_logic": "Rate limit 60 requests per minute per token (scope of the limit inferred). Version prefix /v2.",
+     "data": ["personal access token (inferred)"],
+     "depends_on": ["A-F07", "A-F03"], "integration": "Needs token issuance and revocation, which are not documented.",
+     "evidence": ["A-E09", "A-E10", "A-E11", "A-E12"], "basis": "documented", "confidence": "high"},
+    {"id": "A-F09", "name": "Expense category field", "description": "Each expense carries a category.",
+     "observed_behaviour": "Only the field name in the API response is documented; the set of categories, whether users can add their own, and whether scanning sets it are unknown.",
+     "business_logic": "Unknown.",
+     "data": ["Expense.category"],
+     "depends_on": ["A-F07"], "integration": "Category vocabulary must be chosen in the unified app.",
+     "evidence": ["A-E09"], "basis": "documented", "confidence": "low"}
+  ],
+  "entities": [
+    {"name": "Expense", "primary_key": {"name": "id", "type": "unknown"},
+     "fields": [
+       {"name": "merchant", "type": "unknown"},
+       {"name": "amount", "type": "unknown"},
+       {"name": "currency", "type": "unknown"},
+       {"name": "date", "type": "unknown"},
+       {"name": "category", "type": "unknown"},
+       {"name": "budget_id", "type": "unknown"}
+     ],
+     "foreign_keys": [{"field": "budget_id", "references": "Budget"}],
+     "features": ["A-F07", "A-F01", "A-F03", "A-F09"], "evidence": ["A-E09", "A-E10"], "basis": "documented"},
+    {"name": "Budget", "primary_key": {"name": "id", "type": "unknown"},
+     "fields": [
+       {"name": "name", "type": "unknown"},
+       {"name": "limit", "type": "unknown"},
+       {"name": "currency", "type": "unknown"}
+     ],
+     "features": ["A-F03", "A-F06"], "evidence": ["A-E07", "A-E11"], "basis": "observed"},
+    {"name": "BudgetMember",
+     "fields": [
+       {"name": "budget_id", "type": "unknown"},
+       {"name": "user_id", "type": "unknown"},
+       {"name": "role", "type": "unknown"}
+     ],
+     "foreign_keys": [{"field": "budget_id", "references": "Budget"}, {"field": "user_id", "references": "User"}],
+     "features": ["A-F03", "A-F04", "A-F05"], "evidence": ["A-E05", "A-E07"], "basis": "inferred"},
+    {"name": "User",
+     "fields": [{"name": "email", "type": "unknown"}],
+     "features": ["A-F03", "A-F04"], "evidence": ["A-E05"], "basis": "inferred"}
+  ],
+  "endpoints": [
+    {"method": "GET", "path": "/v2/expenses", "auth": "personal access token", "version": "v2",
+     "request": {"budget_id": "unknown"},
+     "response": {"id": "unknown", "merchant": "unknown", "amount": "unknown", "currency": "unknown", "date": "unknown", "category": "unknown"},
+     "errors": ["not documented"], "features": ["A-F07", "A-F08"], "evidence": ["A-E09"], "basis": "documented"},
+    {"method": "POST", "path": "/v2/expenses", "auth": "personal access token", "version": "v2",
+     "errors": ["not documented"], "features": ["A-F07", "A-F08"], "evidence": ["A-E10"], "basis": "documented"},
+    {"method": "GET", "path": "/v2/budgets", "auth": "personal access token", "version": "v2",
+     "errors": ["not documented"], "features": ["A-F03", "A-F08"], "evidence": ["A-E11"], "basis": "documented"}
+  ],
+  "auth": {
+    "provider": "unknown (app sign-in not documented)",
+    "methods": ["personal access token (API only)"],
+    "session": "unknown for the app; Authorization header token for the API",
+    "model": "budget membership: every member sees the budget's expenses; the owner can remove members",
+    "roles": ["owner", "member"],
+    "evidence": ["A-E05", "A-E07", "A-E12"],
+    "basis": "documented"
+  },
+  "rules": [
+    {"key": "scan_extracted_fields", "value": ["merchant", "date", "total"], "features": ["A-F01"], "evidence": ["A-E01"]},
+    {"key": "scan_fields_editable", "value": true, "features": ["A-F01"], "evidence": ["A-E01", "A-E03"]},
+    {"key": "foreign_currency_converted_to", "value": "home currency", "features": ["A-F02"], "evidence": ["A-E02", "A-E03"]},
+    {"key": "budget_expense_visibility", "value": "all members", "features": ["A-F03"], "evidence": ["A-E05"]},
+    {"key": "remove_member_allowed_role", "value": "owner", "features": ["A-F05"], "evidence": ["A-E05"]},
+    {"key": "removed_member_expenses", "value": "stay in budget", "features": ["A-F05"], "evidence": ["A-E08"]},
+    {"key": "budget_period", "value": "monthly", "features": ["A-F06"], "evidence": ["A-E06"]},
+    {"key": "api_rate_limit", "value": "60 requests per minute", "features": ["A-F08"], "evidence": ["A-E12"]}
+  ],
+  "integrations": [
+    {"name": "Receipt OCR engine (provider unknown)", "purpose": "read merchant, date and total from a receipt photo", "features": ["A-F01"], "evidence": ["A-E01"]},
+    {"name": "Exchange-rate source (provider unknown)", "purpose": "convert foreign-currency receipts to the home currency", "features": ["A-F02"], "evidence": ["A-E02"]},
+    {"name": "Email delivery (provider unknown)", "purpose": "send budget invitations", "features": ["A-F04"], "evidence": ["A-E05"]}
+  ],
+  "error_handling": [
+    {"case": "OCR reads the date wrongly", "behaviour": "No warning is documented; the user corrects the date by hand before saving.", "evidence": ["A-E04", "A-E01"]},
+    {"case": "API errors and rate-limit responses", "behaviour": "Not documented.", "evidence": ["A-E12"]}
+  ],
+  "unknowns": [
+    "Which OCR or receipt-parsing engine Tallyho uses, and its accuracy; would be settled only by Tallyho's own disclosure (not needed: the unified app picks its own engine).",
+    "Whether scanning sets the category; the docs list only merchant, date and total. A test scan with the user present would settle it.",
+    "Tallyho's category list and whether users can add categories; the API names the field only. The user's own account would show it.",
+    "Exchange-rate provider, which date's rate is used (receipt date or scan date), rounding, and whether the original amount is kept; the scan screen shows both amounts. Help pages beyond the two supplied, or the user's account, would settle it.",
+    "What 'budgets reset monthly' means exactly: which day, which time zone, whether expenses are kept or only the spent total restarts, whether unspent amounts roll over.",
+    "Who may invite (owner only or any member), invitation expiry, and what an invitee without an account sees.",
+    "Whether a removed member can still see the expenses they added; whether the user regards expenses staying behind as desired or as a problem (their note does not say).",
+    "Whether a budget can have more than one owner, and whether ownership can be transferred.",
+    "App sign-in method, session mechanism and account model; only API personal access tokens are documented.",
+    "API field types, required fields, POST request body, pagination, error format, and how tokens are issued and revoked.",
+    "Where receipt images are stored and for how long.",
+    "Camera, capture and invite-acceptance screens; only two result screens were supplied.",
+    "Live site and own-account inspection were not possible in this session (no approved network or browser); everything here comes from the supplied local copies."
+  ]
+}

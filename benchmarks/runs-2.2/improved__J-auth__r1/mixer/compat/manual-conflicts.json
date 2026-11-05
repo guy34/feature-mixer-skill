@@ -1,0 +1,20 @@
+[
+  {"kind": "workflow", "subject": "duplicate-registration", "category": "application", "apps": ["A", "B"],
+   "severity": "high",
+   "detail": "A overwrites an existing account when the same email registers again; with one account per person this would let anyone take over an account (including one created or linked by OAuth)",
+   "solutions": ["Refuse registration when the normalised email already belongs to a user", "Keep A's overwrite behaviour"],
+   "recommended": "Refuse a duplicate registration with AuthError; never overwrite",
+   "features": ["A-F01", "B-F01"]},
+  {"kind": "permission", "subject": "role-change-rules", "category": "application", "apps": ["C"],
+   "severity": "high",
+   "detail": "C's set_role trusts a role string from the caller and accepts any new role name; the user requires that only an admin changes roles and nobody raises their own role",
+   "solutions": ["Resolve the caller from the session; admin only; validate the role; refuse raising one's own role", "Keep C's behaviour"],
+   "recommended": "Caller from session token; PermissionError unless admin; unknown role rejected; self-raise refused",
+   "features": ["C-F02"]},
+  {"kind": "workflow", "subject": "first-admin", "category": "application", "apps": ["C"],
+   "severity": "medium",
+   "detail": "Only an admin can grant admin, and no source creates the first admin",
+   "solutions": ["A setup-only bootstrap_admin that works only while no admin exists", "Seed an admin from configuration"],
+   "recommended": "bootstrap_admin(email, password) for setup; refused once an admin exists",
+   "features": ["C-F02"]}
+]

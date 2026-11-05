@@ -1,0 +1,49 @@
+{
+  "app": {"id": "C", "name": "Orderly"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "C-R01", "kind": "local-directory", "location": "sources/orderly", "accessed": "2026-11-05"},
+    {"ref": "C-R02", "kind": "documentation", "location": "task.md", "accessed": "2026-11-05"}
+  ],
+  "evidence": [
+    {"id": "C-E01", "source": "C-R01", "basis": "observed", "locator": "sources/orderly/orders.py:1",
+     "summary": "STATES = ('pending', 'paid', 'cancelled', 'refunded'): the four order states."},
+    {"id": "C-E02", "source": "C-R01", "basis": "observed", "locator": "sources/orderly/orders.py:2-3",
+     "summary": "cancel(order) sets status='cancelled' unconditionally; the source comment says a paid order is cancelled without a refund."},
+    {"id": "C-E03", "source": "C-R02", "basis": "documented", "locator": "task.md#scenario-m",
+     "summary": "The user describes Orderly as orders with states pending, paid, cancelled, refunded."}
+  ],
+  "stack": {"backend": ["Python (plain functions, no framework)"], "database": ["none: orders are dicts passed in by the caller"], "basis": "observed"},
+  "architecture": {"backend": "A module with a states constant and one free function mutating an order dict.", "evidence": ["C-E01", "C-E02"], "basis": "observed"},
+  "features": [
+    {"id": "C-F01", "name": "Order status lifecycle",
+     "description": "Orders carry a status from a fixed set: pending, paid, cancelled, refunded.",
+     "observed_behaviour": "Only the set of states is defined; no transition table or guard exists in the code.",
+     "business_logic": "Allowed transitions are not enforced anywhere in the source.",
+     "data": ["Order.status"],
+     "evidence": ["C-E01", "C-E03"], "basis": "observed", "confidence": "high"},
+    {"id": "C-F02", "name": "Cancel an order",
+     "description": "Cancels an order by setting its status to cancelled.",
+     "observed_behaviour": "cancel() sets status='cancelled' whatever the current status, including paid; no refund is issued.",
+     "business_logic": "No refund for paid orders, no guard against cancelling a refunded or already cancelled order.",
+     "data": ["Order.status"],
+     "depends_on": ["C-F01"],
+     "evidence": ["C-E02", "C-E03"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Order", "fields": [{"name": "status", "type": "str: pending|paid|cancelled|refunded (dict key)"}],
+     "features": ["C-F01", "C-F02"], "evidence": ["C-E01", "C-E02"], "basis": "observed"}
+  ],
+  "rules": [
+    {"key": "order_states", "value": ["pending", "paid", "cancelled", "refunded"], "features": ["C-F01"], "evidence": ["C-E01"]},
+    {"key": "refund_on_cancel", "value": false, "features": ["C-F02"], "evidence": ["C-E02"]}
+  ],
+  "error_handling": [
+    {"case": "cancel a paid order", "behaviour": "status becomes cancelled, money is kept (no refund)", "evidence": ["C-E02"]}
+  ],
+  "unknowns": [
+    "Where order amounts and customers live: the Orderly code defines no fields besides status."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

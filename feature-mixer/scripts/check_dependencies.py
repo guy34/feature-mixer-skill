@@ -17,8 +17,17 @@ Reports: package version conflicts, runtime version conflicts, mixed
 runtimes, competing frameworks in the same layer, duplicated libraries that
 do the same job, and circular module dependencies.
 
-Version checks use the major version of each spec (a heuristic: ^18.2 and
-18.x agree, 17 and 18 do not, >=16 accepts 18). Unreadable specs are skipped.
+Manifests read: package.json (dependencies, dev, peer and optional), requirements*.txt
+(with -r includes inside the source, -e and URL requirements), pyproject.toml
+(PEP 621 and Poetry), Cargo.toml and go.mod, plus runtime.txt, .python-version,
+.nvmrc and engines/requires-python. Links, oversized (over 5 MB) and malformed
+manifests are not read and are listed under manifest_problems.
+
+Version checks use real range arithmetic (versions.py): every constraint on a
+package across the kept apps must leave at least one version (">=16 <20" and
+"^18.2" agree; "~18.0" and "^18.2" do not). Peer and optional constraints
+count; dev-only ones do not. Specs nothing offline can read (git, URLs, local
+paths, workspace:, tags) are reported as uncertain, never as compatible.
 
 Dependency intelligence (v2.1):
   vulnerabilities  read from audit tool output only: npm audit --json,
@@ -47,6 +56,7 @@ from mixerlib import (
     apply_resolutions, blocking, find_cycles, guide, load_json, load_resolutions,
     load_sources, make_conflict, project_root,
 )
+import versions
 
 FRAMEWORK_LAYERS = {
     "frontend framework": {
@@ -113,58 +123,302 @@ GUIDE = {
     },
 }
 
-SKIP_DIRS = {"node_modules", ".git", "venv", ".venv", "dist", "build", "__pycache__", ".next"}
-REQ_LINE = re.compile(r"^([A-Za-z0-9_.\-\[\]]+)\s*(.*)$")
+SKIP_DIRS = {"node_modules", ".git", "venv", ".venv", "dist", "build", "__pycache__", ".next", "target", "vendor"}
+REQ_LINE = re.compile(r"^([A-Za-z0-9_.\-\[\],]+)\s*(.*)$")
 VERSION = re.compile(r"(\d+)")
+MAX_MANIFEST_BYTES = 5 * 1024 * 1024
+DEP_KINDS_NPM = (("dependencies", "dependency"), ("devDependencies", "dev"), ("peerDependencies", "peer"),
+                 ("optionalDependencies", "optional"))
+
+
+def pep503(name):
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 # --- reading manifests ------------------------------------------------------
 
-def scan_manifests(path, max_depth=3):
-    """Read package.json and requirements.txt files under path."""
-    packages, runtimes, files = {}, {}, []
+def _read_manifest(path, problems, root):
+    """Text of a manifest, or None (with a problem recorded) when it is a link, too large or unreadable."""
+    rel = os.path.relpath(path, root)
+    if os.path.islink(path):
+        problems.append({"file": rel, "problem": "manifest is a symbolic link; not followed"})
+        return None
+    try:
+        size = os.path.getsize(path)
+        if size > MAX_MANIFEST_BYTES:
+            problems.append({"file": rel, "problem": f"manifest is too large ({size} bytes); not read"})
+            return None
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError as e:
+        problems.append({"file": rel, "problem": f"cannot be read ({e.strerror})"})
+        return None
+
+
+def _toml(text):
+    try:
+        import tomllib  # Python 3.11+ (guarded)  # novermin
+        return tomllib.loads(text)
+    except ImportError:
+        return None
+    except Exception:  # tomllib.TOMLDecodeError
+        return {}
+
+
+def _toml_table_lines(text, table):
+    """Fallback for Python < 3.11: key = value lines of one [table]."""
+    m = re.search(r"^\[" + re.escape(table) + r"\]\s*$(.*?)(?=^\[|\Z)", text, re.M | re.S)
+    out = {}
+    if m:
+        for k, v in re.findall(r'^\s*([A-Za-z0-9_.-]+)\s*=\s*(.+?)\s*$', m.group(1), re.M):
+            vm = re.search(r'version\s*=\s*"([^"]*)"', v) or re.match(r'"([^"]*)"', v)
+            out[k] = vm.group(1) if vm else v.strip()
+    return out
+
+
+def _add(stack, name, spec, kind, file, ecosystem):
+    stack["constraints"].setdefault(name, []).append({"spec": str(spec), "kind": kind, "file": file,
+                                                      "ecosystem": ecosystem})
+    if kind != "dev" or name not in stack["packages"]:
+        stack["packages"].setdefault(name, str(spec))
+
+
+def _requirements(path, root, stack, seen, depth=0):
+    text = _read_manifest(path, stack["problems"], root)
+    if text is None or path in seen or depth > 3:
+        return
+    seen.add(path)
+    rel = os.path.relpath(path, root)
+    stack["files"].append(path)
+    for raw in text.splitlines():
+        line = raw.split(" #", 1)[0].split("\t#", 1)[0].strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith(("-r ", "--requirement ", "-c ", "--constraint ")):
+            inc = os.path.normpath(os.path.join(os.path.dirname(path), line.split(None, 1)[1].strip()))
+            if inc.startswith(os.path.realpath(root)) or inc.startswith(root):
+                if os.path.isfile(inc):
+                    _requirements(inc, root, stack, seen, depth + 1)
+                else:
+                    stack["problems"].append({"file": rel, "problem": f"includes {line.split(None, 1)[1]}, "
+                                                                      "which does not exist"})
+            else:
+                stack["problems"].append({"file": rel, "problem": f"includes a file outside the source: {line}"})
+            continue
+        if line.startswith(("-e ", "--editable ")) or re.match(r"^(?:git\+|https?://|file:|\.{0,2}/)", line):
+            target = line.split(None, 1)[1] if line.startswith("-") else line
+            m = re.search(r"#egg=([A-Za-z0-9_.-]+)", target) or re.search(r"([A-Za-z0-9_.-]+?)(?:\.git)?(?:@|$)",
+                                                                          target.rsplit("/", 1)[-1])
+            if m:
+                _add(stack, pep503(m.group(1)), target, "dependency", rel, "python")
+            continue
+        if line.startswith("-"):
+            continue
+        m = re.match(r"^([A-Za-z0-9_.\-]+)(\[[^\]]*\])?\s*(@\s*\S+)?\s*(.*)$", line)
+        if m:
+            spec = (m.group(3) or m.group(4) or "").strip() or "*"
+            _add(stack, pep503(m.group(1)), spec, "dependency", rel, "python")
+
+
+def _pep508(req):
+    m = re.match(r"^\s*([A-Za-z0-9_.\-]+)\s*(\[[^\]]*\])?\s*(\(?[^;]*?\)?)?\s*(;.*)?$", req)
+    if not m:
+        return None, None
+    spec = (m.group(3) or "").strip("() ").strip() or "*"
+    if m.group(4):
+        spec += " " + m.group(4).strip()
+    return pep503(m.group(1)), spec
+
+
+def _pyproject(path, root, stack):
+    text = _read_manifest(path, stack["problems"], root)
+    if text is None:
+        return
+    rel = os.path.relpath(path, root)
+    stack["files"].append(path)
+    data = _toml(text)
+    if data is None:  # no tomllib: read the common tables by pattern
+        for name, spec in _toml_table_lines(text, "tool.poetry.dependencies").items():
+            if name.lower() == "python":
+                stack["runtime_constraints"].setdefault("python", []).append({"spec": spec, "file": rel})
+                stack["runtimes"].setdefault("python", spec)
+            else:
+                _add(stack, pep503(name), spec, "dependency", rel, "python")
+        m = re.search(r"(?ms)^\[project\].*?^dependencies\s*=\s*\[(.*?)\]", text)
+        for req in re.findall(r'"([^"]+)"', m.group(1) if m else ""):
+            name, spec = _pep508(req)
+            if name:
+                _add(stack, name, spec, "dependency", rel, "python")
+        m = re.search(r'(?m)^requires-python\s*=\s*"([^"]+)"', text)
+        if m:
+            stack["runtime_constraints"].setdefault("python", []).append({"spec": m.group(1), "file": rel})
+            stack["runtimes"].setdefault("python", m.group(1))
+        return
+    if data == {} and text.strip():
+        stack["problems"].append({"file": rel, "problem": "pyproject.toml is not valid TOML; not read"})
+        return
+    project = data.get("project") or {}
+    for req in project.get("dependencies") or []:
+        name, spec = _pep508(req)
+        if name:
+            _add(stack, name, spec, "dependency", rel, "python")
+    for group in (project.get("optional-dependencies") or {}).values():
+        for req in group:
+            name, spec = _pep508(req)
+            if name:
+                _add(stack, name, spec, "optional", rel, "python")
+    if project.get("requires-python"):
+        stack["runtime_constraints"].setdefault("python", []).append({"spec": project["requires-python"],
+                                                                      "file": rel})
+        stack["runtimes"].setdefault("python", project["requires-python"])
+    poetry = ((data.get("tool") or {}).get("poetry") or {})
+    for table, kind in (("dependencies", "dependency"), ("dev-dependencies", "dev")):
+        for name, v in (poetry.get(table) or {}).items():
+            spec = v.get("version", "*") if isinstance(v, dict) else str(v)
+            if isinstance(v, dict) and ("git" in v or "path" in v or "url" in v):
+                spec = v.get("git") or v.get("path") or v.get("url")
+            if name.lower() == "python":
+                stack["runtime_constraints"].setdefault("python", []).append({"spec": spec, "file": rel})
+                stack["runtimes"].setdefault("python", spec)
+            else:
+                _add(stack, pep503(name), spec, kind, rel, "python")
+
+
+def _package_json(path, root, stack):
+    text = _read_manifest(path, stack["problems"], root)
+    if text is None:
+        return
+    rel = os.path.relpath(path, root)
+    try:
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            raise ValueError("not an object")
+    except ValueError as e:
+        stack["problems"].append({"file": rel, "problem": f"package.json is not valid JSON ({e}); not read"})
+        return
+    stack["files"].append(path)
+    for key, kind in DEP_KINDS_NPM:
+        deps = data.get(key) or {}
+        if isinstance(deps, dict):
+            for name, spec in deps.items():
+                _add(stack, name, spec, kind, rel, "npm")
+    node = (data.get("engines") or {}).get("node") if isinstance(data.get("engines"), dict) else None
+    if node:
+        stack["runtime_constraints"].setdefault("node", []).append({"spec": str(node), "file": rel})
+        stack["runtimes"].setdefault("node", str(node))
+    if data.get("workspaces"):
+        stack.setdefault("workspaces", []).append(rel)
+
+
+def _cargo(path, root, stack):
+    text = _read_manifest(path, stack["problems"], root)
+    if text is None:
+        return
+    rel = os.path.relpath(path, root)
+    stack["files"].append(path)
+    data = _toml(text)
+    tables = {}
+    if data is None:
+        tables = {"dependencies": _toml_table_lines(text, "dependencies"),
+                  "dev-dependencies": _toml_table_lines(text, "dev-dependencies")}
+    else:
+        tables = {k: data.get(k) or {} for k in ("dependencies", "dev-dependencies", "build-dependencies")}
+    for table, deps in tables.items():
+        for name, v in deps.items():
+            spec = v.get("version") if isinstance(v, dict) else v
+            if isinstance(v, dict) and not spec:
+                spec = v.get("git") or v.get("path") or "*"
+            spec = str(spec)
+            if re.match(r"^\d", spec):
+                spec = "^" + spec  # Cargo: "1.2" means ^1.2
+            _add(stack, name, spec, "dev" if table == "dev-dependencies" else "dependency", rel, "cargo")
+
+
+def _gomod(path, root, stack):
+    text = _read_manifest(path, stack["problems"], root)
+    if text is None:
+        return
+    rel = os.path.relpath(path, root)
+    stack["files"].append(path)
+    m = re.search(r"(?m)^go\s+(\d+\.\d+(?:\.\d+)?)", text)
+    if m:
+        stack["runtime_constraints"].setdefault("go", []).append({"spec": ">=" + m.group(1), "file": rel})
+        stack["runtimes"].setdefault("go", m.group(1))
+    reqs = re.findall(r"(?m)^\s*require\s+(\S+)\s+(v\S+)", text)
+    for block in re.findall(r"(?ms)^\s*require\s*\((.*?)\)", text):
+        reqs += re.findall(r"(?m)^\s*(\S+)\s+(v\S+)", block)
+    for mod, ver in reqs:
+        # Go picks the highest required version of a module path (minimal version selection): a minimum
+        _add(stack, mod, ">=" + ver.lstrip("v").split("+")[0], "dependency", rel, "go")
+
+
+def scan_manifests(path, max_depth=6):
+    """Read package.json, requirements*.txt, pyproject.toml, Cargo.toml and go.mod files under path.
+    Folders deeper than max_depth are not searched; that is reported as a problem, never silent."""
+    stack = {"packages": {}, "constraints": {}, "runtimes": {}, "runtime_constraints": {}, "files": [],
+             "problems": []}
+    root = path
     base_depth = path.rstrip(os.sep).count(os.sep)
-    for root, dirs, names in os.walk(path):
-        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
-        if root.count(os.sep) - base_depth >= max_depth:
+    seen = set()
+    for here, dirs, names in os.walk(path, followlinks=False):
+        nested = [d for d in dirs if d not in SKIP_DIRS and os.path.lexists(os.path.join(here, d, ".git"))]
+        for d in nested:
+            stack["problems"].append({"file": os.path.relpath(os.path.join(here, d), root), "problem":
+                                      "a separate repository inside this source (its own .git); its manifests "
+                                      "were not read"})
+        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and d not in nested
+                         and not os.path.islink(os.path.join(here, d)))
+        if here.count(os.sep) - base_depth >= max_depth:
+            if dirs:
+                stack["problems"].append({"file": os.path.relpath(here, root), "problem":
+                                          f"manifests deeper than {max_depth} folders were not searched"})
             dirs[:] = []
-        if "package.json" in names:
-            p = os.path.join(root, "package.json")
-            try:
-                data = load_json(p)
-            except ValueError:
-                continue
-            files.append(p)
-            for key in ("dependencies", "devDependencies", "peerDependencies"):
-                for name, spec in (data.get(key) or {}).items():
-                    packages.setdefault(name, str(spec))
-            node = (data.get("engines") or {}).get("node")
-            if node:
-                runtimes.setdefault("node", str(node))
-        if "requirements.txt" in names:
-            p = os.path.join(root, "requirements.txt")
-            files.append(p)
-            with open(p, encoding="utf-8") as f:
-                for line in f:
-                    line = line.split("#", 1)[0].strip()
-                    if not line or line.startswith("-"):
-                        continue
-                    m = REQ_LINE.match(line)
-                    if m:
-                        name = re.sub(r"\[.*\]", "", m.group(1)).lower()
-                        packages.setdefault(name, m.group(2).strip() or "*")
-        for marker in ("runtime.txt", ".python-version"):
-            if marker in names:
-                with open(os.path.join(root, marker), encoding="utf-8") as f:
-                    text = f.read().strip().replace("python-", "")
+        for n in sorted(names):
+            full = os.path.join(here, n)
+            if n == "package.json":
+                _package_json(full, root, stack)
+            elif re.fullmatch(r"requirements[\w.-]*\.(?:txt|in)", n):
+                _requirements(full, root, stack, seen)
+            elif n == "pyproject.toml":
+                _pyproject(full, root, stack)
+            elif n == "Cargo.toml":
+                _cargo(full, root, stack)
+            elif n == "go.mod":
+                _gomod(full, root, stack)
+            elif n in ("runtime.txt", ".python-version", ".nvmrc", ".node-version"):
+                text = _read_manifest(full, stack["problems"], root)
+                text = (text or "").strip().replace("python-", "").lstrip("v")
                 if text:
-                    runtimes.setdefault("python", text)
+                    rt = "node" if n in (".nvmrc", ".node-version") else "python"
+                    stack["runtimes"].setdefault(rt, text)
+                    stack["runtime_constraints"].setdefault(rt, []).append(
+                        {"spec": text, "file": os.path.relpath(full, root)})
     # a manifest says which runtime the code needs even when no version is pinned
-    if any(os.path.basename(f) == "package.json" for f in files):
-        runtimes.setdefault("node", "*")
-    if any(os.path.basename(f) == "requirements.txt" for f in files):
-        runtimes.setdefault("python", "*")
-    return {"packages": packages, "runtimes": runtimes, "files": files}
+    kinds = {os.path.basename(f) for f in stack["files"]}
+    if "package.json" in kinds:
+        stack["runtimes"].setdefault("node", "*")
+    if any(k.startswith("requirements") or k == "pyproject.toml" for k in kinds):
+        stack["runtimes"].setdefault("python", "*")
+    if "Cargo.toml" in kinds:
+        stack["runtimes"].setdefault("rust", "*")
+    if "go.mod" in kinds:
+        stack["runtimes"].setdefault("go", "*")
+    return stack
+
+
+def _ecosystem_of(spec):
+    s = str(spec)
+    return "python" if re.search(r"==|~=|!=|,|;|===", s) else "npm"
+
+
+def _from_report(stack, rep, app):
+    """Packages and runtimes recorded in source.json (sources without a manifest: websites, API docs)."""
+    for name, spec in (rep.get("packages") or {}).items():
+        if name not in stack["constraints"]:
+            _add(stack, name, spec, "dependency", "source.json", _ecosystem_of(spec))
+    for rt, spec in (rep.get("runtimes") or {}).items():
+        stack["runtimes"].setdefault(rt, str(spec))
+        stack["runtime_constraints"].setdefault(rt, []).append({"spec": str(spec), "file": "source.json"})
 
 
 def collect(mixer_dir):
@@ -174,19 +428,15 @@ def collect(mixer_dir):
     root = project_root(mixer_dir)
     stacks = {}
     for s in project.get("sources", []):
-        stack = {"packages": {}, "runtimes": {}, "files": []}
-        rep = reports.get(s["id"], {})
-        stack["packages"].update(rep.get("packages") or {})
-        stack["runtimes"].update(rep.get("runtimes") or {})
+        stack = {"packages": {}, "constraints": {}, "runtimes": {}, "runtime_constraints": {}, "files": [],
+                 "problems": []}
         loc = s.get("local_path")
         if loc:
             path = loc if os.path.isabs(loc) else os.path.join(root, loc)
             if os.path.isdir(path):
-                scanned = scan_manifests(path)
-                for key in ("packages", "runtimes"):
-                    for name, spec in scanned[key].items():
-                        stack[key].setdefault(name, spec)
-                stack["files"] = [os.path.relpath(f, root) for f in scanned["files"]]
+                stack = scan_manifests(path)
+                stack["files"] = [os.path.relpath(f, root) for f in stack["files"]]
+        _from_report(stack, reports.get(s["id"], {}), s["id"])
         stacks[s["id"]] = stack
     return stacks
 
@@ -210,7 +460,7 @@ def planned_modules(mixer_dir):
 # --- analysis ---------------------------------------------------------------
 
 def parse_spec(spec):
-    """Return (major, open_ended) or None when the spec cannot be read."""
+    """v2.1 helper kept for callers: (major, open_ended) or None when the spec cannot be read."""
     s = str(spec).strip().lower()
     if not s or s in ("*", "x", "latest") or s.startswith(("git", "http", "file:", "link:", "workspace:", "npm:")):
         return None
@@ -221,50 +471,85 @@ def parse_spec(spec):
     return int(m.group(1)), open_ended
 
 
-def versions_conflict(a, b):
-    pa, pb = parse_spec(a), parse_spec(b)
-    if pa is None or pb is None:
-        return None
-    (ma, oa), (mb, ob) = pa, pb
-    if oa and ob:
-        return False
-    if oa:
-        return mb < ma
-    if ob:
-        return ma < mb
-    return ma != mb
+def versions_conflict(a, b, ecosystem=None):
+    """True: no version satisfies both. False: some version does. None: cannot tell offline.
+    Uses real range arithmetic (versions.py), not just the major version."""
+    eco = ecosystem or (_ecosystem_of(a) if _ecosystem_of(a) == "python" or _ecosystem_of(b) == "python" else "npm")
+    verdict, _ = versions.overlap(a, b, "python" if eco == "python" else "npm")
+    return {"conflict": True, "compatible": False}.get(verdict)
 
 
-def _version_conflicts(stacks, key, kind, out):
-    names = sorted({n for st in stacks.values() for n in st[key]})
+def _eco_key(ecosystem):
+    return "python" if ecosystem == "python" else "npm"
+
+
+def _version_conflicts(stacks, out):
+    names = sorted({n for st in stacks.values() for n in st.get("constraints", {})})
     for name in names:
-        users = {app: st[key][name] for app, st in stacks.items() if name in st[key]}
-        if len(users) < 2:
+        rows = []
+        for app, st in sorted(stacks.items()):
+            for c in st.get("constraints", {}).get(name, []):
+                rows.append(dict(c, app=app))
+        runtime_rows = [r for r in rows if r["kind"] != "dev"]
+        apps = sorted({r["app"] for r in rows})
+        if not runtime_rows:
             continue
-        apps = sorted(users)
-        clash = [(a, b) for i, a in enumerate(apps) for b in apps[i + 1:]
-                 if versions_conflict(users[a], users[b])]
-        if not clash:
+        specs_by = {}
+        for r in runtime_rows:
+            specs_by.setdefault(r["spec"], []).append(r)
+        if len(specs_by) < 2:
             continue
-        detail = ", ".join(f"{a} uses {users[a]}" for a in apps)
-        if kind == "runtime":
-            severity = "high"
-        else:
-            severity = "high" if name in FRAMEWORK_PACKAGES else "medium"
-        sol, rec = guide(GUIDE, kind)
-        out.append(make_conflict("dependency", kind, name, apps, severity,
-                                 f"{name}: {detail}", sol, rec))
+        eco = _eco_key(runtime_rows[0]["ecosystem"])
+        verdict, why, unreadable = versions.all_overlap([r["spec"] for r in runtime_rows], eco)
+        detail = f"{name}: " + ", ".join(f"{r['app']} uses {r['spec']}" + (f" ({r['kind']})" if r["kind"] !=
+                                                                           "dependency" else "") +
+                                         (f" in {r['file']}" if len({x['file'] for x in rows if x['app'] ==
+                                                                     r['app']}) > 1 else "")
+                                         for r in runtime_rows)
+        if verdict == "conflict":
+            # find the pairs that cannot both hold, for the message
+            only_optional = all(r["kind"] == "optional" for r in runtime_rows if r["spec"] in specs_by)
+            severity = "high" if name in FRAMEWORK_PACKAGES else "low" if only_optional else "medium"
+            sol, rec = guide(GUIDE, "version")
+            out.append(make_conflict("dependency", "version", name, apps, severity, f"{detail}. {why}", sol, rec))
+        elif verdict == "uncertain" and len({r["app"] for r in runtime_rows}) > 1:
+            out.append(make_conflict("dependency", "version-uncertain", name, apps, "low",
+                                     f"{detail}. Uncertain: {why}",
+                                     ["Read the referenced source or tag to find its version",
+                                      "Pin a registry version in the unified app"],
+                                     "Decide the version by hand; nothing offline can confirm these agree"))
+
+
+def _runtime_conflicts(stacks, out):
+    names = sorted({rt for st in stacks.values() for rt in st.get("runtime_constraints", {})})
+    for rt in names:
+        rows = [dict(c, app=app) for app, st in sorted(stacks.items())
+                for c in st.get("runtime_constraints", {}).get(rt, [])]
+        rows = [r for r in rows if str(r["spec"]).strip() not in ("", "*")]
+        if len({r["app"] for r in rows}) < 2:
+            continue
+        eco = "python" if rt == "python" and any(re.search(r"~=|,|==", r["spec"]) for r in rows) else "npm"
+        verdict, why, _ = versions.all_overlap([r["spec"] for r in rows], eco)
+        if verdict == "conflict":
+            detail = f"{rt}: " + ", ".join(f"{r['app']} uses {r['spec']}" for r in rows) + f". {why}"
+            sol, rec = guide(GUIDE, "runtime")
+            out.append(make_conflict("dependency", "runtime", rt, sorted({r["app"] for r in rows}), "high", detail,
+                                     sol, rec))
 
 
 def analyse(stacks, modules=None):
     conflicts = []
-    _version_conflicts(stacks, "packages", "version", conflicts)
-    _version_conflicts(stacks, "runtimes", "runtime", conflicts)
+    for st in stacks.values():  # stacks built by older callers may carry only packages and runtimes
+        st.setdefault("constraints", {n: [{"spec": v, "kind": "dependency", "file": "", "ecosystem":
+                                           _ecosystem_of(v)}] for n, v in st.get("packages", {}).items()})
+        st.setdefault("runtime_constraints", {r: [{"spec": v, "file": ""}] for r, v in st.get("runtimes", {}).items()})
+    _version_conflicts(stacks, conflicts)
+    _runtime_conflicts(stacks, conflicts)
 
     runtimes = {}
     for app, st in stacks.items():
         for rt in st["runtimes"]:
-            if rt in ("node", "python", "ruby", "java", "go", "dotnet", "php"):
+            if rt in ("node", "python", "ruby", "java", "go", "dotnet", "php", "rust"):
                 runtimes.setdefault(rt, []).append(app)
     if len(runtimes) > 1:
         detail = "; ".join(f"{rt}: {', '.join(sorted(a))}" for rt, a in sorted(runtimes.items()))
@@ -377,22 +662,44 @@ def audits(mixer_dir, extra=()):
 
 
 def unverified_warnings(stacks):
+    """Specs nothing offline can check: unpinned, tags, git, URLs, local paths, workspace and alias specs."""
     out = []
     for app, st in sorted(stacks.items()):
-        for name, spec in sorted(st["packages"].items()):
-            s = str(spec).strip().lower()
-            reason = None
-            if s in ("", "*", "x", "latest"):
-                reason = "not pinned to a version"
-            elif s.startswith(("git", "http", "file:", "link:")):
-                reason = "installed from outside the package registry"
-            if reason:
-                out.append({"app": app, "package": name, "spec": spec, "status": "unverified", "reason": reason})
+        cons = st.get("constraints") or {n: [{"spec": v, "kind": "dependency"}] for n, v in st["packages"].items()}
+        for name in sorted(cons):
+            for c in cons[name]:
+                s = str(c["spec"]).strip().lower()
+                reason = None
+                if s in ("", "*", "x", "latest") or s in versions.TAGS:
+                    reason = "not pinned to a version" if s in ("", "*", "x") else f"a moving tag ({s})"
+                elif s.startswith(("git", "github:", "gitlab:", "bitbucket:", "http", "file:", "link:", "-e ")):
+                    reason = "installed from outside the package registry"
+                elif s.startswith(("workspace:", "portal:")):
+                    reason = "a package from the same repository (workspace); its version comes from that folder"
+                elif s.startswith("npm:"):
+                    reason = "an alias for another package; check what it points at"
+                elif re.match(r"^(?:\.{0,2}/|~/)", s):
+                    reason = "a local path"
+                elif c.get("ecosystem") in ("npm", "python") and versions.parse(c["spec"], _eco_key(
+                        c.get("ecosystem"))) is None:
+                    reason = "a version spec this checker cannot read"
+                if reason:
+                    out.append({"app": app, "package": name, "spec": c["spec"], "kind": c.get("kind", "dependency"),
+                                "status": "unverified", "reason": reason})
     return out
 
 
+def manifest_problems(stacks):
+    return [dict(p, app=app) for app, st in sorted(stacks.items()) for p in st.get("problems", [])]
+
+
 def necessity(mixer_dir, stacks, kept_features=None):
-    """Per app: possibly unused, undeclared, and only-used-by-dropped-features packages."""
+    """Per app: possibly unused, undeclared, and only-used-by-dropped-features packages.
+
+    Static import scanning is evidence, not proof: a package can be loaded by a plugin system, a CLI, a config
+    file or a computed name. So a declared package is only called "possibly unused" when the index analysed
+    every file of its language and found no dynamic import it could not resolve; otherwise it is listed as
+    "not determinable" with the reason."""
     if not mixer_dir:
         return {}
     project = load_json(os.path.join(mixer_dir, "project.json"))
@@ -404,17 +711,49 @@ def necessity(mixer_dir, stacks, kept_features=None):
             continue
         index = load_json(idx_path)
         langs = {f["path"]: f["language"] for f in index.get("files", [])}
+        coverage = index.get("import_coverage") or {}
         imported = {}
         for pkg, files in index.get("external_imports", {}).items():
             py = all(langs.get(f) == "python" for f in files)
             if (py and pkg in stdlib) or (not py and pkg in NODE_BUILTINS):
                 continue
             imported[_norm_pkg(pkg)] = (pkg, files)
+        cons = stacks[src["id"]].get("constraints") or {}
         declared = {_norm_pkg(n): n for n in stacks[src["id"]]["packages"]}
+        default_eco = "python" if "python" in coverage and not ({"javascript", "typescript"} & set(coverage)) else \
+            "npm" if coverage else "unknown"
+        eco_of = {_norm_pkg(n): (cons.get(n) or [{"ecosystem": default_eco}])[0].get("ecosystem", default_eco)
+                  for n in declared.values()}
         tooling = lambda n: any(n == t or (t.endswith("/") and n.startswith(t)) or n.startswith(t + "-")  # noqa
                                 for t in TOOLING)
-        unused = sorted(n for k, n in declared.items() if k not in imported and not tooling(n))
+
+        def blind_spot(eco):
+            """Why imports of this ecosystem cannot rule a package out, or None."""
+            names = {"python": ("python",), "npm": ("javascript", "typescript"),
+                     "unknown": tuple(coverage) or ("python",)}.get(eco, ())
+            if not names:
+                return f"imports are not analysed for {eco} packages"
+            seen = [coverage[x] for x in names if x in coverage]
+            if not seen:
+                return "no source file of this language was indexed" if coverage else \
+                    "the index predates import coverage (re-run index_repo.py)"
+            if any(c.get("unresolved_dynamic_imports") for c in seen):
+                n = sum(c.get("unresolved_dynamic_imports", 0) for c in seen)
+                return f"{n} dynamic import(s) with a computed name could load it"
+            if any(c.get("fallback_files") for c in seen):
+                return "some files could not be parsed, so their imports were read by pattern"
+            if not index.get("complete", True):
+                return "the index is incomplete (files skipped or unreadable)"
+            return None
+
+        unused, unknown = [], []
+        for k, n in sorted(declared.items()):
+            if k in imported or tooling(n):
+                continue
+            why = blind_spot(eco_of.get(n, default_eco))
+            (unknown.append({"package": n, "why": why}) if why else unused.append(n))
         undeclared = sorted(pkg for k, (pkg, _) in imported.items() if k not in declared)
+        optional = sorted({p for f in index.get("files", []) for p in f.get("optional_packages", [])})
         dropped_only = []
         ff = index.get("feature_files") or {}
         if kept_features is not None and ff:
@@ -425,8 +764,10 @@ def necessity(mixer_dir, stacks, kept_features=None):
             for k, (pkg, files) in sorted(imported.items()):
                 if all(owners.get(f) for f in files) and not any(owners[f] & kept_features for f in files):
                     dropped_only.append(pkg)
-        out[src["id"]] = {"possibly_unused": unused, "undeclared": undeclared, "only_dropped_features": dropped_only,
-                          "status": "unverified (import scanning is approximate)"}
+        out[src["id"]] = {"possibly_unused": unused, "not_determinable": unknown,
+                          "undeclared": [p for p in undeclared if p not in optional],
+                          "optional_imports": optional, "only_dropped_features": dropped_only,
+                          "status": "unverified (static import scanning is evidence, not proof)"}
     return out
 
 
@@ -500,6 +841,7 @@ def main(argv=None):
             extra.append(tuple(item.split("=", 1)))
         vulns = audits(args.mixer_dir, extra)
         intel = {"vulnerabilities": vulns, "warnings": unverified_warnings(stacks),
+                 "manifest_problems": manifest_problems(stacks),
                  "necessity": necessity(args.mixer_dir, stacks, kept_source_features(args.mixer_dir))}
     except (OSError, ValueError) as e:
         print(f"error: {e}")
@@ -517,11 +859,16 @@ def main(argv=None):
             print(f"  [{v['severity']}] {v['app']} {v['package']} ({v['tool']}: {', '.join(map(str, v['ids'])) or '-'})")
         for w in intel["warnings"]:
             print(f"  [unverified] {w['app']} {w['package']} {w['spec']}: {w['reason']}")
+        for p in intel["manifest_problems"]:
+            print(f"  [not read] {p['app']} {p['file']}: {p['problem']}")
         for app, n in intel["necessity"].items():
-            for key, label in (("possibly_unused", "declared but not imported"), ("undeclared", "imported but not declared"),
+            for key, label in (("possibly_unused", "declared but no import found"),
+                               ("undeclared", "imported but not declared"),
                                ("only_dropped_features", "only used by dropped features")):
                 if n[key]:
                     print(f"  [suggestion] {app} {label}: {', '.join(n[key])}")
+            for item in n["not_determinable"]:
+                print(f"  [unknown] {app} {item['package']}: cannot tell whether it is used ({item['why']})")
         if stop:
             print(f"{len(stop)} unresolved conflict(s) block integration")
     return 1 if stop else 0

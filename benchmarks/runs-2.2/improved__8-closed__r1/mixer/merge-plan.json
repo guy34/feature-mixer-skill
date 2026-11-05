@@ -1,0 +1,203 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Expenses",
+      "menu_ids": [
+        "M05",
+        "M06"
+      ],
+      "source_features": [
+        "A-F08",
+        "B-F01"
+      ],
+      "evidence": [
+        "A-E09",
+        "A-E10",
+        "B-E02",
+        "B-E03"
+      ],
+      "merge_type": "similar",
+      "rationale": "Both apps record an expense with different fields; one expense record avoids two ways of entering spending.",
+      "behaviour": "An expense belongs to one budget and has merchant, amount in integer minor units, ISO currency, date, a required category from the fixed list, an optional note and the member who added it. Members list a budget's expenses newest first.",
+      "improvements": "Amount must be a positive integer of minor units (Spendly accepted any value); expenses are stored in a database instead of Spendly's in-memory list.",
+      "depends_on": [
+        "U02"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U02",
+      "name": "Expense categories",
+      "menu_ids": [
+        "M09"
+      ],
+      "source_features": [
+        "B-F02"
+      ],
+      "evidence": [
+        "B-E01",
+        "B-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "The user asked for Spendly's categories; Tallyho's category values are unknown, so its version (M10) was dropped.",
+      "behaviour": "Every expense has exactly one of food, travel, home, other; anything else is rejected with an error and nothing is stored.",
+      "improvements": "Also enforced by a database check constraint.",
+      "depends_on": [],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U03",
+      "name": "Receipt scanning",
+      "menu_ids": [
+        "M01"
+      ],
+      "source_features": [
+        "A-F01"
+      ],
+      "evidence": [
+        "A-E01",
+        "A-E03",
+        "A-E04"
+      ],
+      "merge_type": "unique",
+      "rationale": "Requested by the user; only Tallyho has it.",
+      "behaviour": "The user photographs a receipt; an extraction adapter proposes merchant, date, total and currency; a review screen shows every field for correction; the user picks a category and saves, creating one expense.",
+      "improvements": "Date shown and flagged for confirmation (the user reports Tallyho often gets it wrong, and its review screen shows no date); category required before saving; nothing saved without review.",
+      "depends_on": [
+        "U01",
+        "U02"
+      ],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U04",
+      "name": "Foreign-currency conversion",
+      "menu_ids": [
+        "M02"
+      ],
+      "source_features": [
+        "A-F02"
+      ],
+      "evidence": [
+        "A-E02",
+        "A-E03"
+      ],
+      "merge_type": "unique",
+      "rationale": "Part of Tallyho's receipt flow; shared budgets need one currency for totals.",
+      "behaviour": "An expense in a currency other than its budget's keeps its original amount and currency and stores the converted amount in the budget currency with the rate and rate date used; budget totals use the converted amount.",
+      "improvements": "",
+      "depends_on": [
+        "U01",
+        "U05"
+      ],
+      "compatibility": "resolved",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U05",
+      "name": "Shared budgets",
+      "menu_ids": [
+        "M03"
+      ],
+      "source_features": [
+        "A-F03"
+      ],
+      "evidence": [
+        "A-E05",
+        "A-E07",
+        "A-E11"
+      ],
+      "merge_type": "unique",
+      "rationale": "Requested by the user; only Tallyho has it.",
+      "behaviour": "A budget has a name, a monthly limit and a currency, one owner and members; only members can see or add its expenses; the budget page shows spent vs limit.",
+      "improvements": "",
+      "depends_on": [
+        "U01"
+      ],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U06",
+      "name": "Budget invitations",
+      "menu_ids": [
+        "M04"
+      ],
+      "source_features": [
+        "A-F04"
+      ],
+      "evidence": [
+        "A-E05",
+        "A-E07"
+      ],
+      "merge_type": "unique",
+      "rationale": "The way people join a shared budget in Tallyho.",
+      "behaviour": "The owner invites an email address; the invitee gets a single-use link that expires; accepting while signed in with that email makes them a member.",
+      "improvements": "",
+      "depends_on": [
+        "U05"
+      ],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U07",
+      "name": "Member removal",
+      "menu_ids": [
+        "M07"
+      ],
+      "source_features": [
+        "A-F05"
+      ],
+      "evidence": [
+        "A-E05",
+        "A-E07",
+        "A-E08"
+      ],
+      "merge_type": "unique",
+      "rationale": "Budget owners need to manage membership.",
+      "behaviour": "Only the owner removes a member; the removed member loses access at once; their earlier expenses stay in the budget, still attributed to them.",
+      "improvements": "Access ends on removal (not stated by Tallyho); the owner cannot remove themself.",
+      "depends_on": [
+        "U05"
+      ],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U08",
+      "name": "Monthly budget period",
+      "menu_ids": [
+        "M08"
+      ],
+      "source_features": [
+        "A-F06"
+      ],
+      "evidence": [
+        "A-E06"
+      ],
+      "merge_type": "unique",
+      "rationale": "Tallyho budgets reset monthly; spent vs limit needs a period.",
+      "behaviour": "Spent vs limit counts expenses dated in the current calendar month in the budget's time zone; earlier months stay viewable; nothing is deleted.",
+      "improvements": "",
+      "depends_on": [
+        "U05",
+        "U01"
+      ],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

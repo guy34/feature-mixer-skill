@@ -1,0 +1,97 @@
+{
+  "app": {"id": "B", "name": "Readr"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/readr", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "documented", "locator": "sources/readr/readr.py:1", "summary": "Header comment: 'Readr: reading lists and 1-5 star ratings' (consistent with the code)."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:2-3", "summary": "SQLite via sqlite3, hard-coded file readr.db, one module-level connection; no commit anywhere."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:4", "summary": "books table: id integer primary key, title text not null (no author)."},
+    {"id": "B-E04", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:5", "summary": "lists table: id integer primary key, name text not null."},
+    {"id": "B-E05", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:6-7", "summary": "list_books join table: list_id references lists(id), book_id references books(id); no primary key or uniqueness, so the same book can be added to a list twice."},
+    {"id": "B-E06", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:8", "summary": "ratings table: book_id references books(id), stars integer, with no CHECK constraint."},
+    {"id": "B-E07", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:10-13", "summary": "rate(book_id, stars) raises ValueError('1 to 5 stars') unless stars is one of 1..5, then inserts a new ratings row (appends)."},
+    {"id": "B-E08", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:15-16", "summary": "add_to_list(list_id, book_id) inserts a list_books row with no validation of either id."},
+    {"id": "B-E09", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:1-16", "summary": "The whole app is two library functions: no HTTP server, CLI or UI; no function creates, renames, lists or deletes lists or books, or removes a book from a list."}
+  ],
+  "stack": {"frontend": [], "backend": ["Python 3 module (functions only)"], "database": ["SQLite (sqlite3 module)"], "infrastructure": [], "basis": "observed"},
+  "packages": {},
+  "runtimes": {"python": "3 (exact version not stated)"},
+  "architecture": {"frontend": "none", "backend": "a Python module exposing rate() and add_to_list() over one SQLite connection; no entry point", "evidence": ["B-E02", "B-E09"], "basis": "observed"},
+  "screens": [],
+  "workflows": [],
+  "features": [
+    {
+      "id": "B-F01",
+      "name": "Rate a book (1-5 stars)",
+      "description": "Give a book a whole-number rating from 1 to 5 stars.",
+      "observed_behaviour": "rate(book_id, stars) rejects anything but 1, 2, 3, 4 or 5 with ValueError, otherwise inserts a ratings row. Rating again appends another row.",
+      "business_logic": "stars in {1..5}, checked in code only (no database CHECK). No user on a rating; appended, never updated.",
+      "data": ["Rating", "Book"],
+      "depends_on": [],
+      "integration": "Same scale and same append behaviour as Shelfie's rating; needs the unified Book.",
+      "evidence": ["B-E01", "B-E06", "B-E07"],
+      "basis": "observed",
+      "confidence": "high"
+    },
+    {
+      "id": "B-F02",
+      "name": "Reading lists",
+      "description": "Put books on named reading lists.",
+      "observed_behaviour": "add_to_list(list_id, book_id) inserts a list_books row. Lists have a required name. Nothing in the code creates, renames, shows or deletes a list, or removes a book from one.",
+      "business_logic": "list name required; a list holds many books and a book can be on many lists (many-to-many); duplicates are not prevented; ids are not validated.",
+      "data": ["ReadingList", "ListBook", "Book"],
+      "depends_on": [],
+      "integration": "Needs the unified Book, list create/view/remove operations (absent in Readr) and per-user ownership.",
+      "subfeatures": ["add a book to a list (observed)", "create / view / rename / delete a list (schema only, no code)"],
+      "evidence": ["B-E04", "B-E05", "B-E08", "B-E09"],
+      "basis": "observed",
+      "confidence": "medium"
+    }
+  ],
+  "entities": [
+    {"name": "Book", "description": "A book that can be rated or listed (title only).", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "id", "type": "integer", "required": true}, {"name": "title", "type": "text", "required": true, "nullable": false}],
+     "features": ["B-F01", "B-F02"], "evidence": ["B-E03"], "basis": "observed", "deletion": "hard", "shared": true},
+    {"name": "ReadingList", "description": "A named reading list (table 'lists').", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "id", "type": "integer", "required": true}, {"name": "name", "type": "text", "required": true, "nullable": false}],
+     "features": ["B-F02"], "evidence": ["B-E04"], "basis": "observed"},
+    {"name": "ListBook", "description": "A book on a list (table 'list_books'); duplicates possible.",
+     "fields": [{"name": "list_id", "type": "integer", "nullable": true}, {"name": "book_id", "type": "integer", "nullable": true}],
+     "foreign_keys": [{"field": "list_id", "references": "ReadingList"}, {"field": "book_id", "references": "Book"}],
+     "relations": [{"to": "ReadingList", "kind": "many-to-one"}, {"to": "Book", "kind": "many-to-one"}],
+     "features": ["B-F02"], "evidence": ["B-E05"], "basis": "observed"},
+    {"name": "Rating", "description": "One star rating given to a book; appended.",
+     "fields": [{"name": "book_id", "type": "integer", "nullable": true}, {"name": "stars", "type": "integer", "nullable": true, "description": "1..5 checked in rate() only", "unit": "stars"}],
+     "foreign_keys": [{"field": "book_id", "references": "Book"}],
+     "relations": [{"to": "Book", "kind": "many-to-one"}],
+     "features": ["B-F01"], "evidence": ["B-E06", "B-E07"], "basis": "observed"}
+  ],
+  "endpoints": [],
+  "auth": {"provider": "none", "methods": [], "session": "none", "model": "none: a local library with no users", "roles": [], "evidence": ["B-E09"], "basis": "observed"},
+  "routes": [],
+  "rules": [
+    {"key": "rating.stars.range", "value": "integer 1..5 (code only)", "features": ["B-F01"], "evidence": ["B-E07"]},
+    {"key": "rating.per_book", "value": "append", "features": ["B-F01"], "evidence": ["B-E07"]},
+    {"key": "list.name.required", "value": true, "features": ["B-F02"], "evidence": ["B-E04"]},
+    {"key": "list_books.unique", "value": false, "features": ["B-F02"], "evidence": ["B-E05"]}
+  ],
+  "integrations": [],
+  "configuration": [],
+  "error_handling": [
+    {"case": "stars outside 1..5", "behaviour": "ValueError('1 to 5 stars') raised to the caller", "evidence": ["B-E07"]},
+    {"case": "unknown list or book id in add_to_list", "behaviour": "accepted silently (no validation; SQLite foreign keys off by default; inferred)", "evidence": ["B-E08"]}
+  ],
+  "tenancy": {"model": "none", "key": ""},
+  "contradictions": [],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1},
+  "unknowns": [
+    "How lists and books are created, viewed or deleted: the tables exist but no code does it (the user would know whether another front end existed).",
+    "Whether writes persist: no commit is ever called (inferred from sqlite3 defaults; code not run, running source code not approved).",
+    "Whether duplicate list entries and multiple ratings per book are intended.",
+    "How Readr is meant to be used (no entry point: imported by something not in the folder?).",
+    "Exact Python version."
+  ]
+}

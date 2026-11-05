@@ -17,7 +17,10 @@ Checks:
   json          every schema and JSON template parses; schemas have $schema and $id
   install docs  README's install commands match the manifest names and paths
   plugin CLI    `claude plugin validate` passes (reported "not run" if the CLI is absent)
+  secrets       no literal key-shaped string anywhere in the repository (fake keys in tests are assembled at
+                run time), so a push is not blocked by secret scanning and nothing real ships
   tests         the test suite passes (with --tests)
+  probes        every weakness probe in benchmarks/probes is defended (with --probes)
 
 Each check prints PASS, FAIL or NOT RUN. Exit code 0 when nothing FAILs.
 Standard library only.
@@ -34,6 +37,7 @@ import sys
 import tempfile
 import zipfile
 
+sys.dont_write_bytecode = True  # importing the scanner must not leave caches in the release
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILL = os.path.join(ROOT, "feature-mixer")
 CACHE_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
@@ -197,6 +201,34 @@ def check_plugin_cli():
            f"claude plugin validate exit {r.returncode}: " + (out[-1] if out else "no output"))
 
 
+def check_secrets():
+    sys.path.insert(0, os.path.join(SKILL, "scripts"))
+    import scan_source
+    hits = []
+    for folder in sorted(os.listdir(ROOT)):
+        path = os.path.join(ROOT, folder)
+        if not os.path.isdir(path) or folder == ".git":
+            continue
+        for f in scan_source.scan(path)["findings"]:
+            if f["kind"] == "secret" and not any(w in f["detail"] for w in ("split into", "base64")) and \
+                    not f["detail"].startswith("connection-string"):
+                hits.append(f"{folder}/{f['path']}:{f.get('line')}")
+    report("secrets", "FAIL" if hits else "PASS", ", ".join(hits[:5]) if hits else "no literal key-shaped strings")
+
+
+def run_probes():
+    r = subprocess.run([sys.executable, os.path.join(ROOT, "benchmarks", "probes", "run_probes.py"), SKILL, "--json"],
+                       capture_output=True, text=True, timeout=900)
+    try:
+        res = json.loads(r.stdout)["results"]
+    except (ValueError, KeyError):
+        report("probes", "FAIL", "the probes did not run: " + (r.stderr or r.stdout)[-200:])
+        return
+    bad = [x["id"] for x in res if x["status"] != "defended"]
+    report("probes", "FAIL" if bad else "PASS", f"{len(res) - len(bad)} of {len(res)} defended" +
+           (f"; not defended: {', '.join(bad)}" if bad else ""))
+
+
 def run_tests():
     r = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests"], cwd=ROOT,
                        capture_output=True, text=True)
@@ -230,6 +262,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Release checks for Feature Mixer.")
     parser.add_argument("--clean", action="store_true")
     parser.add_argument("--tests", action="store_true")
+    parser.add_argument("--probes", action="store_true")
     parser.add_argument("--package", metavar="DIR")
     args = parser.parse_args(argv)
     if args.clean:
@@ -245,6 +278,9 @@ def main(argv=None):
     check_json()
     check_install_docs(plugin, market)
     check_plugin_cli()
+    check_secrets()
+    if args.probes:
+        run_probes()
     if args.clean:
         clean()
     failed = [r for r in results if r[1] == "FAIL"]

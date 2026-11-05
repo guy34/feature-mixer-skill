@@ -1,0 +1,355 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one in-process Python module is the required interface (unified/identity.py)",
+      "strong consistency between accounts, identities, sessions and roles",
+      "standard library only, no services or infrastructure",
+      "small scope, one team"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "separate identity and role services would add network calls and distributed data for three small features and break the required in-process interface"
+      },
+      {
+        "style": "event-driven",
+        "fit": "poor",
+        "reason": "sign-in and role checks are synchronous and must be consistent immediately (a role change must apply to the next whoami)"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "there is no existing system that must stay separate"
+      }
+    ],
+    "reason": "The simplest design that meets every driver: logical modules as classes inside one file with one store"
+  },
+  "stack": {
+    "language": "Python 3.8+ standard library only",
+    "storage": "in-memory store owned by the app instance (create_app()), guarded by a lock",
+    "password_hashing": "hashlib.pbkdf2_hmac sha256 with per-user 16-byte salt",
+    "tests": "unittest",
+    "reasons": {
+      "language": "Required by the task (standard library only) and the language of all three sources",
+      "storage": "Sources keep state in memory; the interface has no persistence; one store per app instance keeps tests isolated",
+      "password_hashing": "Keeps A's algorithm (own code) with a stronger default iteration count, recorded per hash so it can be raised",
+      "tests": "Built into Python; no install needed"
+    }
+  },
+  "modules": [
+    {
+      "name": "config",
+      "responsibility": "Settings with defaults, overridable per app instance and by environment variables",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "access-control",
+      "responsibility": "Unified role set, permission table, can(), source role mapping",
+      "features": [
+        "M04"
+      ],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "accounts",
+      "responsibility": "User records, email normalisation and ownership, password hashing, registration, bootstrap admin",
+      "features": [
+        "M01"
+      ],
+      "depends_on": [
+        "config",
+        "access-control"
+      ],
+      "owns_entities": [
+        "User"
+      ]
+    },
+    {
+      "name": "sessions",
+      "responsibility": "Password login, token issue, whoami, logout, expiry",
+      "features": [
+        "M02"
+      ],
+      "depends_on": [
+        "config",
+        "accounts"
+      ],
+      "owns_entities": [
+        "Session"
+      ]
+    },
+    {
+      "name": "federation",
+      "responsibility": "OAuth sign-in: identity lookup, verified-email account linking, account creation",
+      "features": [
+        "M03"
+      ],
+      "depends_on": [
+        "accounts",
+        "sessions",
+        "access-control"
+      ],
+      "owns_entities": [
+        "Identity"
+      ]
+    },
+    {
+      "name": "role-admin",
+      "responsibility": "Admin-only role changes with the no-self-raise rule",
+      "features": [
+        "M05"
+      ],
+      "depends_on": [
+        "sessions",
+        "accounts",
+        "access-control"
+      ],
+      "owns_entities": []
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "merged_from": [
+        "A:User",
+        "B:Account"
+      ],
+      "primary_key": "id (text, uuid4 hex)",
+      "notes": "One account per person. B's provider and subject move to Identity (not lost).",
+      "fields": [
+        {
+          "name": "id",
+          "type": "text",
+          "from": [
+            "A:User.id",
+            "B:Account.id"
+          ]
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "from": [
+            "A:User.email",
+            "B:Account.email"
+          ]
+        },
+        {
+          "name": "email_owner",
+          "type": "boolean"
+        },
+        {
+          "name": "password_hash",
+          "type": "text",
+          "from": [
+            "A:User.salt",
+            "A:User.hash"
+          ]
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "from": [
+            "A:User.role",
+            "B:Account.role"
+          ]
+        },
+        {
+          "name": "legacy_id",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp"
+        }
+      ]
+    },
+    {
+      "name": "Identity",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "(provider, subject)",
+      "notes": "Federated identities from B: provider and subject (B:Account.provider, B:Account.subject) linked to one User.",
+      "fields": [
+        {
+          "name": "provider",
+          "type": "text",
+          "from": [
+            "B:Account.provider"
+          ]
+        },
+        {
+          "name": "subject",
+          "type": "text",
+          "from": [
+            "B:Account.subject"
+          ]
+        },
+        {
+          "name": "user_id",
+          "type": "text"
+        },
+        {
+          "name": "email_verified",
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "merged_from": [
+        "A:Session"
+      ],
+      "primary_key": "token (text)",
+      "fields": [
+        {
+          "name": "token",
+          "type": "text",
+          "from": [
+            "A:Session.token"
+          ]
+        },
+        {
+          "name": "user_id",
+          "type": "text",
+          "from": [
+            "A:Session.user_id"
+          ]
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp"
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "method": "password (A) and OAuth provider callback (B) into one identity store",
+    "session": "opaque random bearer token (secrets.token_urlsafe(32)) held server-side with expiry; revoked on logout; an HTTP layer added later should carry it in an http-only, secure cookie",
+    "roles": [
+      "viewer",
+      "editor",
+      "admin"
+    ],
+    "permissions": {
+      "viewer": [
+        "read"
+      ],
+      "editor": [
+        "read",
+        "write"
+      ],
+      "admin": [
+        "read",
+        "write",
+        "manage_roles"
+      ]
+    },
+    "role_mapping": {
+      "A:user": "editor",
+      "B:member": "viewer",
+      "C:viewer": "viewer",
+      "C:editor": "editor",
+      "C:admin": "admin"
+    }
+  },
+  "api": [],
+  "navigation": [],
+  "design_system": {
+    "note": "No UI in scope: the deliverable is an in-process Python module"
+  },
+  "configuration": {
+    "IDENTITY_PBKDF2_ITERATIONS": "password hash iterations (default 310000)",
+    "IDENTITY_SESSION_TTL_SECONDS": "session lifetime in seconds (default 43200, 12 hours)"
+  },
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Sign in with password or OAuth, whoami, logout",
+      "features": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "status": "done",
+      "checkpoint": "CP6"
+    },
+    {
+      "id": "V2",
+      "name": "Roles, role mapping and admin role changes",
+      "features": [
+        "M04",
+        "M05"
+      ],
+      "status": "done",
+      "checkpoint": "CP6"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Modular monolith in one file app/unified/identity.py, logical modules as classes",
+      "reason": "Required interface and import path; consistency; no infrastructure",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "Python standard library only, unittest",
+      "reason": "Task constraint; no installs approved",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "One User entity with uuid4-hex text ids; Identity (provider, subject) -> User; Session token -> User",
+      "reason": "Compatibility decision database:primary-key:user",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "OAuth joins an existing account only when email_verified is True; otherwise a separate account; unverified emails never own an address",
+      "reason": "User decision",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "Roles viewer/editor/admin from C; A user -> editor, B member -> viewer; map_source_role raises KeyError for unknown apps or roles",
+      "reason": "User decision",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "set_role: caller from token; PermissionError unless admin; role validated; raising your own role refused; invalid token raises an error that is both AuthError and PermissionError",
+      "reason": "User decision plus C's flaws (C-E03)",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "bootstrap_admin works only while no admin exists",
+      "reason": "Setup-only step; prevents creating admins later without an admin",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "Opaque server-side session tokens with 12-hour expiry and logout",
+      "reason": "A had no expiry or revocation (A-E04)",
+      "approved": true
+    },
+    {
+      "id": "D09",
+      "decision": "PBKDF2-HMAC-SHA256, 310000 iterations default, per-user salt, constant-time compare, iteration count stored per hash",
+      "reason": "Keeps A's scheme, stronger default",
+      "approved": true
+    },
+    {
+      "id": "D10",
+      "decision": "Duplicate email registration rejected (error is both AuthError and ValueError)",
+      "reason": "A-E02 account takeover",
+      "approved": true
+    }
+  ]
+}

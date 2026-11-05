@@ -38,7 +38,7 @@ import re
 import sys
 
 from mixerlib import (
-    BASIS_RANK, EVIDENCE_REF, FEATURE_REF, SCREEN_REF, SECRET_PATTERNS, SOURCE_REF, WORKFLOW_REF,
+    BASIS_RANK, EVIDENCE_REF, FEATURE_REF, SCREEN_REF, SOURCE_REF, WORKFLOW_REF, find_secrets,
     Report, canonical_merge_type, find_cycles, load_json, load_schema, schema_errors, split_ids, workspace_format,
 )
 
@@ -75,8 +75,14 @@ def summary_name(module):
     return "_root" if module == "(root)" else module.replace("/", "__")
 
 
-def check_source(folder, expected_id=None, strict=False, capabilities=None):
-    """Validate one mixer/sources/<id>-<slug> folder."""
+CODE_KINDS = ("local-directory", "github", "source-code")
+SINGULAR = {"screens": "screen", "workflows": "workflow", "entities": "entity", "endpoints": "endpoint",
+            "rules": "rule", "integrations": "integration"}
+
+
+def check_source(folder, expected_id=None, strict=False, capabilities=None, access=None, fmt=None):
+    """Validate one mixer/sources/<id>-<slug> folder. access (own-code, open-source, closed) and fmt (the
+    workspace format) turn on the v2.2 honesty checks: errors in format 4, warnings before."""
     rep = Report()
     name = os.path.basename(os.path.normpath(folder))
     label = f"source {name}"
@@ -152,10 +158,10 @@ def check_source(folder, expected_id=None, strict=False, capabilities=None):
         for item in data.get(kind, []):
             owner = item.get("id") or item.get("name") or f"{item.get('method', '')} {item.get('path', '')}".strip() \
                 or item.get("key")
-            resolve(f"{kind[:-1]} {owner}", item.get("evidence"))
+            resolve(f"{SINGULAR[kind]} {owner}", item.get("evidence"))
             for f in item.get("features", []):
                 if f not in features:
-                    rep.error(f"{label}: {kind[:-1]} {owner} links to {f}, which is not a feature of {app}")
+                    rep.error(f"{label}: {SINGULAR[kind]} {owner} links to {f}, which is not a feature of {app}")
     for key in ("auth", "architecture"):
         if data.get(key):
             resolve(key, data[key].get("evidence"))
@@ -178,9 +184,50 @@ def check_source(folder, expected_id=None, strict=False, capabilities=None):
 
     if capabilities is not None:
         _check_capabilities(data, capabilities, rep, label)
+    _check_honesty(data, evidence, access, (fmt or (3 if strict else 2)) >= 4, rep, label)
     _check_index(folder, data, rep, label, strict)
     _check_scan(folder, rep, label, strict)
     return rep
+
+
+def _check_honesty(data, evidence, access, strict, rep, label):
+    """Observed, documented and inferred stay apart (v2.2)."""
+    say = rep.error if strict else rep.warn
+    kinds = {x["ref"]: x["kind"] for x in data["sources_used"]}
+    for f in data["features"]:
+        bases = {evidence[r]["basis"] for r in f.get("evidence", []) if r in evidence}
+        if f["basis"] == "observed" and bases and "observed" not in bases:
+            say(f"{label}: {f['id']} ({f['name']}) claims 'observed' but its evidence is only "
+                f"{'/'.join(sorted(bases))}: documentation describes behaviour, it does not show it")
+    if access == "closed":
+        for e in data["evidence"]:
+            if kinds.get(e["source"]) in CODE_KINDS:
+                say(f"{label}: closed source, but evidence {e['id']} cites code ({kinds[e['source']]}); a closed "
+                    "product's code is not available to read")
+        for kind in ("entities", "endpoints"):
+            for item in data.get(kind, []):
+                if item.get("basis") == "observed":
+                    bases = {kinds.get(evidence[r]["source"]) for r in item.get("evidence", []) if r in evidence}
+                    if not bases & {"own-account", "website", "screenshots"}:
+                        name = item.get("name") or f"{item.get('method', '')} {item.get('path', '')}".strip()
+                        say(f"{label}: closed source, but {SINGULAR[kind]} {name} is marked observed without anything "
+                            "seen in the running product; its backend was not inspected (use documented or "
+                            "inferred)")
+    contradicted = set()
+    for c in data.get("contradictions", []) or []:
+        for role in ("documented", "observed"):
+            ref = c.get(role)
+            if ref not in evidence:
+                rep.error(f"{label}: contradiction {c.get('id')} cites {role} evidence {ref}, which does not exist")
+        if c.get("documented") in evidence:
+            contradicted.add(c["documented"])
+        if not str(c.get("resolution") or "").strip():
+            say(f"{label}: contradiction {c.get('id')} has no resolution (what the code does wins, or the user "
+                "was asked)")
+    for f in data["features"]:
+        refs = [r for r in f.get("evidence", []) if r in evidence]
+        if refs and set(refs) <= contradicted:
+            say(f"{label}: {f['id']} ({f['name']}) rests only on documentation the source's code contradicts")
 
 
 def _check_capabilities(data, caps, rep, label):
@@ -259,22 +306,22 @@ def _check_scan(folder, rep, label, strict):
 
 
 def check_secrets(mixer_dir):
-    """No credential pattern may appear anywhere in mixer/."""
+    """No credential may appear anywhere in mixer/ (documented placeholders such as AKIA...EXAMPLE are allowed)."""
     rep = Report()
-    pats = [(n, re.compile(p)) for n, p in SECRET_PATTERNS]
     for base, dirs, files in os.walk(mixer_dir):
         dirs[:] = [d for d in dirs if d not in ("__pycache__",)]
         for name in files:
-            if not name.endswith((".md", ".json", ".csv", ".txt", ".log", ".sql", ".yaml", ".yml", ".xml")):
+            if not name.endswith((".md", ".json", ".jsonl", ".csv", ".txt", ".log", ".sql", ".yaml", ".yml", ".xml")):
                 continue
             path = os.path.join(base, name)
             with open(path, encoding="utf-8", errors="replace") as f:
                 for n, line in enumerate(f, start=1):
-                    for kind, rx in pats:
-                        if rx.search(line):
-                            rel = os.path.relpath(path, mixer_dir)
-                            rep.error(f"secrets: {rel}:{n} contains what looks like a {kind}; remove it "
-                                      "(Feature Mixer artifacts must never hold credentials)")
+                    for kind, _value, placeholder in find_secrets(line):
+                        if placeholder:
+                            continue
+                        rel = os.path.relpath(path, mixer_dir)
+                        rep.error(f"secrets: {rel}:{n} contains what looks like a {kind}; remove it "
+                                  "(Feature Mixer artifacts must never hold credentials)")
     return rep
 
 
@@ -459,6 +506,11 @@ def check_merge_plan(mixer_dir, kept_ids, strict=False, feature_status=None):
         rows_here = [by_id[m] for m in u["menu_ids"] if m in by_id]
         ev = {e for r in rows_here for e in split_ids(r.get("evidence_refs"))}
         sf = {e for r in rows_here for e in split_ids(r.get("source_features"))}
+        requested_only = rows_here and all([x.lower() for x in split_ids(r.get("source_app"))] == ["new"]
+                                           for r in rows_here)
+        if not u["evidence"] and not requested_only:
+            rep.error(f"merge plan: {u['id']} has no evidence; only a feature the user requested (all its menu rows "
+                      "source_app 'new') may have none")
         extra = sorted(set(u["evidence"]) - ev) if ev else []
         if extra:
             rep.error(f"merge plan: {u['id']} cites evidence {', '.join(extra)} that its menu rows do not")
@@ -528,11 +580,15 @@ def _workspace(mixer_dir):
 def check_all(mixer_dir):
     rep = Report()
     strict, caps = _workspace(mixer_dir)
+    path = os.path.join(mixer_dir, "project.json")
+    project = load_json(path) if os.path.exists(path) else {}
+    access = {s.get("id"): s.get("access") for s in project.get("sources", [])}
     sources = os.path.join(mixer_dir, "sources")
     if os.path.isdir(sources):
         for name in sorted(os.listdir(sources)):
             if os.path.isdir(os.path.join(sources, name)):
-                rep.merge(check_source(os.path.join(sources, name), strict=strict, capabilities=caps))
+                rep.merge(check_source(os.path.join(sources, name), strict=strict, capabilities=caps,
+                                       access=access.get(name.split("-", 1)[0]), fmt=workspace_format(project)))
     kept = kept_from_menu(mixer_dir)
     if os.path.isdir(os.path.join(mixer_dir, "design")):
         rep.merge(check_design(mixer_dir, kept, strict))

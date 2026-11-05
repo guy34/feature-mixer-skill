@@ -1,0 +1,396 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one Python module required by the user (app/unified/billing.py)",
+      "strong consistency between order status, ledger and gateway calls",
+      "no independent scaling or release need",
+      "mock gateway only, no infrastructure"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "splitting orders and payments across services would turn the exactly-once rules into distributed transactions"
+      },
+      {
+        "style": "event-driven",
+        "fit": "partial",
+        "reason": "webhooks are events, but the invariants need synchronous atomic writes; webhooks are handled as idempotent commands instead"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "no existing system must stay separate; the gateway is already an injected dependency"
+      }
+    ],
+    "reason": "Simplest design meeting every driver: one module, internal sections with one owner per entity, one store with atomic writes."
+  },
+  "stack": {
+    "language": "Python 3.8+ standard library only (D11)",
+    "storage": "in-memory Store with all-or-nothing writes; replaceable (D12)",
+    "gateway": "injected object with charge(amount_cents, key) and refund(charge_id); tested with gateway.FakeGateway",
+    "tests": "pytest (already installed; no install needed)",
+    "reasons": {
+      "language": "all three sources are plain Python functions and the user asked for unified/billing.py",
+      "storage": "no source persists data; the user's store contract is an object with fail_next_write",
+      "tests": "pytest is present in the session; nothing to install"
+    }
+  },
+  "modules": [
+    {
+      "name": "store",
+      "responsibility": "Store and StoreError: atomic all-or-nothing writes, fail_next_write injection, copies on read",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "orders",
+      "responsibility": "create_order, order(), ledger(), status transition table",
+      "features": [
+        "M01"
+      ],
+      "depends_on": [
+        "store"
+      ],
+      "owns_entities": [
+        "Order",
+        "LedgerEntry"
+      ]
+    },
+    {
+      "name": "payments",
+      "responsibility": "pay(order_id, key): idempotent charge, timeout handling",
+      "features": [
+        "M02"
+      ],
+      "depends_on": [
+        "orders",
+        "store"
+      ],
+      "owns_entities": [
+        "PaymentAttempt"
+      ]
+    },
+    {
+      "name": "refunds",
+      "responsibility": "cancel(order_id) and the exactly-once refund guard",
+      "features": [
+        "M04"
+      ],
+      "depends_on": [
+        "orders",
+        "store"
+      ],
+      "owns_entities": [
+        "RefundRecord"
+      ]
+    },
+    {
+      "name": "webhooks",
+      "responsibility": "handle_webhook(event): de-duplicated, state-checked charge.succeeded / charge.refunded",
+      "features": [
+        "M03"
+      ],
+      "depends_on": [
+        "orders",
+        "refunds",
+        "store"
+      ],
+      "owns_entities": [
+        "ProcessedEvent"
+      ]
+    },
+    {
+      "name": "subscriptions",
+      "responsibility": "renew(subscription, period): one order per subscription period",
+      "features": [
+        "M05"
+      ],
+      "depends_on": [
+        "orders",
+        "store"
+      ],
+      "owns_entities": [
+        "Renewal"
+      ]
+    },
+    {
+      "name": "app",
+      "responsibility": "create_app(gateway, store=None) facade exposing the user's API; one lock serialises operations",
+      "features": [],
+      "depends_on": [
+        "orders",
+        "payments",
+        "refunds",
+        "webhooks",
+        "subscriptions",
+        "store"
+      ],
+      "owns_entities": []
+    }
+  ],
+  "entities": [
+    {
+      "name": "Order",
+      "merged_from": [
+        "A:Order",
+        "C:Order"
+      ],
+      "primary_key": "id (text, ord_<n>)",
+      "fields": [
+        {
+          "name": "id",
+          "type": "text"
+        },
+        {
+          "name": "customer",
+          "type": "any",
+          "from": [
+            "B:Subscription.customer"
+          ]
+        },
+        {
+          "name": "amount_cents",
+          "type": "integer > 0",
+          "from": [
+            "A:Order.amount",
+            "B:Subscription.price"
+          ]
+        },
+        {
+          "name": "status",
+          "type": "str: pending|paid|cancelled|refunded",
+          "from": [
+            "C:Order.status",
+            "A:Order.paid"
+          ]
+        },
+        {
+          "name": "charge_id",
+          "type": "text or null",
+          "from": [
+            "A:Order.charge_id"
+          ]
+        }
+      ],
+      "notes": "A's paid flag is replaced by status == paid (D01)"
+    },
+    {
+      "name": "LedgerEntry",
+      "merged_from": [],
+      "fields": [
+        {
+          "name": "order_id",
+          "type": "text"
+        },
+        {
+          "name": "kind",
+          "type": "charge|refund"
+        },
+        {
+          "name": "amount_cents",
+          "type": "integer"
+        }
+      ],
+      "notes": "new: appended only on a real paid/refunded transition"
+    },
+    {
+      "name": "PaymentAttempt",
+      "merged_from": [],
+      "fields": [
+        {
+          "name": "key",
+          "type": "client idempotency key"
+        },
+        {
+          "name": "order_id",
+          "type": "text"
+        }
+      ],
+      "notes": "key -> order map and the first gateway key per order (D03); new entity, no source data moves into it"
+    },
+    {
+      "name": "RefundRecord",
+      "merged_from": [],
+      "fields": [
+        {
+          "name": "order_id",
+          "type": "text"
+        },
+        {
+          "name": "charge_id",
+          "type": "text"
+        },
+        {
+          "name": "state",
+          "type": "requested|done"
+        },
+        {
+          "name": "refund_id",
+          "type": "text or null"
+        }
+      ],
+      "notes": "written before gateway.refund (D05)"
+    },
+    {
+      "name": "ProcessedEvent",
+      "merged_from": [],
+      "fields": [
+        {
+          "name": "id",
+          "type": "text"
+        }
+      ],
+      "notes": "webhook de-duplication (D04)"
+    },
+    {
+      "name": "Renewal",
+      "merged_from": [],
+      "fields": [
+        {
+          "name": "subscription_id",
+          "type": "any"
+        },
+        {
+          "name": "period",
+          "type": "text"
+        },
+        {
+          "name": "order_id",
+          "type": "text"
+        }
+      ],
+      "notes": "renewal de-duplication (D08); new entity, no source data moves into it"
+    }
+  ],
+  "auth": {
+    "method": "none: in-process library called by trusted server code",
+    "session": "none",
+    "roles": [
+      "caller"
+    ],
+    "permissions": {
+      "caller": "all operations (in-process trusted server code)"
+    },
+    "role_mapping": {}
+  },
+  "api": [],
+  "navigation": [],
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Orders and idempotent payment (core loop)",
+      "features": [
+        "M01",
+        "M02"
+      ],
+      "status": "done"
+    },
+    {
+      "name": "Exactly-once webhooks",
+      "id": "V2",
+      "features": [
+        "M03"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "V3",
+      "name": "Cancel with exactly-once refund",
+      "features": [
+        "M04"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "V4",
+      "name": "Subscription renewals",
+      "features": [
+        "M05"
+      ],
+      "status": "done"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Order.status is the single payment state",
+      "reason": "conflict database:payment-state",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "cancel: pending->cancelled; paid->refund once->refunded; else no-op",
+      "reason": "user requirement; final status name chosen by Claude",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "client key required; first key per order recorded before the charge and reused; key reuse across orders refused; GatewayTimeout re-raised, order stays pending",
+      "reason": "never charge twice",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "webhooks de-duplicated by event id inside the same atomic write; state-checked transitions",
+      "reason": "never apply a webhook twice",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "refund record written before gateway.refund; never a second refund call",
+      "reason": "gateway.refund is not idempotent",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "one atomic store write per state change; fail check before any mutation",
+      "reason": "failed write leaves the order unchanged",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "integer amount_cents everywhere",
+      "reason": "units conflict",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "renew(subscription, period) de-duplicates by subscription id + period",
+      "reason": "never bill a period twice",
+      "approved": true
+    },
+    {
+      "id": "D09",
+      "decision": "one Order entity merging A and C fields",
+      "reason": "duplicate entity",
+      "approved": true
+    },
+    {
+      "id": "D10",
+      "decision": "Order ids are strings ord_<n>",
+      "reason": "no source key type",
+      "approved": true
+    },
+    {
+      "id": "D11",
+      "decision": "Python standard library only, one module app/unified/billing.py",
+      "reason": "user's requested interface; no installs approved",
+      "approved": true
+    },
+    {
+      "id": "D12",
+      "decision": "store argument: a billing.Store is used for data; any other object only supplies the fail_next_write flag, with data in an internal Store",
+      "reason": "the user's store contract only promises fail_next_write",
+      "approved": true
+    },
+    {
+      "id": "D13",
+      "decision": "a charge.succeeded webhook for a cancelled order refunds that charge once and ends in refunded",
+      "reason": "money must not be kept for a cancelled order (e.g. pay timed out, then the order was cancelled)",
+      "approved": true
+    }
+  ]
+}

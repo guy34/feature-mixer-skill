@@ -1,0 +1,79 @@
+{
+  "application:integration:refund-not-idempotent": {
+    "decision": "D05: refund marker written before gateway.refund; with a marker present a retry completes as refunded without a second gateway call",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "application:workflow:cancel-paid-order": {
+    "decision": "D02 (user requirement in task.md): pending->cancelled; paid->one gateway refund->status refunded with one ledger refund; cancelled/refunded->no-op",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "application:workflow:charge-retry-idempotency": {
+    "decision": "D03: client key required; first key per order recorded before the charge and reused for every retry; key reuse across orders refused; paid orders never charged; GatewayTimeout re-raised with order left pending and the attempt recorded so a retry collects the original charge",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "application:workflow:webhook-redelivery": {
+    "decision": "D04: processed event ids stored atomically with the change; state-checked transitions; ledger appended only on a real transition",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "database:payment-state:order-payment-state": {
+    "decision": "D01: Order.status is the single payment state; A's paid flag dropped (derived from status)",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "database:persistence:partial-writes": {
+    "decision": "D06: one atomic store write per state change (fail check before any mutation); intent records written before gateway calls",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "application:business-rule:amount-units": {
+    "decision": "D07: integer amount_cents everywhere (A amount and B price map to it)",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "application:workflow:renewal-duplication": {
+    "decision": "D08: renew(subscription, period) de-duplicates by subscription id + period",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "database:duplicate-entity:order": {
+    "decision": "D09: one Order entity merging A (amount_cents, charge_id) and C (status) fields",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "database:unknown-type:order.primary-key": {
+    "decision": "D10: Order primary key is a generated string id ord_<n>",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "pre-approved Claude's recommendation"
+  },
+  "migration:order": {
+    "decision": "Plan only: A.Order.amount (number) -> amount_cents (integer cents, reject non-integers); A.Order.paid -> status (True->paid, False->pending). No source holds persisted data (all are in-memory dicts), so nothing is migrated and nothing will run; see design/migration-plan.md",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-05",
+    "note": "plan approved as part of the pre-approved architecture recommendation; running any migration would need its own approval (none is planned)"
+  }
+}

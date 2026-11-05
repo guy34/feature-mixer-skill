@@ -1,0 +1,34 @@
+{
+  "dependency:runtime-mix:backend-runtime": {
+    "decision": "One backend runtime: Python 3 (standard library). B is the user's own Python code and may be adapted; A's JavaScript may not be reused (no licence file) and is rebuilt anyway.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "medium; pre-approved by the benchmark operator with Claude's recommendation"
+  },
+  "application:workflow:suggestion-input": {
+    "decision": "The FAQ matcher reads the ticket's subject and description only; replies are not matched.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC06",
+      "test_suggestions_ignore_agent_replies"
+    ],
+    "note": "medium; pre-approved by the benchmark operator with Claude's recommendation"
+  },
+  "migration:ticket": {
+    "decision": "Plan only: A's embedded Ticket.messages list maps to Message rows (ticket_id), so nothing is dropped. A has no persisted data (tickets live only in memory), so there is nothing to migrate now. If the user later supplies real Helpdesk data, follow design/migration-plan.md (backup, dry run on a copy, row counts).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "plan approved (pre-approved by the benchmark operator with Claude's recommendation); running any migration needs its own migration approval"
+  },
+  "migration:message": {
+    "decision": "Plan only: A's Message.from is always the literal 'agent'; imported messages get author_id of a dedicated 'imported from Helpdesk' agent account, and the original text is kept in the import log. No data exists to migrate now.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "plan approved (pre-approved by the benchmark operator); running it needs its own migration approval"
+  }
+}

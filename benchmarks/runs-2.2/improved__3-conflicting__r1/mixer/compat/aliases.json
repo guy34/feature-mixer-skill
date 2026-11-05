@@ -1,0 +1,6 @@
+{
+  "entities": {},
+  "fields": {
+    "name": {"to": "display_name", "reason": "B's User.name (models.py:2) and A's User.display_name (schema.sql:1) are both the person's shown name on posts; neither app has a second name field"}
+  }
+}

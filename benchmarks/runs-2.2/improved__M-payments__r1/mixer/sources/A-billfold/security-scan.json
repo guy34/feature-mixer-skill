@@ -1,0 +1,19 @@
+{
+  "root": "../../../sources/billfold",
+  "scanned_at": "2026-11-04T19:58:49+00:00",
+  "scanner": "scan_source.py",
+  "files_scanned": 1,
+  "files_partially_scanned": 0,
+  "complete": true,
+  "limits": {
+    "max_file_bytes": 5242880,
+    "max_files": 200000,
+    "max_depth": 64
+  },
+  "skipped": {},
+  "errors": [],
+  "summary": {},
+  "high": 0,
+  "findings": [],
+  "acknowledged": true
+}

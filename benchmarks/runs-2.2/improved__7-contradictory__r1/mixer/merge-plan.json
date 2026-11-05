@@ -1,0 +1,64 @@
+{
+  "unified_features": [
+    {
+      "id": "U01",
+      "name": "Book library",
+      "menu_ids": ["M01"],
+      "source_features": ["A-F01"],
+      "evidence": ["A-E01", "A-E02", "A-E09"],
+      "merge_type": "unique",
+      "rationale": "Only Shelfie has a library feature (Readr has a books table but no code using it). Readr's Book (title only) is a subset of Shelfie's Book (title, author), so one Book entity serves both.",
+      "behaviour": "A signed-in person adds a book (title required, author optional), lists their books, edits and removes them. Each person sees only their own library.",
+      "improvements": "Shelfie can only list books already in the database; add create, edit and delete, validate title on the server, and scope books to their owner.",
+      "depends_on": [],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U02",
+      "name": "Star ratings",
+      "menu_ids": ["M02"],
+      "source_features": ["A-F02"],
+      "evidence": ["A-E03", "A-E04"],
+      "merge_type": "identical",
+      "rationale": "Shelfie and Readr rate identically (integer 1-5 stars, appended). Shelfie's version is kept because it also has an API and a database CHECK; Readr's (M03) is dropped as a duplicate. The 1-10 'score' scale in Shelfie's README and spec is contradicted by its code and is not used.",
+      "behaviour": "A person rates one of their books with an integer 1-5 ('stars'); rating again replaces their earlier rating; anything else is rejected with 400 and an error message; the rating can be cleared.",
+      "improvements": "Both sources append a new row per rating; the unified app keeps one rating per person per book (unique key, upsert). Range enforced on the server and by a database CHECK.",
+      "depends_on": ["U01"],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U03",
+      "name": "Library export (JSON)",
+      "menu_ids": ["M04"],
+      "source_features": ["A-F03"],
+      "evidence": ["A-E05"],
+      "merge_type": "unique",
+      "rationale": "Only Shelfie exports. The code exports JSON; the README and spec promise CSV, which does not exist and is not built (the user said to trust what the apps do).",
+      "behaviour": "GET export returns a JSON array of {title, stars} for the signed-in person's books, one entry per book, stars null when unrated.",
+      "improvements": "Scoped to the owner; one entry per book (follows from U02's one rating per person per book).",
+      "depends_on": ["U01", "U02"],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    },
+    {
+      "id": "U04",
+      "name": "Reading lists",
+      "menu_ids": ["M05"],
+      "source_features": ["B-F02"],
+      "evidence": ["B-E04", "B-E05", "B-E08", "B-E09"],
+      "merge_type": "unique",
+      "rationale": "Only Readr has reading lists, and the user asked for them. Readr implements only adding a book to a list; the rest of the lifecycle exists only as tables.",
+      "behaviour": "A person creates a named list, renames and deletes it, adds their own books to it and removes them, and views each list with its books. A book can be on many lists, once per list.",
+      "improvements": "Add create, view, rename, delete and remove-book operations (absent in Readr); unique (list, book) pair; reject unknown or other people's list or book ids; lists belong to one person.",
+      "depends_on": ["U01"],
+      "compatibility": "adaptable",
+      "validation": "untested",
+      "tests": []
+    }
+  ]
+}

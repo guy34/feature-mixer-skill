@@ -95,6 +95,14 @@ For every entity the kept features use:
 - One role set plus explicit permissions. Write the `role_mapping` from
   every source role to a unified role, and model special powers (approving,
   billing) as permissions, not more roles.
+- Multi-tenant data: every tenant-owned entity carries the tenant key
+  (`tenant_key` or a field such as `org_id`), every query filters by it, and
+  shared resources are marked `shared: true` by the user's decision. Test
+  that one tenant cannot read, list, search or change another's data.
+- Account linking: a federated sign-in joins an existing account only on a
+  provider-verified email; never on an unverified one.
+- Give each unified endpoint its origin (`"from": ["A: GET /v1/x"]`) or none
+  if it is new; the checker rejects an origin that the source does not have.
 - One function answers "may this user do this to this record". Every route
   and every query uses it.
 
@@ -151,5 +159,8 @@ Show the user: the style and the alternatives considered, the stack and
 why, the merge plan, the modules, the merged data model and what moves where
 (with data-loss risks), the role mapping, the API style, and the slices in
 order.
-Record approval in `project.json`, checkpoint, and log every decision with
-its `D` id. In `plan` mode, the run ends here.
+Record approval with `python3 scripts/approvals.py approve-phase --mixer mixer/ --phase architecture
+--granted-by "<name>" --user-confirmed`, checkpoint, and log every decision
+with its `D` id. In `plan` mode, the run ends here: say plainly that nothing
+was built or tested, and leave implementation and integration `pending`
+(`validate_project.py` rejects a plan-mode run that claims a build).

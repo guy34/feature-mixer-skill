@@ -1,0 +1,133 @@
+{
+  "app": {
+    "id": "B",
+    "name": "Subscribe"
+  },
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {
+      "ref": "B-R01",
+      "kind": "local-directory",
+      "location": "sources/subscribe",
+      "accessed": "2026-11-04"
+    },
+    {
+      "ref": "B-R02",
+      "kind": "documentation",
+      "location": "task.md",
+      "accessed": "2026-11-04"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "B-E01",
+      "source": "B-R01",
+      "basis": "observed",
+      "locator": "sources/subscribe/plans.py:1-2",
+      "summary": "renew(subscription, create_order) returns create_order(subscription['customer'], subscription['price'])"
+    },
+    {
+      "id": "B-E02",
+      "source": "B-R02",
+      "basis": "documented",
+      "locator": "task.md#scenario-m",
+      "summary": "The user describes Subscribe as monthly subscriptions that create orders"
+    }
+  ],
+  "features": [
+    {
+      "id": "B-F01",
+      "name": "Renew a subscription into an order",
+      "description": "Each renewal of a subscription creates an order for the subscription's customer and price",
+      "observed_behaviour": "renew() calls the injected create_order(customer, price) once per call and returns its result",
+      "business_logic": "No period or duplicate check: calling renew twice for the same month creates two orders. The monthly schedule is documented by the user but there is no scheduler in the code.",
+      "data": [
+        "Subscription.customer",
+        "Subscription.price"
+      ],
+      "integration": "needs an order-creation function from the host app",
+      "evidence": [
+        "B-E01",
+        "B-E02"
+      ],
+      "basis": "observed",
+      "confidence": "high"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Subscription",
+      "description": "A customer's recurring plan: who pays and how much per renewal (an in-memory dict)",
+      "fields": [
+        {
+          "name": "customer",
+          "type": "any",
+          "required": true,
+          "description": "passed to create_order as the order's customer"
+        },
+        {
+          "name": "price",
+          "type": "number",
+          "required": true,
+          "description": "passed to create_order as the order amount; unit not stated"
+        }
+      ],
+      "features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E01"
+      ],
+      "basis": "observed"
+    }
+  ],
+  "rules": [
+    {
+      "key": "renewal.duplicate_check",
+      "value": "none",
+      "features": [
+        "B-F01"
+      ],
+      "evidence": [
+        "B-E01"
+      ]
+    }
+  ],
+  "stack": {
+    "backend": [
+      "Python (plain function)"
+    ],
+    "database": [
+      "none"
+    ],
+    "basis": "observed"
+  },
+  "architecture": {
+    "backend": "one function with an injected order factory",
+    "evidence": [
+      "B-E01"
+    ],
+    "basis": "observed"
+  },
+  "packages": {},
+  "runtimes": {},
+  "tenancy": {
+    "model": "none"
+  },
+  "unknowns": [
+    "How and when renew() is triggered monthly: no scheduler in the code (task.md says monthly)",
+    "Unit and currency of subscription['price']",
+    "Whether a subscription has an id, a status or a billing period: none in the code",
+    "Rights: task.md states no rights and there is no licence file, so code_reuse is unknown and nothing is copied"
+  ],
+  "contradictions": [],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": [
+      "(root)"
+    ],
+    "modules_skipped": [],
+    "files_read": 1
+  }
+}

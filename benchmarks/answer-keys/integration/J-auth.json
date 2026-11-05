@@ -1,0 +1,34 @@
+{
+  "scenario": "J-auth",
+  "conflicts": [
+    {
+      "kind": "identity-linking",
+      "subject": "accounts"
+    },
+    {
+      "kind": "auth-methods",
+      "subject": "methods"
+    },
+    {
+      "kind": "auth-provider",
+      "subject": "provider"
+    },
+    {
+      "kind": "roles",
+      "subject": "roles"
+    },
+    {
+      "kind": "possible-alias",
+      "subject": "account~user"
+    },
+    {
+      "kind": "authorization-model",
+      "subject": "model"
+    }
+  ],
+  "holdout_must_fail_on_naive": [
+    "test_unverified_email_never_takes_over",
+    "test_no_self_promotion",
+    "test_only_admin_sets_roles"
+  ]
+}

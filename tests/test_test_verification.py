@@ -3,7 +3,6 @@
 import json
 import os
 import sys
-import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -42,6 +41,7 @@ class RunAndVerifyTest(unittest.TestCase):
         os.makedirs(os.path.join(self.app, "tests"))
         open(os.path.join(self.app, "tests", "__init__.py"), "w").close()
         self.write_tests(value=2)  # test_tasks fails by default
+        self.approval = self.ws.grant(self.app, unittest="tests")
         os.makedirs(os.path.join(self.ws.mixer, "design"))
         with open(os.path.join(self.ws.mixer, "design", "prd.md"), "w") as f:
             f.write("# PRD\n\n## Acceptance criteria\n\n| Id | Feature | Text |\n| --- | --- | --- |\n"
@@ -54,7 +54,7 @@ class RunAndVerifyTest(unittest.TestCase):
 
     def run_tests(self, *extra):
         return run_script("run_tests.py", "--mixer", self.ws.mixer, "--cwd", self.app, "--unittest", "tests",
-                          "--approval", "A01", *extra)
+                          "--approval", self.approval, *extra)
 
     def report(self):
         with open(os.path.join(self.ws.mixer, "integration-report.json")) as f:
@@ -147,7 +147,15 @@ class RunAndVerifyTest(unittest.TestCase):
             json.dump(rec, f)
         self.save_report(rep)
         v, _ = self.verify()
-        self.assertIn("exit code 0 but the results contain failures", "\n".join(v.errors))
+        errs = "\n".join(v.errors)
+        # editing run.json is caught by its ledger fingerprint before anything else is trusted
+        self.assertIn("was changed after the ledger recorded it", errs)
+        import run_tests
+        verdict, why = run_tests.decide_verdict("exited", 0, "ok", {"executed": 2, "failed": 1, "unverified": 0})
+        self.assertEqual(verdict, "failed")
+        self.assertIn("exit code 0 although 1 test(s) failed", why)
+        verdict, why = run_tests.decide_verdict("exited", 3, "ok", {"executed": 2, "failed": 0, "unverified": 0})
+        self.assertEqual(verdict, "inconsistent")
 
     def test_self_reported_report_without_evidence(self):
         self.save_report({"app": "x", "command": "trust me", "summary": {"total": 1, "passed": 1, "failed": 0,
@@ -208,8 +216,10 @@ class RunAndVerifyTest(unittest.TestCase):
         tags = os.path.join(self.ws.root, "tags.json")
         with open(tags, "w") as f:
             json.dump({"tests": {"api.t1": {"features": ["M01"], "level": "api"}, "t2": {"features": ["M02"]}}}, f)
+        cmd = [sys.executable, "fake_runner.py"]
+        aid = self.ws.grant(self.app, junit="junit.xml", command=cmd)
         r = run_script("run_tests.py", "--mixer", self.ws.mixer, "--cwd", self.app, "--junit", "junit.xml",
-                       "--framework", "custom", "--tags", tags, "--", sys.executable, "fake_runner.py")
+                       "--framework", "custom", "--tags", tags, "--approval", aid, "--", *cmd)
         self.assertEqual(r.returncode, 1, r.stdout)
         rep = self.report()
         self.assertEqual({t["name"]: t["status"] for t in rep["tests"]}, {"api.t1": "passed", "api.t2": "failed"})
@@ -221,10 +231,20 @@ class RunAndVerifyTest(unittest.TestCase):
         with open(os.path.join(self.app, "old.xml"), "w") as f:
             f.write("<testsuite><testcase name='t'/></testsuite>")
         os.utime(os.path.join(self.app, "old.xml"), (1, 1))
+        cmd = [sys.executable, "-c", "pass"]
+        aid = self.ws.grant(self.app, junit="old.xml", command=cmd)
         r = run_script("run_tests.py", "--mixer", self.ws.mixer, "--cwd", self.app, "--junit", "old.xml",
-                       "--", sys.executable, "-c", "pass")
-        self.assertEqual(r.returncode, 2)
-        self.assertIn("older than this run", r.stdout)
+                       "--approval", aid, "--", *cmd)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("verdict invalid-results", r.stdout)
+        self.assertIn("did not write old.xml during this run (an older copy was moved aside first)", r.stdout)
+        rep = self.report()
+        self.assertEqual(rep["summary"]["verdict"], "invalid-results")
+        self.assertTrue(os.path.exists(os.path.join(self.ws.mixer, rep["execution"]["results"])))
+        moved = [n for n in os.listdir(os.path.join(self.ws.mixer, "test-runs", rep["execution"]["run_id"]))
+                 if n.startswith("previous-")]
+        self.assertEqual(moved, ["previous-old.xml"])
+        self.assertFalse(os.path.exists(os.path.join(self.app, "old.xml")))
 
     def test_project_requires_the_test_approval(self):
         self.write_tests(value=1)

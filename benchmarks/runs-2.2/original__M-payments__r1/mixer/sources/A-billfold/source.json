@@ -1,0 +1,60 @@
+{
+  "app": {"id": "A", "name": "Billfold"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/billfold", "accessed": "2026-11-05"},
+    {"ref": "A-R02", "kind": "documentation", "location": "task.md", "accessed": "2026-11-05"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "observed", "locator": "sources/billfold/charges.py:1-3",
+     "summary": "pay(gateway, order, key=None) calls gateway.charge(order['amount'], key or str(id(order))), stores the returned charge_id on the order and sets paid=True."},
+    {"id": "A-E02", "source": "A-R01", "basis": "observed", "locator": "sources/billfold/charges.py:2",
+     "summary": "When no key is passed the idempotency key falls back to str(id(order)), a per-process object address, so it is not stable across retries from another process or after a restart."},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/billfold/charges.py:4-5",
+     "summary": "on_webhook(order, event) sets paid=True on every delivery; the event id and type are never read (source comment: 'every delivery applies again')."},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/billfold/charges.py:2-3",
+     "summary": "There is no try/except: if gateway.charge raises (for example a timeout after the charge went through) the order keeps no charge_id and is not marked paid."},
+    {"id": "A-E05", "source": "A-R02", "basis": "documented", "locator": "task.md#scenario-m",
+     "summary": "The user describes Billfold as charging cards through a payment gateway and receiving its webhooks."}
+  ],
+  "stack": {"backend": ["Python (plain functions, no framework)"], "database": ["none: orders are in-memory dicts passed in by the caller"], "basis": "observed"},
+  "architecture": {"backend": "A single module of free functions that mutate an order dict passed in by the caller; no persistence, no web layer.", "evidence": ["A-E01", "A-E03"], "basis": "observed"},
+  "features": [
+    {"id": "A-F01", "name": "Charge an order through the payment gateway",
+     "description": "Charges an order's amount through a gateway object and records the returned charge id on the order.",
+     "observed_behaviour": "pay() calls gateway.charge(amount, key), sets order['charge_id'] to the result and order['paid']=True. The idempotency key is the caller's key or str(id(order)).",
+     "business_logic": "Idempotency is delegated to the gateway via the key; the fallback key is not stable. No check that the order is unpaid before charging. No handling of gateway errors or timeouts.",
+     "data": ["Order.amount", "Order.charge_id", "Order.paid"],
+     "integration": "Needs a gateway exposing charge(amount, key) -> charge_id.",
+     "evidence": ["A-E01", "A-E02", "A-E04", "A-E05"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F02", "name": "Receive payment gateway webhooks",
+     "description": "Applies a gateway webhook event to an order by marking it paid.",
+     "observed_behaviour": "on_webhook(order, event) sets order['paid']=True unconditionally on every delivery.",
+     "business_logic": "No de-duplication by event id, no event-type dispatch (refund events would also mark the order paid), no state check.",
+     "data": ["Order.paid"],
+     "depends_on": ["A-F01"],
+     "integration": "Needs the gateway to deliver events; needs an order lookup by the caller.",
+     "evidence": ["A-E03", "A-E05"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Order", "fields": [{"name": "amount", "type": "number (dict key)"}, {"name": "charge_id", "type": "str (dict key)"}, {"name": "paid", "type": "bool (dict key)"}],
+     "features": ["A-F01", "A-F02"], "evidence": ["A-E01", "A-E03"], "basis": "observed"}
+  ],
+  "integrations": [
+    {"name": "Payment gateway", "purpose": "charge(amount, key) returns a charge id; delivers webhook events", "features": ["A-F01", "A-F02"], "evidence": ["A-E01", "A-E03"]}
+  ],
+  "rules": [
+    {"key": "idempotency_key_fallback", "value": "str(id(order))", "features": ["A-F01"], "evidence": ["A-E02"]},
+    {"key": "webhook_dedupe", "value": false, "features": ["A-F02"], "evidence": ["A-E03"]}
+  ],
+  "error_handling": [
+    {"case": "gateway raises (timeout) during charge", "behaviour": "exception propagates; order unchanged even if the gateway charged", "evidence": ["A-E04"]},
+    {"case": "duplicate webhook delivery", "behaviour": "applied again (idempotent only by accident because it sets the same flag)", "evidence": ["A-E03"]}
+  ],
+  "unknowns": [
+    "Webhook event schema: the code never reads the event, so its fields are only known from task.md (id, type, order_id, charge_id).",
+    "Currency and units of order['amount'] are not stated in the code; task.md uses amount_cents."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

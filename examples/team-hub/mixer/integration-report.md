@@ -1,8 +1,8 @@
 # Team Hub: integration report
 
-Run `20261104T090459705214Z` by run_tests.py · Command: `python -m unittest discover -s tests -t . (Feature Mixer harness)` · Framework: unittest
-Started 2026-11-04T09:04:59+00:00 · Finished 2026-11-04T09:05:00+00:00 · Exit code 0
-Evidence: `test-runs/20261104T090459705214Z/output.log` (sha256 5db1ecb40d06...), `test-runs/20261104T090459705214Z/results.xml` (sha256 494e51767b52...)
+Run `20261104T193511009402Z-692f6b` by run_tests.py · Command: `python -m unittest discover -s tests -t . (Feature Mixer harness)` · Framework: unittest
+Started 2026-11-04T19:35:11+00:00 · Finished 2026-11-04T19:35:11+00:00 · Exit code 0 · Outcome exited · **Verdict: passed**
+Evidence: `test-runs/20261104T193511009402Z-692f6b/output.log` (sha256 1cf55b934547...), `test-runs/20261104T193511009402Z-692f6b/results.xml` (sha256 396dbb39e8c2...)
 
 Statuses come from the results file of this run. Run `verify_tests.py` to check this report against the evidence; only verified passes prove a feature.
 

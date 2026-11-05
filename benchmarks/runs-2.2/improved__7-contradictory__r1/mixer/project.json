@@ -1,0 +1,137 @@
+{
+  "name": "Shelfie + Readr reading app",
+  "format": 4,
+  "mode": "plan",
+  "selection": "auto-pick",
+  "audience": "People who keep a personal book library, rate the books they read and make reading lists (the user's own apps combined)",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Shelfie",
+      "slug": "shelfie",
+      "access": "own-code",
+      "licence": "none (the user's own code)",
+      "code_reuse": "allowed",
+      "slice": "library (books), ratings and export; the user says its documentation is old and the code is what counts",
+      "local_path": "sources/shelfie",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/shelfie"
+        },
+        {
+          "kind": "documentation",
+          "location": "sources/shelfie/README.md"
+        },
+        {
+          "kind": "documentation",
+          "location": "sources/shelfie/docs/architecture.md"
+        },
+        {
+          "kind": "api-spec",
+          "location": "sources/shelfie/openapi.yaml"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Readr",
+      "slug": "readr",
+      "access": "own-code",
+      "licence": "none (the user's own code)",
+      "code_reuse": "allowed",
+      "slice": "reading lists and 1-5 star ratings",
+      "local_path": "sources/readr",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/readr"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "approved_at": "2026-11-05T07:56:11+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "fba7727a3f6eb342d6abce0aa8382df62c25b6d18e4569afd2af02f12d7b77cd",
+      "note": "auto-pick selection mode named in task.md; pre-approved by the benchmark operator"
+    },
+    "compatibility": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "approved_at": "2026-11-05T07:57:20+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "6028fde021bda49bd3b909c33eaaf9547ea9f0f5b21467887a7bf4855f0c3965",
+      "note": "pre-approved by the benchmark operator: Claude's recommendation for every conflict"
+    },
+    "architecture": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "approved_at": "2026-11-05T08:00:03+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "4f67775263d1ec6686db4a5298f2da8a6b8206bbea599d76ef53e0abe141e4cd",
+      "note": "pre-approved by the benchmark operator: Claude's recommended design (modular monolith, D01-D10)"
+    },
+    "implementation": {
+      "status": "pending"
+    },
+    "integration": {
+      "status": "pending"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T07:55:12+00:00",
+      "note": "recon complete: A 3 features, 8 doc/code contradictions; B 2 features"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T07:55:46+00:00",
+      "note": "5 menu rows: 1 identical group (rating, 2 rows), 3 unique"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T07:56:11+00:00",
+      "note": "auto-pick: keep M01 M02 M04 M05, drop M03"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T07:57:20+00:00",
+      "note": "10 conflicts (4 high, 5 medium, 1 low) resolved"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T08:00:03+00:00",
+      "note": "architecture approved; plan mode ends"
+    }
+  ],
+  "approvals": []
+}

@@ -1,0 +1,7 @@
+[
+  {"kind": "workflow", "subject": "suggestion-input", "apps": ["A", "B"], "severity": "medium",
+   "detail": "B's suggest() takes one free-text string; A's Ticket has no text field (only status and a thread of agent replies), so it is undecided which ticket text the FAQ matcher reads",
+   "solutions": ["Match on the ticket's subject and description, set when it is created", "Also match on every reply", "Match on the latest message only"],
+   "recommended": "Match on subject and description: they are the customer's question; agent replies would make the agent's own words pull in FAQs",
+   "features": ["A-F01", "B-F01"]}
+]

@@ -1,0 +1,406 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B",
+    "C"
+  ],
+  "summary": {
+    "critical": 5,
+    "high": 1,
+    "medium": 3,
+    "low": 0,
+    "info": 1
+  },
+  "conflicts": [
+    {
+      "id": "application:integration:refund-not-idempotent",
+      "category": "application",
+      "kind": "integration",
+      "subject": "refund-not-idempotent",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "features": [
+        "A-F02",
+        "C-F02"
+      ],
+      "severity": "critical",
+      "detail": "gateway.refund(charge_id) has no idempotency key (gateway.py:23-25): every call creates a new refund, so a retried cancel or a cancel racing a refund webhook could refund twice.",
+      "solutions": [
+        "Record a refund-requested marker before calling the gateway and never call refund again once it exists",
+        "Only refund from webhooks"
+      ],
+      "recommended": "Write a refund marker first; with a marker present, a retry completes the order as refunded without calling the gateway",
+      "needs_approval": true,
+      "menu_features": [
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D05: refund marker written before gateway.refund; with a marker present a retry completes as refunded without a second gateway call",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "application:workflow:cancel-paid-order",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "cancel-paid-order",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "features": [
+        "A-F01",
+        "C-F02"
+      ],
+      "severity": "critical",
+      "detail": "C cancels a paid order without refunding it (orders.py:3), so money A charged is kept for a cancelled order; the user requires a cancelled paid order to be refunded exactly once.",
+      "solutions": [
+        "Cancel of a paid order refunds through the gateway and ends in status refunded",
+        "Forbid cancelling paid orders"
+      ],
+      "recommended": "pending->cancelled; paid->refund once->refunded; cancelled/refunded->no-op",
+      "needs_approval": true,
+      "menu_features": [
+        "M02",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D02 (user requirement in task.md): pending->cancelled; paid->one gateway refund->status refunded with one ledger refund; cancelled/refunded->no-op",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "application:workflow:charge-retry-idempotency",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "charge-retry-idempotency",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F01"
+      ],
+      "severity": "critical",
+      "detail": "A's idempotency key falls back to str(id(order)) and gateway timeouts are not handled: after a timeout that charged, the order stays unpaid and a retry with another key charges twice.",
+      "solutions": [
+        "Require the client key, remember the first key per order and reuse it for every retry",
+        "Derive a per-order gateway key"
+      ],
+      "recommended": "Client key required; first attempted key per order is recorded before the gateway call and reused on every retry; a key used for another order is refused; already-paid orders are never charged",
+      "needs_approval": true,
+      "menu_features": [
+        "M02"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D03: client key required; first key per order recorded before the charge and reused for every retry; key reuse across orders refused; paid orders never charged; GatewayTimeout re-raised with order left pending and the attempt recorded so a retry collects the original charge",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "application:workflow:webhook-redelivery",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "webhook-redelivery",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F02"
+      ],
+      "severity": "critical",
+      "detail": "A applies every webhook delivery again and ignores the type; a duplicate delivery, or a webhook plus the synchronous pay() result, would be applied (and ledgered) twice.",
+      "solutions": [
+        "De-duplicate by event id and make transitions state-checked",
+        "Ignore webhooks and rely on pay() only"
+      ],
+      "recommended": "Record processed event ids atomically with the change; charge.succeeded only moves pending->paid, charge.refunded only paid->refunded; the ledger is appended only on a real transition",
+      "needs_approval": true,
+      "menu_features": [
+        "M03"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D04: processed event ids stored atomically with the change; state-checked transitions; ledger appended only on a real transition",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "database:payment-state:order-payment-state",
+      "category": "database",
+      "kind": "payment-state",
+      "subject": "order-payment-state",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "C-F01"
+      ],
+      "severity": "critical",
+      "detail": "A records payment as a boolean 'paid' flag; C records it as status pending/paid/cancelled/refunded. Two sources of truth can disagree (paid=True while status=cancelled).",
+      "solutions": [
+        "Make Order.status the only payment state and drop A's paid flag",
+        "Keep both and sync them"
+      ],
+      "recommended": "Order.status is the single source of truth; 'paid' is derived (status == paid)",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D01: Order.status is the single payment state; A's paid flag dropped (derived from status)",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "database:persistence:partial-writes",
+      "category": "database",
+      "kind": "persistence",
+      "subject": "partial-writes",
+      "apps": [
+        "A",
+        "B",
+        "C"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "B-F01",
+        "C-F02"
+      ],
+      "severity": "high",
+      "detail": "No source persists anything; the user requires that a failed store write (StoreError) leaves the order unchanged, and the gateway call cannot be inside the write.",
+      "solutions": [
+        "One atomic write per state change, checked before any mutation; intent markers written before gateway calls",
+        "Two-phase with compensation"
+      ],
+      "recommended": "Every state change is one atomic store write (all or nothing); payment and refund intents are written before the gateway call so a retry after a failed write is safe",
+      "needs_approval": true,
+      "menu_features": [
+        "M02",
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D06: one atomic store write per state change (fail check before any mutation); intent records written before gateway calls",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "application:business-rule:amount-units",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "amount-units",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "A uses order['amount'], B subscription['price'], the task uses amount_cents.",
+      "solutions": [
+        "Integer cents everywhere (amount_cents)"
+      ],
+      "recommended": "amount_cents, positive integer",
+      "needs_approval": false,
+      "menu_features": [
+        "M02",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D07: integer amount_cents everywhere (A amount and B price map to it)",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "application:workflow:renewal-duplication",
+      "category": "application",
+      "kind": "workflow",
+      "subject": "renewal-duplication",
+      "apps": [
+        "B"
+      ],
+      "features": [
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "B creates a new order on every renew() call; renewing one period twice would bill the month twice.",
+      "solutions": [
+        "Optional period key de-duplicates renewals",
+        "Leave scheduling to the caller"
+      ],
+      "recommended": "renew(subscription, period) returns the existing order for the same subscription id and period",
+      "needs_approval": false,
+      "menu_features": [
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D08: renew(subscription, period) de-duplicates by subscription id + period",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:order",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "order",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "C-F01",
+        "C-F02"
+      ],
+      "severity": "medium",
+      "detail": "Order exists in A:Order, C:Order; fields not shared: amount_cents (only A), charge_id (only A), paid (only A), status (only C)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D09: one Order entity merging A (amount_cents, charge_id) and C (status) fields",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    },
+    {
+      "id": "database:unknown-type:order.primary-key",
+      "category": "database",
+      "kind": "unknown-type",
+      "subject": "order.primary-key",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "C-F01",
+        "C-F02"
+      ],
+      "severity": "info",
+      "detail": "Order primary key type is not known for A, C; find it before deciding the merged key",
+      "solutions": [
+        "Read the source's schema or migrations for the type",
+        "Record it as unknown and decide in the architecture"
+      ],
+      "recommended": "Find the real type before designing the merged entity",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "D10: Order primary key is a generated string id ord_<n>",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-05",
+        "note": "pre-approved Claude's recommendation"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:order",
+      "entity": "Order",
+      "apps": [
+        "A",
+        "C"
+      ],
+      "steps": [
+        {
+          "change": "add fields that only some sources have: amount_cents (only A), charge_id (only A), paid (only A), status (only C)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "A.Order.amount: number to integer can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "amount"
+          ]
+        },
+        {
+          "change": "A.Order.paid: boolean to str: pending|paid|cancelled|refunded can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "paid"
+          ]
+        }
+      ],
+      "changes": [
+        "add fields that only some sources have: amount_cents (only A), charge_id (only A), paid (only A), status (only C)",
+        "A.Order.amount: number to integer can lose or reject values",
+        "A.Order.paid: boolean to str: pending|paid|cancelled|refunded can lose or reject values"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "amount",
+        "paid"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    }
+  ]
+}

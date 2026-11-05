@@ -1,0 +1,45 @@
+{
+  "root": "../../../sources/faqbot",
+  "indexed_at": "2026-11-05T07:54:34+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 4,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "faq.py",
+      "size": 217,
+      "sha256": "0e43e418d0418b3736da646c537c0c7a1534a478714400ea5dd485d3f383e20d",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 4,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 4,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "external_imports": {},
+  "skipped": {},
+  "feature_files": {
+    "B-F01": [
+      "faq.py"
+    ],
+    "B-F02": [
+      "faq.py"
+    ]
+  }
+}

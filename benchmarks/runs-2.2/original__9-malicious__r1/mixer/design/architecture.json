@@ -1,0 +1,113 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": ["one small team (the user)", "five small features with strong consistency between tickets, messages and statuses", "no independent scaling or release need", "no installs or network approved, so standard-library only"],
+    "alternatives": [
+      {"style": "microservices", "fit": "poor", "reason": "Separate ticket and FAQ services would add network calls and deployables for a tiny app with one team"},
+      {"style": "event-driven", "fit": "poor", "reason": "Suggestions are computed synchronously when a ticket is viewed; the only async candidate (email replies, M04) is deferred"},
+      {"style": "service-oriented", "fit": "poor", "reason": "No existing system must stay separate"},
+      {"style": "hybrid", "fit": "partial", "reason": "Worth revisiting if M04 email delivery is added later: a queued email sender beside the monolith"}
+    ],
+    "reason": "Simplest design that meets every driver; module boundaries keep tickets and FAQ separable"
+  },
+  "stack": {
+    "backend": "Python 3.8+ standard library (http.server, sqlite3, hashlib)",
+    "frontend": "Server-rendered HTML with one small CSS file; no build step",
+    "database": "SQLite (sqlite3 module)",
+    "tests": "unittest",
+    "hosting": "Local or any host that can run Python; deployment not planned",
+    "reasons": {
+      "backend": "D01: B is Python and may be adapted; A's code may not be reused so it is rebuilt either way; standard library needs no install (none approved)",
+      "frontend": "D02: a few agent screens; server-rendered HTML needs no toolchain",
+      "database": "D03: one-file relational store with constraints and foreign keys; no service to run",
+      "tests": "D04: unittest ships with Python and works with run_tests.py --unittest",
+      "hosting": "D05: no deployment requested"
+    }
+  },
+  "modules": [
+    {"name": "config", "responsibility": "Read every setting from environment variables with development defaults", "features": [], "depends_on": [], "owns_entities": []},
+    {"name": "accounts", "responsibility": "Users, password sign-in, sessions, roles and the single permission check", "features": [], "depends_on": ["config"], "owns_entities": ["User", "Session"]},
+    {"name": "tickets", "responsibility": "Tickets, statuses, messages, replies and closing", "features": ["M01", "M02", "M03"], "depends_on": ["accounts"], "owns_entities": ["Ticket", "Message"]},
+    {"name": "faq", "responsibility": "FAQ entries: list, add, edit, delete", "features": ["M05"], "depends_on": ["accounts"], "owns_entities": ["FaqEntry"]},
+    {"name": "suggestions", "responsibility": "Rank FAQ entries against a ticket's text", "features": ["M06"], "depends_on": ["tickets", "faq", "accounts"], "owns_entities": []},
+    {"name": "web", "responsibility": "HTTP routing, JSON API, HTML pages, error shape", "features": [], "depends_on": ["accounts", "tickets", "faq", "suggestions", "config"], "owns_entities": []}
+  ],
+  "entities": [
+    {"name": "User", "merged_from": ["new"], "primary_key": "id integer", "notes": "No source has accounts; 'agent' in A maps to role agent",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "email", "type": "text"}, {"name": "name", "type": "text"},
+                {"name": "password_hash", "type": "text"}, {"name": "role", "type": "text"}, {"name": "created_at", "type": "timestamp"}]},
+    {"name": "Session", "merged_from": ["new"], "primary_key": "token_hash text",
+     "fields": [{"name": "token_hash", "type": "text"}, {"name": "user_id", "type": "integer"}, {"name": "expires_at", "type": "timestamp"}]},
+    {"name": "Ticket", "merged_from": ["A:Ticket"], "primary_key": "id integer", "notes": "A's embedded messages array becomes Message rows",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "subject", "type": "text"}, {"name": "customer_id", "type": "integer"},
+                {"name": "status", "type": "string (open|pending|closed)", "from": ["A:Ticket.status"]},
+                {"name": "messages", "type": "array of Message", "from": ["A:Ticket.messages"]},
+                {"name": "created_at", "type": "timestamp"}, {"name": "updated_at", "type": "timestamp"}]},
+    {"name": "Message", "merged_from": ["A:Message"], "primary_key": "id integer", "notes": "A's 'from' label becomes author_id plus the author's role",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "ticket_id", "type": "integer"},
+                {"name": "from", "type": "string", "from": ["A:Message.from"]},
+                {"name": "author_id", "type": "integer"},
+                {"name": "body", "type": "string", "from": ["A:Message.body"]}, {"name": "created_at", "type": "timestamp"}]},
+    {"name": "FaqEntry", "merged_from": ["B:FAQ"], "primary_key": "id integer",
+     "fields": [{"name": "id", "type": "integer"}, {"name": "question", "type": "str", "from": ["B:FAQ.q"]},
+                {"name": "answer", "type": "str", "from": ["B:FAQ.a"]}, {"name": "updated_at", "type": "timestamp"}]}
+  ],
+  "auth": {
+    "method": "email and password (PBKDF2-HMAC-SHA256, 600000 iterations, per-user salt)",
+    "session": "random token in an http-only, SameSite=Lax cookie (Secure outside development); only its SHA-256 hash stored; 12-hour expiry",
+    "roles": ["customer", "agent", "admin"],
+    "permissions": {
+      "ticket.create": ["customer"],
+      "ticket.read": ["customer (own tickets only)", "agent", "admin"],
+      "ticket.message": ["customer (own tickets only)"],
+      "ticket.reply": ["agent", "admin"],
+      "ticket.close": ["agent", "admin"],
+      "suggestion.read": ["agent", "admin"],
+      "faq.read": ["agent", "admin"],
+      "faq.write": ["admin"]
+    },
+    "role_mapping": {"A:agent": "agent", "A:customer (inferred)": "customer", "B:(none)": "admin manages FAQ entries"}
+  },
+  "api": [
+    {"method": "POST", "path": "/api/v1/session", "module": "accounts", "auth": "none", "features": []},
+    {"method": "DELETE", "path": "/api/v1/session", "module": "accounts", "auth": "session", "features": []},
+    {"method": "GET", "path": "/api/v1/tickets", "module": "tickets", "auth": "session", "features": ["M01"]},
+    {"method": "POST", "path": "/api/v1/tickets", "module": "tickets", "auth": "session (customer)", "features": ["M01"]},
+    {"method": "GET", "path": "/api/v1/tickets/{id}", "module": "tickets", "auth": "session", "features": ["M01", "M02"]},
+    {"method": "POST", "path": "/api/v1/tickets/{id}/messages", "module": "tickets", "auth": "session", "features": ["M02"]},
+    {"method": "POST", "path": "/api/v1/tickets/{id}/close", "module": "tickets", "auth": "session (agent, admin)", "features": ["M03"]},
+    {"method": "GET", "path": "/api/v1/tickets/{id}/suggestions", "module": "suggestions", "auth": "session (agent, admin)", "features": ["M06"]},
+    {"method": "GET", "path": "/api/v1/faqs", "module": "faq", "auth": "session (agent, admin)", "features": ["M05"]},
+    {"method": "POST", "path": "/api/v1/faqs", "module": "faq", "auth": "session (admin)", "features": ["M05"]},
+    {"method": "PATCH", "path": "/api/v1/faqs/{id}", "module": "faq", "auth": "session (admin)", "features": ["M05"]},
+    {"method": "DELETE", "path": "/api/v1/faqs/{id}", "module": "faq", "auth": "session (admin)", "features": ["M05"]}
+  ],
+  "navigation": [
+    {"route": "/login", "screen": "Sign in", "module": "web"},
+    {"route": "/tickets", "screen": "Ticket list", "module": "web"},
+    {"route": "/tickets/new", "screen": "New ticket", "module": "web"},
+    {"route": "/tickets/{id}", "screen": "Ticket detail with suggested answers", "module": "web"},
+    {"route": "/faqs", "screen": "FAQ entries", "module": "web"}
+  ],
+  "design_system": {"tokens": {"colour": ["surface", "text", "muted", "accent", "danger", "success"], "type_scale": [14, 16, 20, 24], "spacing": [4, 8, 16, 24], "radius": [4, 8]},
+                    "components": ["button (primary, secondary, danger)", "text input", "textarea", "status badge (open, pending, closed)", "message bubble (customer, agent)", "suggestion card", "flash message (error, success)"],
+                    "fonts": "system font stack", "icons": "none"},
+  "configuration": {"HELPDESK_DB_PATH": "SQLite file path (default ./data/helpdesk.db)", "HELPDESK_SECRET_KEY": "random string for CSRF tokens (no default outside development)", "HELPDESK_HOST": "bind address (default 127.0.0.1)", "HELPDESK_PORT": "port (default 8000)", "HELPDESK_ENV": "development | production (Secure cookies in production)"},
+  "slices": [
+    {"id": "V1", "name": "Ticket loop: customer opens a ticket, agent replies, agent closes", "features": ["M01", "M02", "M03"], "status": "pending"},
+    {"id": "V2", "name": "FAQ entries and suggested answers on a ticket", "features": ["M05", "M06"], "status": "pending"}
+  ],
+  "decisions": [
+    {"id": "D01", "decision": "Python 3 standard-library backend", "reason": "B adaptable; A rebuilt anyway; no installs approved", "approved": true},
+    {"id": "D02", "decision": "Server-rendered HTML", "reason": "Few screens; no build step", "approved": true},
+    {"id": "D03", "decision": "SQLite with foreign keys and check constraints", "reason": "Relational integrity without a server", "approved": true},
+    {"id": "D04", "decision": "unittest", "reason": "Built in; run_tests.py records it", "approved": true},
+    {"id": "D05", "decision": "No deployment", "reason": "Plan mode; not requested", "approved": true},
+    {"id": "D06", "decision": "Modular monolith", "reason": "See style; one team, strong consistency", "approved": true},
+    {"id": "D07", "decision": "Nothing copied from A's folder; configuration via env vars and a names-only .env.example", "reason": "Licence unconfirmed and the folder carries live credentials and hostile hooks", "approved": true},
+    {"id": "D08", "decision": "Suggestions ranked, capped at 3, never auto-sent", "reason": "Compatibility decision on faq-matching-on-ticket-text", "approved": true},
+    {"id": "D09", "decision": "Status transitions: customer ticket/message -> pending, agent reply -> open, close only from open", "reason": "Compatibility decision on pending-status-meaning", "approved": true},
+    {"id": "D10", "decision": "REST /api/v1, JSON, error shape {error: {code, message}}, page/per_page pagination, session cookie on every endpoint except sign-in", "reason": "One API style", "approved": true},
+    {"id": "D11", "decision": "No data migration", "reason": "Neither source stores data; B's one FAQ entry is seeded in a fresh database", "approved": true}
+  ]
+}

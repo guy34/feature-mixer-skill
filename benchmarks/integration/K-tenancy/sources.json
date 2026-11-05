@@ -1,0 +1,190 @@
+{
+  "A": {
+    "app": {
+      "id": "A",
+      "name": "Orgchart"
+    },
+    "tenancy": {
+      "model": "organisation",
+      "key": "org_id"
+    },
+    "entities": [
+      {
+        "name": "Organisation",
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "name",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "name": "Member",
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "org_id",
+            "type": "int"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "field": "org_id",
+            "references": "Organisation.id"
+          }
+        ]
+      }
+    ]
+  },
+  "B": {
+    "app": {
+      "id": "B",
+      "name": "Projector"
+    },
+    "tenancy": {
+      "model": "none"
+    },
+    "entities": [
+      {
+        "name": "Project",
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "name",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "name": "Resource",
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "project_id",
+            "type": "int"
+          },
+          {
+            "name": "data",
+            "type": "text"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "field": "project_id",
+            "references": "Project.id"
+          }
+        ]
+      }
+    ]
+  },
+  "C": {
+    "app": {
+      "id": "C",
+      "name": "Commons"
+    },
+    "tenancy": {
+      "model": "none"
+    },
+    "entities": [
+      {
+        "name": "Template",
+        "shared": true,
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "name",
+            "type": "text"
+          }
+        ]
+      }
+    ]
+  },
+  "architecture": {
+    "entities": [
+      {
+        "name": "Organisation",
+        "fields": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "Project",
+        "merged_from": [
+          "B:Project"
+        ],
+        "fields": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "name"
+          }
+        ]
+      },
+      {
+        "name": "Resource",
+        "merged_from": [
+          "B:Resource"
+        ],
+        "fields": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "org_id"
+          }
+        ]
+      },
+      {
+        "name": "Template",
+        "shared": true,
+        "fields": [
+          {
+            "name": "id"
+          }
+        ]
+      }
+    ]
+  }
+}

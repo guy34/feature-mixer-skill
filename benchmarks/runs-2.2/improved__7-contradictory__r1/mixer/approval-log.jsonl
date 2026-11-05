@@ -1,0 +1,3 @@
+{"at": "2026-11-05T07:56:11+00:00", "by": "approvals.py", "decision": "phase-approved", "fingerprint": "fba7727a3f6eb342d6abce0aa8382df62c25b6d18e4569afd2af02f12d7b77cd", "granted_by": "benchmark operator", "phase": "selection"}
+{"at": "2026-11-05T07:57:20+00:00", "by": "approvals.py", "decision": "phase-approved", "fingerprint": "6028fde021bda49bd3b909c33eaaf9547ea9f0f5b21467887a7bf4855f0c3965", "granted_by": "benchmark operator", "phase": "compatibility"}
+{"at": "2026-11-05T08:00:03+00:00", "by": "approvals.py", "decision": "phase-approved", "fingerprint": "4f67775263d1ec6686db4a5298f2da8a6b8206bbea599d76ef53e0abe141e4cd", "granted_by": "benchmark operator", "phase": "architecture"}

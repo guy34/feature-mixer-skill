@@ -1,0 +1,158 @@
+{
+  "name": "Unified Identity",
+  "format": 3,
+  "mode": "full",
+  "selection": "auto-pick",
+  "audience": "Users of Passbook, Linkup and Roster who should have one account and one role model across the combined product",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Passbook",
+      "slug": "passbook",
+      "access": "own-code",
+      "licence": "proprietary (user's own code)",
+      "code_reuse": "allowed",
+      "slice": "email and password accounts: register, log in, sessions",
+      "local_path": "sources/passbook",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/passbook"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Linkup",
+      "slug": "linkup",
+      "access": "open-source",
+      "licence": "MIT (stated by the user; no licence file present in sources/linkup)",
+      "code_reuse": "not-allowed",
+      "slice": "sign-in with an OAuth provider (Google-style)",
+      "local_path": "sources/linkup",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/linkup"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Roster",
+      "slug": "roster",
+      "access": "own-code",
+      "licence": "proprietary (user's own code)",
+      "code_reuse": "allowed",
+      "slice": "roles and permissions (viewer, editor, admin)",
+      "local_path": "sources/roster",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/roster"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-05"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-05"
+    },
+    "selection": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "note": "auto-pick; recommendation pre-approved by the benchmark operator"
+    },
+    "compatibility": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "note": "all critical/high conflicts decided; recommendation pre-approved by the benchmark operator; user decisions from task.md applied"
+    },
+    "architecture": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "note": "style, stack, modules, data model, role mapping and slices pre-approved by the benchmark operator"
+    },
+    "implementation": {
+      "status": "done",
+      "date": "2026-11-05"
+    },
+    "integration": {
+      "status": "done",
+      "date": "2026-11-05"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T08:04:39+00:00",
+      "note": "3 sources reported"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T08:05:08+00:00",
+      "note": "5 menu rows"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T13:03:03+00:00",
+      "note": "auto-pick: keep all 5"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T13:03:29+00:00",
+      "note": "11 conflicts resolved"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T13:05:12+00:00",
+      "note": "architecture approved"
+    },
+    {
+      "id": "CP6",
+      "phase": "implementation",
+      "ref": "snapshot:checkpoints/CP6; target:app",
+      "date": "2026-11-05T13:07:31+00:00",
+      "note": "V1 and V2 done"
+    },
+    {
+      "id": "CP7",
+      "phase": "integration",
+      "ref": "snapshot:checkpoints/CP7; target:app",
+      "date": "2026-11-05T13:07:56+00:00",
+      "note": "33/33 verified"
+    }
+  ],
+  "approvals": [
+    {
+      "id": "A01",
+      "action": "run-tests",
+      "target": "app/ unittest suite (python3 -m unittest via run_tests.py), the new app's own tests only",
+      "approved": true,
+      "by": "benchmark operator",
+      "date": "2026-11-05",
+      "note": "pre-approved by the benchmark operator; no installs, no network, no source code run"
+    }
+  ]
+}

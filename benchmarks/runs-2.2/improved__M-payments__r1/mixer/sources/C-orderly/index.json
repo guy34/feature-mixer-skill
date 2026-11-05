@@ -1,0 +1,61 @@
+{
+  "root": "../../../sources/orderly",
+  "indexed_at": "2026-11-05T08:00:09+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 3,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "orders.py",
+      "size": 154,
+      "sha256": "6dbc78c58b51231629158bb8611c1c7794907ea1c58a2cd4ec95e19ca32a8c43",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 3,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 3,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "module_cycles": [],
+  "external_imports": {},
+  "import_coverage": {
+    "python": {
+      "files": 1,
+      "method": "parsed (ast)"
+    }
+  },
+  "aliases": {
+    "paths": {},
+    "workspace_packages": {},
+    "go_modules": []
+  },
+  "skipped": {},
+  "nested_repositories": [],
+  "errors": [],
+  "limits_hit": [],
+  "complete": true,
+  "feature_files": {
+    "C-F01": [
+      "orders.py"
+    ],
+    "C-F02": [
+      "orders.py"
+    ]
+  }
+}

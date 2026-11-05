@@ -1,0 +1,57 @@
+{
+  "app": {"id": "B", "name": "Linkup"},
+  "coverage": "partial",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/linkup", "accessed": "2026-11-05"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/linkup/oauth.py:1-2",
+     "summary": "Header comment and ACCOUNTS map: accounts are keyed by (provider, subject); the provider sends email and email_verified."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/linkup/oauth.py:3-7",
+     "summary": "callback() creates an account the first time a (provider, subject) pair is seen, with id 'lu-<n>', the provider's email and role 'member', and returns it; email_verified is accepted but never used."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/linkup/oauth.py:3-7",
+     "summary": "callback() returns the account record and issues no session or token; the email stored is the one from the first sign-in and is never updated."}
+  ],
+  "stack": {"backend": ["Python (no imports)"], "database": ["in-memory dict"], "basis": "observed"},
+  "packages": {},
+  "runtimes": {"python": "3"},
+  "architecture": {"backend": "single Python module with module-level state", "evidence": ["B-E01"], "basis": "observed"},
+  "features": [
+    {"id": "B-F01", "name": "Sign in with an OAuth provider",
+     "description": "Sign in through an external identity provider; an account is created on first sign-in.",
+     "observed_behaviour": "The callback receives provider, subject, email and email_verified; it finds or creates the account for (provider, subject) and returns it.",
+     "business_logic": "Identity key is (provider, subject), not email. New accounts get role 'member'. email_verified is ignored. No link to password accounts.",
+     "data": ["Account.id", "Account.email", "Account.role", "Account.provider", "Account.subject"],
+     "integration": "Needs the unified user store, an account-linking rule and the unified session mechanism.",
+     "evidence": ["B-E01", "B-E02", "B-E03"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Account", "primary_key": {"name": "id", "type": "text"},
+     "fields": [{"name": "id", "type": "text", "required": true}, {"name": "email", "type": "text"},
+                {"name": "role", "type": "text", "required": true}, {"name": "provider", "type": "text", "required": true},
+                {"name": "subject", "type": "text", "required": true}],
+     "features": ["B-F01"], "evidence": ["B-E01", "B-E02"], "basis": "observed"}
+  ],
+  "auth": {"provider": "external oauth provider (google-style)", "methods": ["oauth"],
+           "model": "one role string per account, no permission checks in this app", "roles": ["member"],
+           "evidence": ["B-E01", "B-E02"], "basis": "observed"},
+  "rules": [
+    {"key": "default_role", "value": "member", "features": ["B-F01"], "evidence": ["B-E02"]},
+    {"key": "identity_key", "value": "(provider, subject)", "features": ["B-F01"], "evidence": ["B-E01"]},
+    {"key": "email_verified_used", "value": false, "features": ["B-F01"], "evidence": ["B-E02"]}
+  ],
+  "integrations": [
+    {"name": "OAuth identity provider", "purpose": "federated sign-in (Google-style)", "features": ["B-F01"], "evidence": ["B-E01"]}
+  ],
+  "configuration": [],
+  "error_handling": [
+    {"case": "any input", "behaviour": "no validation and no errors raised in callback()", "evidence": ["B-E02"]}
+  ],
+  "unknowns": [
+    "The OAuth flow before the callback (redirect, state/nonce, code exchange, ID-token signature and audience checks) is not in the provided code; how Linkup verifies the provider's response is unknown. The rest of the Linkup repository would settle it.",
+    "Linkup's session mechanism after sign-in is unknown: callback() returns the account and issues no token.",
+    "The task says Linkup is MIT, but sources/linkup has no LICENSE file; code_reuse is recorded as not-allowed until a licence file is provided."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

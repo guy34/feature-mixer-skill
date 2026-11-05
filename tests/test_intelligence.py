@@ -453,6 +453,16 @@ class DependencyIntelligenceTest(unittest.TestCase):
         stacks = {"A": {"packages": {"requests": "2.31", "PyYAML": "6.0", "flask": "3.0", "pytest": "8"},
                         "runtimes": {}}}
         n = cd.necessity(ws.mixer, stacks, kept_features={"A-F01"})["A"]
+        # a v2.1 index has no import coverage, so v2.2 will not call anything unused from it
+        self.assertEqual(n["possibly_unused"], [])
+        self.assertEqual([x["package"] for x in n["not_determinable"]], ["flask"])
+        self.assertIn("predates import coverage", n["not_determinable"][0]["why"])
+        index["import_coverage"] = {"python": {"files": 2, "method": "parsed (ast)"},
+                                    "javascript": {"files": 1, "method": "patterns"}}
+        index["complete"] = True
+        with open(os.path.join(folder, "index.json"), "w") as f:
+            json.dump(index, f)
+        n = cd.necessity(ws.mixer, stacks, kept_features={"A-F01"})["A"]
         self.assertEqual(n["possibly_unused"], ["flask"])
         self.assertEqual(n["undeclared"], ["stripe"])
         self.assertEqual(sorted(n["only_dropped_features"]), ["stripe", "yaml"])

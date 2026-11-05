@@ -1,0 +1,458 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B",
+    "C"
+  ],
+  "summary": {
+    "critical": 2,
+    "high": 7,
+    "medium": 2,
+    "low": 0,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "application:account-linking:federated-email-join",
+      "category": "application",
+      "kind": "account-linking",
+      "subject": "federated-email-join",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "severity": "critical",
+      "detail": "B ignores email_verified; joining a federated sign-in to a password account by an unverified email would let anyone who controls a provider account claim another person's account",
+      "solutions": [
+        "Join only when the provider says the email is verified; otherwise create a separate account",
+        "Never join automatically; require the user to link from a signed-in session"
+      ],
+      "recommended": "Join only when email_verified is true; otherwise a separate account (the user's decision)",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M03"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "A federated sign-in joins an existing account only when the provider says the email is verified (email_verified is True); otherwise it creates a separate account, and an unverified email never takes ownership of an address",
+        "approved": true,
+        "by": "user",
+        "date": "2026-11-05",
+        "note": "user decision in task.md"
+      }
+    },
+    {
+      "id": "database:primary-key:user",
+      "category": "database",
+      "kind": "primary-key",
+      "subject": "user",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "B-F01"
+      ],
+      "severity": "critical",
+      "detail": "User primary keys differ (A: integer, B: text)",
+      "solutions": [
+        "Pick one key type for the merged entity and re-key the other source's rows",
+        "Keep a legacy_id column holding the old key during migration"
+      ],
+      "recommended": "Use one key type (uuid is usual for merged data) and add a legacy_id column while migrating",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One User entity with opaque string ids (random uuid4 hex) for every account; A's integer ids and B's 'lu-<n>' ids kept in legacy_id if data is ever imported",
+        "approved": true,
+        "by": "benchmark operator (pre-approved)",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "id": "application:auth-provider:provider",
+      "category": "application",
+      "kind": "auth-provider",
+      "subject": "provider",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Identity providers differ (A: local; B: external oauth provider (google-style))",
+      "solutions": [
+        "Choose one identity provider and migrate accounts to it",
+        "Link accounts by verified email during migration"
+      ],
+      "recommended": "One identity system for the unified app",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One identity system: local password provider plus external OAuth providers, all resolving to one User through an Identity table keyed by (provider, subject)",
+        "approved": true,
+        "by": "benchmark operator (pre-approved)",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "id": "application:authorization-model:model",
+      "category": "application",
+      "kind": "authorization-model",
+      "subject": "model",
+      "apps": [
+        "A",
+        "B",
+        "C"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Authorization models differ (A: one role string per user, no permission checks in this app; B: one role string per account, no permission checks in this app; C: rbac: role -> permission set)",
+      "solutions": [
+        "Choose one authorization model and express the others' rules in it"
+      ],
+      "recommended": "One authorization model with one permission check function",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "C's RBAC (role -> permission set) is the one authorization model; A's and B's unchecked role strings are mapped into it",
+        "approved": true,
+        "by": "benchmark operator (pre-approved)",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "id": "application:business-rule:default_role",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "default_role",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F01"
+      ],
+      "severity": "high",
+      "detail": "Rule default_role differs (A: \"user\", B: \"member\")",
+      "solutions": [
+        "Choose one value and record why",
+        "Make it a setting if both are legitimate"
+      ],
+      "recommended": "Pick one value with the user; make it configurable only if both are needed",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M03"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Password registration gets editor (A user -> editor); new OAuth accounts get viewer (B member -> viewer); a joined account keeps its existing role",
+        "approved": true,
+        "by": "user",
+        "date": "2026-11-05",
+        "note": "role mapping from task.md"
+      }
+    },
+    {
+      "id": "application:business-rule:duplicate-registration",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "duplicate-registration",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F01"
+      ],
+      "severity": "high",
+      "detail": "A overwrites an existing account when the same email registers again (account takeover)",
+      "solutions": [
+        "Reject a duplicate email with an error",
+        "Keep A's overwrite"
+      ],
+      "recommended": "Reject duplicates; one account per email",
+      "needs_approval": true,
+      "menu_features": [
+        "M01"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Reject a duplicate email (case-insensitive) with an error instead of overwriting the account",
+        "approved": true,
+        "by": "benchmark operator (pre-approved)",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "id": "application:permissions:role-change-actor",
+      "category": "application",
+      "kind": "permissions",
+      "subject": "role-change-actor",
+      "apps": [
+        "C"
+      ],
+      "features": [
+        "C-F02"
+      ],
+      "severity": "high",
+      "detail": "C's set_role trusts a caller-supplied actor role, does not validate the new role and has no rule against raising your own role",
+      "solutions": [
+        "Resolve the actor from the session token, validate the role, refuse raising your own role",
+        "Keep C's behaviour"
+      ],
+      "recommended": "Actor from session; only admins; role must exist; nobody raises their own role (user decision)",
+      "needs_approval": true,
+      "menu_features": [
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "set_role resolves the caller from the session token; only admins (manage_roles) may change roles; the role must be viewer/editor/admin; nobody can raise their own role",
+        "approved": true,
+        "by": "user",
+        "date": "2026-11-05",
+        "note": "admin-only and no self-raise are user decisions in task.md; actor-from-session and role validation pre-approved by the benchmark operator"
+      }
+    },
+    {
+      "id": "application:roles:roles",
+      "category": "application",
+      "kind": "roles",
+      "subject": "roles",
+      "apps": [
+        "A",
+        "B",
+        "C"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Role sets differ (A: user; B: member; C: admin, editor, viewer)",
+      "solutions": [
+        "Map every source role to a unified role set and write the mapping down",
+        "Model special powers (such as approving) as permissions, not extra roles"
+      ],
+      "recommended": "One role set plus explicit permissions; map every source role",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Unified roles viewer, editor, admin; mapping A user -> editor, B member -> viewer, C roles unchanged; any other source role raises KeyError",
+        "approved": true,
+        "by": "user",
+        "date": "2026-11-05",
+        "note": "user decision in task.md"
+      }
+    },
+    {
+      "id": "database:field-type:user.id",
+      "category": "database",
+      "kind": "field-type",
+      "subject": "user.id",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "B-F01"
+      ],
+      "severity": "high",
+      "detail": "User.id types differ (A: integer, B: text)",
+      "solutions": [
+        "Choose the wider type and convert the narrower data",
+        "Split into two fields if they mean different things"
+      ],
+      "recommended": "One type per field; convert in a migration",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "User.id is text (uuid4 hex) for all accounts; integer A ids widen to text in legacy_id",
+        "approved": true,
+        "by": "benchmark operator (pre-approved)",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "id": "application:auth-methods:methods",
+      "category": "application",
+      "kind": "auth-methods",
+      "subject": "methods",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "medium",
+      "detail": "Sign-in methods differ (A: password; B: oauth)",
+      "solutions": [
+        "Offer the union of kept sign-in methods through one identity system",
+        "Drop sign-in methods no kept feature needs"
+      ],
+      "recommended": "One identity system that offers the sign-in methods kept features need",
+      "needs_approval": false,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Offer both password and OAuth sign-in through the one identity system",
+        "approved": true,
+        "by": "benchmark operator (pre-approved)",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "id": "database:duplicate-entity:user",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "user",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "User exists in A:User, B:Account; fields not shared: hash (only A), provider (only B), salt (only A), subject (only B)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge into one entity; list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M03"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge A:User and B:Account into one User entity; B's provider and subject move to an Identity entity linked to User",
+        "approved": true,
+        "by": "benchmark operator (pre-approved)",
+        "date": "2026-11-05"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:user",
+      "entity": "User",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "re-key rows to one primary key type (A: integer, B: text) and rewrite foreign keys that point at them",
+          "risk": "high",
+          "data_loss": [],
+          "note": "old ids and anything outside that stores them stop matching"
+        },
+        {
+          "change": "convert id to one type (A: integer, B: text)",
+          "risk": "high",
+          "data_loss": [],
+          "note": "decide the target type in the architecture"
+        },
+        {
+          "change": "add fields that only some sources have: hash (only A), provider (only B), salt (only A), subject (only B)",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "A.User.id: integer to text keeps every value",
+          "risk": "low",
+          "data_loss": []
+        },
+        {
+          "change": "A.User.salt: binary to text can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "salt"
+          ]
+        },
+        {
+          "change": "A.User.hash: binary to text can lose or reject values",
+          "risk": "high",
+          "data_loss": [
+            "hash"
+          ]
+        },
+        {
+          "change": "B.Account fields not kept in User: provider, subject",
+          "risk": "high",
+          "data_loss": [
+            "provider",
+            "subject"
+          ]
+        }
+      ],
+      "changes": [
+        "re-key rows to one primary key type (A: integer, B: text) and rewrite foreign keys that point at them",
+        "convert id to one type (A: integer, B: text)",
+        "add fields that only some sources have: hash (only A), provider (only B), salt (only A), subject (only B)",
+        "A.User.id: integer to text keeps every value",
+        "A.User.salt: binary to text can lose or reject values",
+        "A.User.hash: binary to text can lose or reject values",
+        "B.Account fields not kept in User: provider, subject"
+      ],
+      "risk": "high",
+      "data_loss": [
+        "hash",
+        "provider",
+        "salt",
+        "subject"
+      ],
+      "destructive": true,
+      "approved": true,
+      "needs_approval": true
+    },
+    {
+      "id": "migration:session",
+      "entity": "Session",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "A.Session.user_id: integer to text keeps every value",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "A.Session.user_id: integer to text keeps every value"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    }
+  ]
+}

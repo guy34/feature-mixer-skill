@@ -1,0 +1,49 @@
+{
+  "scenario": "10-monorepo",
+  "mode": "plan",
+  "features": [
+    {
+      "key": "a-admin",
+      "app": "A",
+      "any": [
+        "admin",
+        "screen"
+      ]
+    },
+    {
+      "key": "a-billing",
+      "app": "A",
+      "any": [
+        "billing",
+        "invoice",
+        "stripe",
+        "payment"
+      ]
+    }
+  ],
+  "groups": [],
+  "conflicts": [
+    {
+      "kind": "version",
+      "subject": "react"
+    }
+  ],
+  "fabrication": [
+    "left-pad",
+    "other-app"
+  ],
+  "large": {
+    "app": "A",
+    "total_modules_min": 8,
+    "feature_modules": [
+      "apps/admin",
+      "services/billing"
+    ]
+  },
+  "must_not_analyse": [
+    "third_party"
+  ],
+  "coverage": {
+    "A": "partial"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "app": {"id": "B", "name": "Readr"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/readr", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:1", "summary": "Header comment describes the app as reading lists and 1-5 star ratings."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:2-4", "summary": "SQLite via sqlite3 with a hard-coded file readr.db; books table: id integer primary key, title text not null (no author)."},
+    {"id": "B-E03", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:5-7", "summary": "lists table (id integer primary key, name text not null) and list_books join table (list_id references lists(id), book_id references books(id)) with no primary key or uniqueness."},
+    {"id": "B-E04", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:8", "summary": "ratings table: book_id integer references books(id), stars integer; no CHECK constraint, no primary key, no uniqueness."},
+    {"id": "B-E05", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:10-13", "summary": "rate(book_id, stars) raises ValueError unless stars is one of 1-5, then appends a ratings row."},
+    {"id": "B-E06", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:15-16", "summary": "add_to_list(list_id, book_id) inserts a list_books row with no check for duplicates or that the list and book exist."},
+    {"id": "B-E07", "source": "B-R01", "basis": "observed", "locator": "sources/readr/readr.py:1-16", "summary": "No function creates, renames or deletes lists or books, reads anything back, or removes a book from a list; no HTTP, CLI or UI entry point; no commit; no users or auth."}
+  ],
+  "stack": {
+    "frontend": [],
+    "backend": ["Python 3 module (functions only)"],
+    "database": ["SQLite via sqlite3"],
+    "infrastructure": [],
+    "basis": "observed"
+  },
+  "packages": {},
+  "runtimes": {"python": "3"},
+  "architecture": {
+    "frontend": "none",
+    "backend": "a single Python module of data functions, no entry point",
+    "evidence": ["B-E02", "B-E07"],
+    "basis": "observed"
+  },
+  "features": [
+    {"id": "B-F01", "name": "Reading lists",
+     "description": "Put books on named reading lists.",
+     "observed_behaviour": "add_to_list(list_id, book_id) appends a list_books row. Lists have a name. Nothing in the code creates a list, shows a list or removes a book from one.",
+     "business_logic": "list name required; a book may be added to the same list twice; no existence checks.",
+     "data": ["List.id", "List.name", "ListBook.list_id", "ListBook.book_id", "Book.id"],
+     "depends_on": [],
+     "integration": "Needs Book from the shared library; needs list ownership in a multi-user app.",
+     "evidence": ["B-E03", "B-E06", "B-E07"],
+     "basis": "observed", "confidence": "medium"},
+    {"id": "B-F02", "name": "Rate a book (1-5 stars)",
+     "description": "Give a book a star rating from 1 to 5.",
+     "observed_behaviour": "rate(book_id, stars) rejects anything outside 1-5 with ValueError, then appends a ratings row.",
+     "business_logic": "stars 1..5 checked in code only (no database constraint); every call appends.",
+     "data": ["Rating.book_id", "Rating.stars"],
+     "depends_on": [],
+     "integration": "Needs Book.",
+     "evidence": ["B-E01", "B-E04", "B-E05"],
+     "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Book", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "id", "type": "integer", "required": true}, {"name": "title", "type": "text", "required": true}],
+     "features": ["B-F01", "B-F02"], "evidence": ["B-E02"], "basis": "observed"},
+    {"name": "List", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "id", "type": "integer", "required": true}, {"name": "name", "type": "text", "required": true}],
+     "features": ["B-F01"], "evidence": ["B-E03"], "basis": "observed"},
+    {"name": "ListBook",
+     "fields": [{"name": "list_id", "type": "integer", "required": false}, {"name": "book_id", "type": "integer", "required": false}],
+     "foreign_keys": [{"field": "list_id", "references": "List"}, {"field": "book_id", "references": "Book"}],
+     "features": ["B-F01"], "evidence": ["B-E03"], "basis": "observed"},
+    {"name": "Rating",
+     "fields": [{"name": "book_id", "type": "integer", "required": false}, {"name": "stars", "type": "integer", "required": false}],
+     "foreign_keys": [{"field": "book_id", "references": "Book"}],
+     "features": ["B-F02"], "evidence": ["B-E04"], "basis": "observed"}
+  ],
+  "endpoints": [],
+  "auth": {
+    "provider": "none", "methods": [], "session": "none", "model": "none", "roles": [],
+    "evidence": ["B-E07"], "basis": "observed"
+  },
+  "rules": [
+    {"key": "rating.stars.min", "value": 1, "features": ["B-F02"], "evidence": ["B-E05"]},
+    {"key": "rating.stars.max", "value": 5, "features": ["B-F02"], "evidence": ["B-E05"]},
+    {"key": "rating.per_book", "value": "append; many rows per book", "features": ["B-F02"], "evidence": ["B-E04", "B-E05"]}
+  ],
+  "integrations": [],
+  "configuration": [],
+  "error_handling": [
+    {"case": "rating outside 1-5", "behaviour": "ValueError('1 to 5 stars') raised to the caller", "evidence": ["B-E05"]},
+    {"case": "adding to a missing list or book, or twice", "behaviour": "accepted silently", "evidence": ["B-E06"]},
+    {"case": "durability", "behaviour": "no commit is ever made, so writes are lost when the connection closes (inferred from sqlite3 behaviour; not run)", "evidence": ["B-E07"]}
+  ],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": ["(root)"],
+    "modules_skipped": [],
+    "files_read": 1
+  },
+  "unknowns": [
+    "How lists and books are created or read: the code has no function for it and no entry point. Only the user can say what called these functions.",
+    "Whether a readr.db with real data exists (needed only if data will be imported).",
+    "Runtime behaviour was not observed: running source code was not approved."
+  ]
+}

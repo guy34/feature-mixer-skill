@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuite name="unittest" tests="32" failures="0" skipped="0">
+  <testcase classname="tests.test_dependencies.DependencyTests" name="test_standard_library_only" time="0.006">
+    <properties>
+      <property name="features" value="M01, M02, M03, M04, M05"/>
+      <property name="expect" value="the unified package imports only the standard library and itself"/>
+      <property name="level" value="dependency"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.ModuleTests" name="test_concurrent_registration_one_winner" time="0.005">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="concurrent registrations of one email create exactly one account"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.ModuleTests" name="test_interface_and_file_import" time="0.091">
+    <properties>
+      <property name="features" value="M01, M02, M03, M04, M05"/>
+      <property name="expect" value="create_app, AuthError and every interface method exist; identity.py also loads as a plain file"/>
+      <property name="level" value="unit"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_oauth_email_verified_must_be_true" time="0.045">
+    <properties>
+      <property name="features" value="M03"/>
+      <property name="expect" value='truthy non-boolean values such as "true", "false", 1 never count as verified'/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC06"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_oauth_input_validated" time="0.020">
+    <properties>
+      <property name="features" value="M03"/>
+      <property name="expect" value="empty or non-string provider or subject, and malformed emails, raise AuthError"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_oauth_new_user_is_viewer_and_stable" time="0.024">
+    <properties>
+      <property name="features" value="M03, M04"/>
+      <property name="expect" value="a new provider identity gets one viewer account, returned again on the next sign-in"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC07"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_oauth_unverified_does_not_claim_email" time="0.045">
+    <properties>
+      <property name="features" value="M03, M01"/>
+      <property name="expect" value="an unverified provider email does not block the real owner from registering"/>
+      <property name="level" value="interaction"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_oauth_unverified_email_creates_separate_account" time="0.063">
+    <properties>
+      <property name="features" value="M03, M01"/>
+      <property name="expect" value="a provider sign-in with the same but unverified email gets a separate viewer account"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC06"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_oauth_verified_email_links_existing_account" time="0.040">
+    <properties>
+      <property name="features" value="M03, M01"/>
+      <property name="expect" value="a provider sign-in with the same verified email returns a token for the same account, role kept"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC05"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_oauth_verified_new_user_owns_email" time="0.039">
+    <properties>
+      <property name="features" value="M03, M01"/>
+      <property name="expect" value="once a verified provider account owns an email, password registration of it is refused and a second"/>
+      <property name="level" value="interaction"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_oauth_without_email_creates_separate_account" time="0.041">
+    <properties>
+      <property name="features" value="M03"/>
+      <property name="expect" value="a provider sign-in without an email never links and has email None"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.OAuthTests" name="test_same_subject_different_providers_are_different_identities" time="0.022">
+    <properties>
+      <property name="features" value="M03"/>
+      <property name="expect" value="identities are keyed by (provider, subject)"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.PasswordTests" name="test_duplicate_registration_refused" time="0.098">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="a second registration of the same email (any case) raises AuthError and the first password still works"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC02"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.PasswordTests" name="test_email_case_normalised" time="0.075">
+    <properties>
+      <property name="features" value="M01, M02, M03"/>
+      <property name="expect" value="emails are trimmed and lowercased for sign-up, login and linking"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.PasswordTests" name="test_login_failures_raise_autherror" time="0.090">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="wrong password, unknown email and malformed input all raise AuthError with the same message"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC03"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.PasswordTests" name="test_password_stored_hashed_with_salt" time="0.061">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="no plaintext password is stored; PBKDF2-SHA256 with a 16-byte random salt and 100000 iterations"/>
+      <property name="level" value="unit"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.PasswordTests" name="test_register_and_login_password" time="0.061">
+    <properties>
+      <property name="features" value="M01, M02, M04"/>
+      <property name="expect" value="register returns an id; login returns a token; whoami shows the id, normalised email and role editor"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC01"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.PasswordTests" name="test_registration_input_validated" time="0.025">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="invalid emails and empty or non-string passwords are refused with AuthError (a ValueError)"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.PasswordTests" name="test_user_ids_are_opaque_strings" time="0.081">
+    <properties>
+      <property name="features" value="M01, M03"/>
+      <property name="expect" value="every user id is a unique opaque text id, not a source's counter"/>
+      <property name="level" value="unit"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.RoleChangeTests" name="test_admin_sets_role" time="0.089">
+    <properties>
+      <property name="features" value="M05, M04"/>
+      <property name="expect" value="an admin changes another user's role and it shows at once; unknown roles and users are refused"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC10"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.RoleChangeTests" name="test_bootstrap_admin_only_once" time="0.172">
+    <properties>
+      <property name="features" value="M05"/>
+      <property name="expect" value="the first bootstrap creates an admin; a second is refused while an admin exists"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC12"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.RoleChangeTests" name="test_nobody_raises_own_role" time="0.118">
+    <properties>
+      <property name="features" value="M05"/>
+      <property name="expect" value="viewers and editors cannot raise their own role; lowering is not raising"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC11"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.RoleChangeTests" name="test_non_admin_cannot_set_role" time="0.106">
+    <properties>
+      <property name="features" value="M05, M04"/>
+      <property name="expect" value="viewers, editors and invalid sessions get PermissionError and nothing changes"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC09"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.RoleChangeTests" name="test_role_change_needs_live_session" time="0.104">
+    <properties>
+      <property name="features" value="M05, M02"/>
+      <property name="expect" value="an admin's revoked or expired session cannot change roles"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.SessionTests" name="test_logout_revokes_token" time="0.091">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="after logout whoami raises AuthError; other sessions stay valid; logout twice is harmless"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.SessionTests" name="test_session_expires" time="0.064">
+    <properties>
+      <property name="features" value="M02, M03"/>
+      <property name="expect" value="a session older than its lifetime raises AuthError"/>
+      <property name="level" value="feature"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.SessionTests" name="test_tokens_not_stored_in_clear" time="0.066">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="the session store keeps only a hash of each token"/>
+      <property name="level" value="unit"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_identity.SessionTests" name="test_whoami_invalid_token" time="0.019">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="unknown, empty and non-string tokens raise AuthError"/>
+      <property name="level" value="feature"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_journey.JourneyTests" name="test_journey_full_identity_flow" time="0.108">
+    <properties>
+      <property name="features" value="M01, M02, M03, M04, M05"/>
+      <property name="expect" value="setup admin; a person signs up with a password, signs in with a verified provider email into the"/>
+      <property name="level" value="journey"/>
+      <property name="acceptance" value="AC01, AC05, AC06, AC10"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_roles.RoleMappingTests" name="test_map_source_role" time="0.019">
+    <properties>
+      <property name="features" value="M04"/>
+      <property name="expect" value="A user-&gt;editor, B member-&gt;viewer, C roles unchanged; unknown roles and apps raise KeyError"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC08"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_roles.RoleMappingTests" name="test_no_source_role_maps_to_admin_except_roster_admin" time="0.000">
+    <properties>
+      <property name="features" value="M04"/>
+      <property name="expect" value="only C's admin becomes admin; no source role is escalated"/>
+      <property name="level" value="unit"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_roles.RoleMappingTests" name="test_permission_check" time="0.000">
+    <properties>
+      <property name="features" value="M04"/>
+      <property name="expect" value="viewer reads; editor reads and writes; only admin manages roles; unknown roles get nothing"/>
+      <property name="level" value="unit"/>
+    </properties>
+  </testcase>
+</testsuite>

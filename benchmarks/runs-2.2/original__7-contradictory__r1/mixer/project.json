@@ -1,0 +1,117 @@
+{
+  "name": "Shelfie + Readr unified reading app",
+  "format": 3,
+  "mode": "plan",
+  "selection": "auto-pick",
+  "audience": "People who keep a personal library of books, rate them and make reading lists",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Shelfie",
+      "slug": "shelfie",
+      "access": "own-code",
+      "licence": "none stated; the user's own code (proprietary to the user)",
+      "code_reuse": "allowed",
+      "slice": "Core loop: library of books, rating books, exporting the library",
+      "local_path": "sources/shelfie",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/shelfie"
+        },
+        {
+          "kind": "documentation",
+          "location": "sources/shelfie/README.md"
+        },
+        {
+          "kind": "documentation",
+          "location": "sources/shelfie/docs/architecture.md"
+        },
+        {
+          "kind": "api-spec",
+          "location": "sources/shelfie/openapi.yaml"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Readr",
+      "slug": "readr",
+      "access": "own-code",
+      "licence": "none stated; the user's own code (proprietary to the user)",
+      "code_reuse": "allowed",
+      "slice": "Core loop: reading lists and star ratings",
+      "local_path": "sources/readr",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/readr"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "auto-pick selection named in task.md; recommendation pre-approved by the benchmark operator"
+    },
+    "compatibility": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "Claude's recommendations pre-approved by the benchmark operator"
+    },
+    "architecture": {
+      "status": "done",
+      "approved": true,
+      "date": "2026-11-04",
+      "note": "Claude's recommended architecture pre-approved by the benchmark operator; plan mode ends here"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T07:55:05+00:00"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T07:55:28+00:00"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T07:55:48+00:00"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T07:56:34+00:00"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T07:59:02+00:00"
+    }
+  ],
+  "approvals": []
+}

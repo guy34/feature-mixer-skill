@@ -1,0 +1,957 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one small team (the user)",
+      "strong consistency between budgets, membership and expense totals",
+      "modest load: a few people per budget",
+      "two slow external calls (OCR, exchange rates) that fit behind adapters with timeouts",
+      "no independent scaling or release need"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "network calls, distributed data and several deployables with no scaling or team need"
+      },
+      {
+        "style": "event-driven",
+        "fit": "partial",
+        "reason": "receipt extraction could be asynchronous, but volume is low; a synchronous call with a timeout and manual-entry fallback is simpler"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "no existing system has to stay separate; Spendly is six lines and Tallyho is not integrated"
+      },
+      {
+        "style": "hybrid",
+        "fit": "partial",
+        "reason": "a queued OCR worker could be added later if scans get slow; not needed for the first version"
+      }
+    ],
+    "reason": "Simplest design that meets every driver; module boundaries keep OCR, FX and email behind adapters"
+  },
+  "stack": {
+    "frontend": "Server-rendered Django templates, mobile-first responsive pages, camera capture through a file input with capture=environment; minimal vanilla JS",
+    "backend": "Python 3.12, Django 5.x",
+    "database": "PostgreSQL 16",
+    "storage": "S3-compatible object storage for receipt images (private bucket, signed URLs)",
+    "hosting": "Any container host with managed PostgreSQL, chosen by the user; nothing is deployed automatically",
+    "reasons": {
+      "frontend": "D03: the user scans on a phone; a responsive web app with camera capture avoids app stores; nothing visual copied from Tallyho",
+      "backend": "D01: Spendly is Python (its category rule can be adapted directly); Django brings sessions, password hashing, CSRF, ORM and migrations, so less security code is hand-written",
+      "database": "D02: relational data with constraints (category check, positive amounts, membership uniqueness) and money in integer minor units",
+      "storage": "D04: receipt photos are personal data; kept private, out of the database, with a retention limit",
+      "hosting": "D09: no deployment in this run; boring managed options"
+    }
+  },
+  "modules": [
+    {
+      "name": "accounts",
+      "responsibility": "Sign-up, sign-in, sign-out, sessions, the User record, home currency",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": [
+        "User"
+      ]
+    },
+    {
+      "name": "categories",
+      "responsibility": "The fixed category list from Spendly and its validation",
+      "features": [
+        "M09"
+      ],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "currency",
+      "responsibility": "Exchange-rate adapter (provider chosen later; fake in tests) and conversion to minor units",
+      "features": [
+        "M02"
+      ],
+      "depends_on": [],
+      "owns_entities": [
+        "ExchangeRate"
+      ]
+    },
+    {
+      "name": "mailer",
+      "responsibility": "Email adapter for invitations (SMTP via Django's email backend; console/fake in development and tests)",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "budgets",
+      "responsibility": "Budgets, membership, invitations, member removal, and can_access(user, action, record) used by every route",
+      "features": [
+        "M03",
+        "M04",
+        "M07"
+      ],
+      "depends_on": [
+        "accounts",
+        "mailer"
+      ],
+      "owns_entities": [
+        "Budget",
+        "BudgetMember",
+        "Invitation"
+      ]
+    },
+    {
+      "name": "expenses",
+      "responsibility": "Expense records, listing, editing, deleting, and monthly spent-vs-limit totals",
+      "features": [
+        "M05",
+        "M06",
+        "M08"
+      ],
+      "depends_on": [
+        "accounts",
+        "budgets",
+        "categories",
+        "currency"
+      ],
+      "owns_entities": [
+        "Expense"
+      ]
+    },
+    {
+      "name": "receipts",
+      "responsibility": "Receipt photo upload, extraction adapter (provider chosen later; fake in tests), review and confirm into an expense",
+      "features": [
+        "M01"
+      ],
+      "depends_on": [
+        "accounts",
+        "budgets",
+        "expenses",
+        "categories",
+        "currency"
+      ],
+      "owns_entities": [
+        "ReceiptScan"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "merged_from": [
+        "A:User"
+      ],
+      "primary_key": "id uuid",
+      "notes": "A person can belong to many budgets, so User is not owned by one tenant (shared by decision D11). Other members see only display name and email of people in budgets they share; every query of users goes through can_access",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "from": [
+            "A:User.email"
+          ]
+        },
+        {
+          "name": "display_name",
+          "type": "text"
+        },
+        {
+          "name": "password_hash",
+          "type": "text"
+        },
+        {
+          "name": "home_currency",
+          "type": "char(3)",
+          "from": [
+            "A:User.home_currency"
+          ]
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ],
+      "shared": true
+    },
+    {
+      "name": "Budget",
+      "merged_from": [
+        "A:Budget"
+      ],
+      "primary_key": "id uuid",
+      "tenant_key": "id",
+      "notes": "The tenant boundary. One personal budget per user is created at sign-up",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "from": [
+            "A:Budget.name"
+          ]
+        },
+        {
+          "name": "limit_minor",
+          "type": "bigint",
+          "from": [
+            "A:Budget.limit"
+          ]
+        },
+        {
+          "name": "currency",
+          "type": "char(3)",
+          "from": [
+            "A:Budget.currency"
+          ]
+        },
+        {
+          "name": "timezone",
+          "type": "text"
+        },
+        {
+          "name": "owner_id",
+          "type": "uuid",
+          "from": [
+            "A:Budget.owner_id"
+          ]
+        },
+        {
+          "name": "is_personal",
+          "type": "boolean"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    {
+      "name": "BudgetMember",
+      "merged_from": [
+        "A:BudgetMember"
+      ],
+      "primary_key": "id uuid",
+      "tenant_key": "budget_id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "budget_id",
+          "type": "uuid",
+          "from": [
+            "A:BudgetMember.budget_id"
+          ]
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "from": [
+            "A:BudgetMember.user_id"
+          ]
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "from": [
+            "A:BudgetMember.role"
+          ]
+        },
+        {
+          "name": "joined_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "removed_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    {
+      "name": "Invitation",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "id uuid",
+      "tenant_key": "budget_id",
+      "notes": "Tallyho's invite flow was not seen; this design is new",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "budget_id",
+          "type": "uuid"
+        },
+        {
+          "name": "email",
+          "type": "text"
+        },
+        {
+          "name": "token_hash",
+          "type": "text"
+        },
+        {
+          "name": "invited_by",
+          "type": "uuid"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "accepted_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    {
+      "name": "Expense",
+      "merged_from": [
+        "A:Expense",
+        "B:Expense"
+      ],
+      "primary_key": "id uuid",
+      "tenant_key": "budget_id",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "from": [
+            "A:Expense.id"
+          ]
+        },
+        {
+          "name": "budget_id",
+          "type": "uuid",
+          "from": [
+            "A:Expense.budget_id"
+          ]
+        },
+        {
+          "name": "created_by",
+          "type": "uuid"
+        },
+        {
+          "name": "merchant",
+          "type": "text",
+          "from": [
+            "A:Expense.merchant"
+          ]
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint",
+          "from": [
+            "A:Expense.amount",
+            "B:Expense.amount_cents"
+          ]
+        },
+        {
+          "name": "currency",
+          "type": "char(3)",
+          "from": [
+            "A:Expense.currency"
+          ]
+        },
+        {
+          "name": "budget_amount_minor",
+          "type": "bigint"
+        },
+        {
+          "name": "fx_rate",
+          "type": "numeric(18,8)"
+        },
+        {
+          "name": "fx_rate_date",
+          "type": "date"
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "from": [
+            "A:Expense.date"
+          ]
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "from": [
+            "A:Expense.category",
+            "B:Expense.category"
+          ]
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "from": [
+            "B:Expense.note"
+          ]
+        },
+        {
+          "name": "scan_id",
+          "type": "uuid"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    {
+      "name": "ReceiptScan",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "id uuid",
+      "tenant_key": "budget_id",
+      "notes": "Extraction result before review; Tallyho's internals are unknown",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "budget_id",
+          "type": "uuid"
+        },
+        {
+          "name": "uploaded_by",
+          "type": "uuid"
+        },
+        {
+          "name": "image_key",
+          "type": "text"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        },
+        {
+          "name": "merchant",
+          "type": "text"
+        },
+        {
+          "name": "date",
+          "type": "date"
+        },
+        {
+          "name": "total_minor",
+          "type": "bigint"
+        },
+        {
+          "name": "currency",
+          "type": "char(3)"
+        },
+        {
+          "name": "date_needs_confirmation",
+          "type": "boolean"
+        },
+        {
+          "name": "expense_id",
+          "type": "uuid"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    {
+      "name": "ExchangeRate",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "id uuid",
+      "shared": true,
+      "notes": "Public reference data cached from the provider; no user data",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "base",
+          "type": "char(3)"
+        },
+        {
+          "name": "quote",
+          "type": "char(3)"
+        },
+        {
+          "name": "rate_date",
+          "type": "date"
+        },
+        {
+          "name": "rate",
+          "type": "numeric(18,8)"
+        },
+        {
+          "name": "fetched_at",
+          "type": "timestamptz"
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "method": "email and password (Django auth, PBKDF2/Argon2 hashing)",
+    "session": "server-side session, http-only Secure SameSite=Lax cookie, CSRF tokens on every form",
+    "roles": [
+      "owner",
+      "member"
+    ],
+    "permissions": {
+      "owner": [
+        "view budget",
+        "add expense",
+        "edit/delete any expense in the budget",
+        "edit budget",
+        "invite members",
+        "remove members"
+      ],
+      "member": [
+        "view budget",
+        "add expense",
+        "edit/delete own expenses"
+      ]
+    },
+    "role_mapping": {
+      "A:owner": "owner",
+      "A:member": "member"
+    }
+  },
+  "api": [
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/signup",
+      "module": "accounts",
+      "auth": "none"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "module": "accounts",
+      "auth": "none"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "module": "accounts",
+      "auth": "session"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "module": "accounts",
+      "auth": "session"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/categories",
+      "module": "categories",
+      "auth": "session",
+      "features": [
+        "M09"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/fx/quote",
+      "module": "currency",
+      "auth": "session",
+      "features": [
+        "M02"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/budgets",
+      "module": "budgets",
+      "auth": "session",
+      "features": [
+        "M03"
+      ],
+      "from": [
+        "A: GET /v2/budgets"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/budgets",
+      "module": "budgets",
+      "auth": "session",
+      "features": [
+        "M03"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/budgets/{budget_id}",
+      "module": "budgets",
+      "auth": "session (member)",
+      "features": [
+        "M03"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/budgets/{budget_id}",
+      "module": "budgets",
+      "auth": "session (owner)",
+      "features": [
+        "M03"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/budgets/{budget_id}/invitations",
+      "module": "budgets",
+      "auth": "session (owner)",
+      "features": [
+        "M04"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/invitations/{token}/accept",
+      "module": "budgets",
+      "auth": "session (email must match)",
+      "features": [
+        "M04"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/budgets/{budget_id}/members/{user_id}",
+      "module": "budgets",
+      "auth": "session (owner)",
+      "features": [
+        "M07"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/budgets/{budget_id}/expenses",
+      "module": "expenses",
+      "auth": "session (member)",
+      "features": [
+        "M05"
+      ],
+      "from": [
+        "A: GET /v2/expenses"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/budgets/{budget_id}/expenses",
+      "module": "expenses",
+      "auth": "session (member)",
+      "features": [
+        "M05",
+        "M06",
+        "M02",
+        "M09"
+      ],
+      "from": [
+        "A: POST /v2/expenses"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/expenses/{expense_id}",
+      "module": "expenses",
+      "auth": "session (adder or owner)",
+      "features": [
+        "M05"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/expenses/{expense_id}",
+      "module": "expenses",
+      "auth": "session (adder or owner)",
+      "features": [
+        "M05"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/budgets/{budget_id}/summary",
+      "module": "expenses",
+      "auth": "session (member)",
+      "features": [
+        "M08"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/budgets/{budget_id}/receipt-scans",
+      "module": "receipts",
+      "auth": "session (member)",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/receipt-scans/{scan_id}",
+      "module": "receipts",
+      "auth": "session (uploader)",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/receipt-scans/{scan_id}/confirm",
+      "module": "receipts",
+      "auth": "session (uploader)",
+      "features": [
+        "M01",
+        "M09",
+        "M02"
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "route": "/signup",
+      "screen": "Sign up",
+      "module": "accounts"
+    },
+    {
+      "route": "/login",
+      "screen": "Sign in",
+      "module": "accounts"
+    },
+    {
+      "route": "/",
+      "screen": "My budgets",
+      "module": "budgets"
+    },
+    {
+      "route": "/budgets/new",
+      "screen": "New budget",
+      "module": "budgets"
+    },
+    {
+      "route": "/budgets/{id}",
+      "screen": "Budget (spent vs limit, expenses)",
+      "module": "expenses"
+    },
+    {
+      "route": "/budgets/{id}/members",
+      "screen": "Members and invitations",
+      "module": "budgets"
+    },
+    {
+      "route": "/budgets/{id}/expenses/new",
+      "screen": "Add expense",
+      "module": "expenses"
+    },
+    {
+      "route": "/expenses/{id}/edit",
+      "screen": "Edit expense",
+      "module": "expenses"
+    },
+    {
+      "route": "/budgets/{id}/scan",
+      "screen": "Scan receipt (camera)",
+      "module": "receipts"
+    },
+    {
+      "route": "/scans/{id}/review",
+      "screen": "Review scanned receipt",
+      "module": "receipts"
+    },
+    {
+      "route": "/invitations/{token}",
+      "screen": "Accept invitation",
+      "module": "budgets"
+    }
+  ],
+  "design_system": {
+    "tokens": {
+      "colour_roles": [
+        "background",
+        "surface",
+        "text",
+        "muted",
+        "primary",
+        "danger",
+        "warning (needs-confirmation)",
+        "success"
+      ],
+      "type_scale": "16px base, 1.25 ratio",
+      "spacing": "4px grid",
+      "radius": "8px"
+    },
+    "fonts": "system font stack (no licensed fonts)",
+    "icons": "an open icon set (e.g. Lucide, ISC licence)",
+    "components": [
+      "app bar",
+      "budget card with progress bar",
+      "expense row",
+      "money input with currency select",
+      "category select",
+      "date input with needs-confirmation state",
+      "camera capture button",
+      "member list with owner badge",
+      "invite form",
+      "toast/error banner",
+      "empty states"
+    ],
+    "note": "Original look; nothing taken from Tallyho's screenshots (they are reference only)"
+  },
+  "configuration": {
+    "DATABASE_URL": "PostgreSQL connection",
+    "SECRET_KEY": "Django signing key",
+    "ALLOWED_HOSTS": "host names",
+    "EMAIL_URL": "SMTP settings for invitations (console backend in development)",
+    "DEFAULT_FROM_EMAIL": "sender address",
+    "STORAGE_BUCKET": "receipt image bucket",
+    "STORAGE_ENDPOINT": "S3-compatible endpoint",
+    "STORAGE_ACCESS_KEY_ID": "storage credential (secret)",
+    "STORAGE_SECRET_ACCESS_KEY": "storage credential (secret)",
+    "RECEIPT_OCR_PROVIDER": "extraction adapter: fake | <provider chosen by the user>",
+    "RECEIPT_OCR_API_KEY": "provider key (secret)",
+    "RECEIPT_OCR_TIMEOUT_SECONDS": "default 15",
+    "RECEIPT_IMAGE_RETENTION_DAYS": "default 90",
+    "FX_PROVIDER": "exchange-rate adapter: fake | <provider>",
+    "FX_API_KEY": "provider key (secret)",
+    "INVITATION_TTL_HOURS": "default 72",
+    "SESSION_COOKIE_AGE": "default 14 days"
+  },
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Core loop: sign in, personal budget, add and list expenses with Spendly categories",
+      "features": [
+        "M05",
+        "M06",
+        "M09"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V2",
+      "name": "Receipt scanning with review and required category",
+      "features": [
+        "M01"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V3",
+      "name": "Shared budgets: create, invite by email, see each other's expenses",
+      "features": [
+        "M03",
+        "M04"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V4",
+      "name": "Member removal",
+      "features": [
+        "M07"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V5",
+      "name": "Monthly period and spent vs limit",
+      "features": [
+        "M08"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V6",
+      "name": "Foreign-currency conversion to the budget currency",
+      "features": [
+        "M02"
+      ],
+      "status": "pending"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Backend: Python 3.12 + Django 5",
+      "reason": "Spendly is Python; Django provides sessions, password hashing, CSRF, ORM and migrations",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "Database: PostgreSQL; money as bigint minor units + char(3) currency",
+      "reason": "constraints for categories and amounts; compatibility decision on expense.amount",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "Frontend: server-rendered, mobile-first web with camera capture",
+      "reason": "the user scans on a phone; no app store needed",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "Receipt images in private object storage with retention (default 90 days)",
+      "reason": "personal data; keep out of the database",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "Style: modular monolith with adapters for OCR, FX and email",
+      "reason": "see style; external calls behind fakes so they can be tested here",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "Authorization: budget membership (owner, member), personal budget per user, one can_access function",
+      "reason": "compatibility decisions on authorization and tenancy",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "Conversion to the budget's currency with stored rate and rate date",
+      "reason": "compatibility decision conversion-target-currency",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "Scan review shows all fields, flags the date, requires a category; never auto-saves",
+      "reason": "user-reported wrong dates; Spendly's category rule",
+      "approved": true
+    },
+    {
+      "id": "D09",
+      "decision": "No deployment, no data migration in this plan",
+      "reason": "plan mode; Spendly keeps no data; Tallyho import out of scope",
+      "approved": true
+    },
+    {
+      "id": "D10",
+      "decision": "API: REST JSON under /api/v1, error shape {\"error\": {\"code\", \"message\"}}, cursor pagination on expense lists, session auth everywhere",
+      "reason": "one API style; Tallyho's PAT API (M11) deferred",
+      "approved": true
+    },
+    {
+      "id": "D11",
+      "decision": "User is a shared (cross-budget) entity; co-members see only display name and email",
+      "reason": "a person belongs to several budgets; check_compatibility flagged User without a tenant key (critical)",
+      "approved": true
+    }
+  ]
+}

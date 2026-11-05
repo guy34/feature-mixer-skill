@@ -66,11 +66,29 @@ For each slice in roadmap order:
 7. Write the slice's tests (see `engines/validation.md`), tag each with the
    menu features and acceptance criteria it proves, and run them through
    `scripts/run_tests.py` (with the approval id), then the whole suite. Fix
-   until they pass. Never report a result you did not get from a run.
+   until they pass. Never report a result you did not get from a run. Unit
+   tests passing is not the workflow working: each slice that completes a
+   user journey adds a `level: journey` test of it end to end (v2.2
+   workspaces require at least one passing journey test).
 8. Set the slice to `done`, commit, tag, add the checkpoint, and log one
    line: features done, tests passed, anything harder than planned.
 
 Do not start the next slice while the current one has failing tests.
+
+**Long sessions.** Before each slice, re-anchor on the files, not on memory:
+read `project.json` (approvals, phase decisions), `merge-plan.json`, the
+slice in `architecture.json` and the last lines of `mixer-log.md`, and run
+`validate_project.py`. If what you remember disagrees with those files, the
+files win. A decision that is not in them was not made.
+
+**When the user changes the requirements mid-build.** Stop the slice at a
+checkpoint. Update the menu (or the decision) the user changed, re-run the
+checks of every phase it affects (`check_menu.py`, `check_compatibility.py`,
+the design), show the user what changes as a result (slices to redo, tests
+that no longer apply, migrations), and record their approval of the change
+with `approvals.py approve-phase`. Until then `validate_project.py` reports
+the phase as changed after approval. Log the change in `mixer-log.md`.
+Never fold a new requirement into code quietly.
 
 ## 4. Data and secrets
 
@@ -79,6 +97,29 @@ Do not start the next slice while the current one has failing tests.
   narrowing a type) needs the explicit approval recorded in phase 4, the
   steps in `design/migration-plan.md`, a backup, and a dry run on a copy
   first. Never run a migration against real data without that approval.
+- **An existing database with valuable data.** Before anything touches it:
+  a backup that has been restored once to prove it works, row counts per
+  table, and the migration rehearsed on the restored copy. Compare counts
+  and spot-check rows after the rehearsal; show the user the comparison.
+- **A migration that fails part-way.** Stop. Do not run it again and do not
+  "fix forward" on live data. Record which steps completed (each step logs
+  its own line), restore from the backup or apply the step's recorded
+  rollback, verify the counts match the pre-migration numbers, then tell the
+  user what happened and what you propose. Prefer migrations that run inside
+  one transaction; where the database cannot (some schema changes), split
+  them into steps that are each safe to re-run.
+- **Proprietary external services** (a payment gateway, a vendor API that
+  needs an account). Build behind an adapter with a fake for tests; the user
+  creates the account and keys. Tests against the fake prove the app's side
+  only: list the real service under "not testable here" in the integration
+  report, and never call it verified against the real service. If the
+  session has no `external_api` capability, say so.
+- **API responses.** Do not build on what you think a response looks like.
+  Record a real sample (from the docs, an approved call, or the user),
+  redacted, as evidence; write a contract test that parses that sample; and
+  mark any field whose meaning you inferred as `inferred` in the source
+  report. When a live response disagrees with the sample, the response wins:
+  update the sample, the evidence and the code.
 - **Secrets and accounts** follow `engines/security.md` section 6: the user
   creates accounts and keys; test modes until they say otherwise.
 

@@ -1,0 +1,53 @@
+{
+  "root": "../../../sources/readr",
+  "indexed_at": "2026-11-05T07:54:58+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 16,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "readr.py",
+      "size": 810,
+      "sha256": "3eb657bcb6eef717dc6f3404b6590fdb824cb54ed62658c5907ffeb6ad3aa4c3",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 16,
+      "imports": [],
+      "packages": [
+        "sqlite3"
+      ]
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 16,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": [
+        "sqlite3"
+      ]
+    }
+  },
+  "external_imports": {
+    "sqlite3": [
+      "readr.py"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "B-F01": [
+      "readr.py"
+    ],
+    "B-F02": [
+      "readr.py"
+    ]
+  }
+}

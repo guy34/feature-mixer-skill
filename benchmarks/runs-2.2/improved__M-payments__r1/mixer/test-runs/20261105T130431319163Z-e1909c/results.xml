@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuite name="unittest" tests="26" failures="0" skipped="0">
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_create_and_read_order" time="0.000">
+    <properties>
+      <property name="features" value="M07, M04"/>
+      <property name="expect" value="a new order is pending with its amount and no charge"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC08"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_create_order_validates_input" time="0.000">
+    <properties>
+      <property name="features" value="M07"/>
+      <property name="expect" value="bad customer or amount and unknown ids are rejected and nothing is stored"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC08"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_default_store_and_store_flag" time="0.000">
+    <properties>
+      <property name="features" value="M07, M01"/>
+      <property name="expect" value="without a store the app makes its own, whose fail_next_write works the same"/>
+      <property name="level" value="database"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_failed_commit_after_charge_is_recovered_without_second_charge" time="0.000">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="when the write after the charge fails, the order stays pending and the retry reuses the charge"/>
+      <property name="level" value="database"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_failed_write_on_create_creates_nothing" time="0.000">
+    <properties>
+      <property name="features" value="M07"/>
+      <property name="expect" value="StoreError and no order"/>
+      <property name="level" value="database"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_failed_write_on_pay_leaves_order_unchanged" time="0.000">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="StoreError, order unchanged, gateway not called; the retry charges once"/>
+      <property name="level" value="database"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_invalid_transitions_are_refused" time="0.000">
+    <properties>
+      <property name="features" value="M04"/>
+      <property name="expect" value="cancelled and refunded orders cannot be paid; nothing is charged"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC06"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_key_is_required_and_bound_to_one_order" time="0.000">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="no key is refused; a key used for one order cannot pay another"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC01"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_ledger_is_a_copy_in_order" time="0.000">
+    <properties>
+      <property name="features" value="M06"/>
+      <property name="expect" value="entries in order, one per money movement; editing the result changes nothing"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC09"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_paid_order_with_new_key_is_not_charged_again" time="0.000">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="a paid order is never charged again, whatever key is sent"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC01"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_pay_marks_order_paid" time="0.000">
+    <properties>
+      <property name="features" value="M01, M06"/>
+      <property name="expect" value="one charge, order paid with the gateway's charge id, one ledger charge"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC01"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_retry_with_same_key_charges_once" time="0.000">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="paying again with the same key makes no second charge"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC01"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_timeout_after_success_charges_once_and_order_is_paid" time="0.000">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="a lost response is recovered with the same key: one charge, order paid with its id"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC02"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V1CoreLoop" name="test_timeout_then_retry_with_new_key_still_charges_once" time="0.000">
+    <properties>
+      <property name="features" value="M01"/>
+      <property name="expect" value="if the outcome stays unknown, a retry with any key reuses the first key"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC02"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V2Webhooks" name="test_failed_write_on_webhook_leaves_order_unchanged" time="0.000">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="StoreError, order unchanged and event not recorded; redelivery applies it once"/>
+      <property name="level" value="database"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V2Webhooks" name="test_late_charge_on_cancelled_order_is_refunded_once" time="0.000">
+    <properties>
+      <property name="features" value="M02, M05"/>
+      <property name="expect" value="money arriving for a cancelled order is refunded once"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC03, AC05"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V2Webhooks" name="test_redelivered_webhook_is_applied_once" time="0.000">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="charge.succeeded delivered three times pays once with one ledger charge"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC03"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V2Webhooks" name="test_refund_webhook_applied_once" time="0.000">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="charge.refunded delivered twice gives one refund entry and status refunded"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC03"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V2Webhooks" name="test_unknown_events_are_ignored" time="0.000">
+    <properties>
+      <property name="features" value="M02"/>
+      <property name="expect" value="unknown types and unknown orders change nothing; a refund event never pays"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC03"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V2Webhooks" name="test_webhook_after_pay_adds_nothing" time="0.000">
+    <properties>
+      <property name="features" value="M02, M01"/>
+      <property name="expect" value="the gateway's confirmation of a charge the app recorded changes nothing"/>
+      <property name="level" value="interaction"/>
+      <property name="acceptance" value="AC03"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V3Cancel" name="test_cancel_paid_order_refunds_exactly_once" time="0.000">
+    <properties>
+      <property name="features" value="M05"/>
+      <property name="expect" value="one gateway refund, status refunded, one ledger refund, even when cancelled twice"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC05"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V3Cancel" name="test_cancel_pending_order" time="0.000">
+    <properties>
+      <property name="features" value="M05, M04"/>
+      <property name="expect" value="a pending order is cancelled with no refund; cancelling again changes nothing"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC05"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V3Cancel" name="test_failed_write_on_cancel_leaves_order_unchanged" time="0.000">
+    <properties>
+      <property name="features" value="M05"/>
+      <property name="expect" value="StoreError, order still paid, no refund sent; the retry refunds once"/>
+      <property name="level" value="database"/>
+      <property name="acceptance" value="AC04"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V3Cancel" name="test_journey_pay_webhook_cancel_ledger" time="0.000">
+    <properties>
+      <property name="features" value="M07, M04, M01, M02, M05, M06"/>
+      <property name="expect" value="create, pay with a retry after a timeout, duplicate webhook, cancel twice: one charge and one refund everywhere"/>
+      <property name="level" value="journey"/>
+      <property name="acceptance" value="AC10"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V4Renewals" name="test_journey_renewal_then_payment" time="0.000">
+    <properties>
+      <property name="features" value="M03, M07, M01, M06"/>
+      <property name="expect" value="a renewal's order is paid once even if the renewal and the payment are retried"/>
+      <property name="level" value="journey"/>
+      <property name="acceptance" value="AC07"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_billing.V4Renewals" name="test_renewing_same_period_creates_one_order" time="0.000">
+    <properties>
+      <property name="features" value="M03, M07"/>
+      <property name="expect" value="one order per subscription per period; a new period creates a new order"/>
+      <property name="level" value="unit"/>
+      <property name="acceptance" value="AC07"/>
+    </properties>
+  </testcase>
+</testsuite>

@@ -1,0 +1,93 @@
+{
+  "root": "../../../sources/helpdesk",
+  "indexed_at": "2026-11-04T20:00:48+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 4,
+    "lines": 23,
+    "modules": 2
+  },
+  "files": [
+    {
+      "path": ".env",
+      "size": 81,
+      "sha256": "4bfee87e33be35c10c91d786eaa6de6cfe60c2e688763481681e1bbc06736c49",
+      "language": "other",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 2
+    },
+    {
+      "path": "README.md",
+      "size": 328,
+      "sha256": "72833cd008e59f62a5b927a798cff1676ab8beaf59c959f3264a28e448a5c9b3",
+      "language": "markdown",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 9
+    },
+    {
+      "path": "package.json",
+      "size": 202,
+      "sha256": "d1689a42e2ee99e71d3abea3659cbd1f9344d3ea4c5ae4ad1d06e3242677fb8e",
+      "language": "json",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 7
+    },
+    {
+      "path": "src/tickets.js",
+      "size": 367,
+      "sha256": "f71923a79d84335062592716949cb41205be5f25d51fb70b53bbcf8458150cdf",
+      "language": "javascript",
+      "module": "src",
+      "binary": false,
+      "generated": false,
+      "lines": 5,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 18,
+      "languages": [
+        "json",
+        "markdown"
+      ],
+      "depends_on": [],
+      "external": []
+    },
+    "src": {
+      "files": 1,
+      "lines": 5,
+      "languages": [
+        "javascript"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "external_imports": {},
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "README.md",
+      "src/tickets.js"
+    ],
+    "A-F02": [
+      "src/tickets.js"
+    ],
+    "A-F03": [
+      "src/tickets.js"
+    ],
+    "A-F04": [
+      ".env",
+      "README.md"
+    ]
+  }
+}

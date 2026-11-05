@@ -1,0 +1,57 @@
+test_create_and_read_order (tests.test_billing.V1CoreLoop.test_create_and_read_order)
+features: M07, M04 ... ok
+test_create_order_validates_input (tests.test_billing.V1CoreLoop.test_create_order_validates_input)
+features: M07 ... ok
+test_default_store_and_store_flag (tests.test_billing.V1CoreLoop.test_default_store_and_store_flag)
+features: M07, M01 ... ok
+test_failed_commit_after_charge_is_recovered_without_second_charge (tests.test_billing.V1CoreLoop.test_failed_commit_after_charge_is_recovered_without_second_charge)
+features: M01 ... ok
+test_failed_write_on_create_creates_nothing (tests.test_billing.V1CoreLoop.test_failed_write_on_create_creates_nothing)
+features: M07 ... ok
+test_failed_write_on_pay_leaves_order_unchanged (tests.test_billing.V1CoreLoop.test_failed_write_on_pay_leaves_order_unchanged)
+features: M01 ... ok
+test_invalid_transitions_are_refused (tests.test_billing.V1CoreLoop.test_invalid_transitions_are_refused)
+features: M04 ... ok
+test_key_is_required_and_bound_to_one_order (tests.test_billing.V1CoreLoop.test_key_is_required_and_bound_to_one_order)
+features: M01 ... ok
+test_ledger_is_a_copy_in_order (tests.test_billing.V1CoreLoop.test_ledger_is_a_copy_in_order)
+features: M06 ... ok
+test_paid_order_with_new_key_is_not_charged_again (tests.test_billing.V1CoreLoop.test_paid_order_with_new_key_is_not_charged_again)
+features: M01 ... ok
+test_pay_marks_order_paid (tests.test_billing.V1CoreLoop.test_pay_marks_order_paid)
+features: M01, M06 ... ok
+test_retry_with_same_key_charges_once (tests.test_billing.V1CoreLoop.test_retry_with_same_key_charges_once)
+features: M01 ... ok
+test_timeout_after_success_charges_once_and_order_is_paid (tests.test_billing.V1CoreLoop.test_timeout_after_success_charges_once_and_order_is_paid)
+features: M01 ... ok
+test_timeout_then_retry_with_new_key_still_charges_once (tests.test_billing.V1CoreLoop.test_timeout_then_retry_with_new_key_still_charges_once)
+features: M01 ... ok
+test_failed_write_on_webhook_leaves_order_unchanged (tests.test_billing.V2Webhooks.test_failed_write_on_webhook_leaves_order_unchanged)
+features: M02 ... ok
+test_late_charge_on_cancelled_order_is_refunded_once (tests.test_billing.V2Webhooks.test_late_charge_on_cancelled_order_is_refunded_once)
+features: M02, M05 ... ok
+test_redelivered_webhook_is_applied_once (tests.test_billing.V2Webhooks.test_redelivered_webhook_is_applied_once)
+features: M02 ... ok
+test_refund_webhook_applied_once (tests.test_billing.V2Webhooks.test_refund_webhook_applied_once)
+features: M02 ... ok
+test_unknown_events_are_ignored (tests.test_billing.V2Webhooks.test_unknown_events_are_ignored)
+features: M02 ... ok
+test_webhook_after_pay_adds_nothing (tests.test_billing.V2Webhooks.test_webhook_after_pay_adds_nothing)
+features: M02, M01 ... ok
+test_cancel_paid_order_refunds_exactly_once (tests.test_billing.V3Cancel.test_cancel_paid_order_refunds_exactly_once)
+features: M05 ... ok
+test_cancel_pending_order (tests.test_billing.V3Cancel.test_cancel_pending_order)
+features: M05, M04 ... ok
+test_failed_write_on_cancel_leaves_order_unchanged (tests.test_billing.V3Cancel.test_failed_write_on_cancel_leaves_order_unchanged)
+features: M05 ... ok
+test_journey_pay_webhook_cancel_ledger (tests.test_billing.V3Cancel.test_journey_pay_webhook_cancel_ledger)
+features: M07, M04, M01, M02, M05, M06 ... ok
+test_journey_renewal_then_payment (tests.test_billing.V4Renewals.test_journey_renewal_then_payment)
+features: M03, M07, M01, M06 ... ok
+test_renewing_same_period_creates_one_order (tests.test_billing.V4Renewals.test_renewing_same_period_creates_one_order)
+features: M03, M07 ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 0.004s
+
+OK

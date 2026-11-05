@@ -1,0 +1,57 @@
+{
+  "application:authorization-model:model": {
+    "decision": "Owner-only model: every Book, Rating, ReadingList and list entry belongs to one person (owner_id); every read and write checks owner_id against the signed-in person in one permission function; another person's ids answer 404. No roles. Neither source had any authorization (Shelfie's documented gateway auth does not exist in its code); this is needed because the user wants 'people' to keep libraries. Alternative not chosen: a single-person local app with no accounts.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "note": "pre-approved recommendation (benchmark operator); no live user",
+    "verified_by": ["AC02", "test_second_person_cannot_see_or_change_first_persons_data"]
+  },
+  "application:session:session": {
+    "decision": "Email and password sign-in (password hashed with the standard library's scrypt), server-side session stored in the database, random token in an http-only, SameSite=Lax cookie; sign out deletes the session. Shelfie's unused SHELFIE_SESSION_SECRET is not carried over.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "note": "pre-approved recommendation (benchmark operator)",
+    "verified_by": ["AC08", "test_endpoints_require_sign_in"]
+  },
+  "database:entity-meaning:book": {
+    "decision": "Same thing: both are a 'books' table with integer id and required title, referenced the same way by ratings (and by Readr's list_books). Merge into one Book (id, owner_id, title required, author optional). Field origins listed in architecture.json.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "note": "pre-approved recommendation (benchmark operator); evidence A-E01, B-E03"
+  },
+  "database:duplicate-entity:book": {
+    "decision": "Merge into one Book table holding title (A, B) and author (A only, nullable).",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04"
+  },
+  "database:data-migration:existing-data-import": {
+    "decision": "Start the unified app with an empty database; no import of shelfie.db or readr.db in this plan (none was provided; whether real data exists is unknown). If the user has data, an import that re-keys Readr's ids is planned separately with templates/migration-plan.md, a backup and a dry run, and needs its own migration approval.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "note": "plan approved; any future import needs its own approval"
+  },
+  "application:business-rule:rating-scale": {
+    "decision": "Integer 1-5 'stars', enforced on the server and by a database CHECK; anything else is 400. The 1-10 'score' scale in Shelfie's old docs is not used.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "verified_by": ["AC03", "test_rating_accepts_only_whole_stars_1_to_5"]
+  },
+  "application:business-rule:export-format": {
+    "decision": "JSON export only ([{title, stars}] for the signed-in person's books); no CSV.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "verified_by": ["AC05", "test_export_returns_json_title_and_stars_per_book"]
+  },
+  "application:business-rule:rating-cardinality": {
+    "decision": "One rating per person per book (unique (owner, book)); rating again replaces it; a rating can be cleared.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "verified_by": ["AC04", "test_rating_again_replaces_the_rating"]
+  },
+  "database:data-integrity:write-persistence": {
+    "decision": "Commit every write; PRAGMA foreign_keys=ON on every connection; deleting a book removes its rating and list entries (cascade); data survives a restart.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "verified_by": ["AC09", "test_data_survives_restart"]
+  },
+  "api:api-shape:path-version-prefix": {
+    "decision": "Use /api/... without a version prefix, as Shelfie's code does.",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04"
+  },
+  "migration:book": {
+    "decision": "Low risk: the unified Book adds author (nullable) and owner_id; applies to a fresh database only (no import, see existing-data-import).",
+    "approved": true, "by": "benchmark operator", "date": "2026-11-04",
+    "note": "plan only; nothing is migrated in plan mode"
+  }
+}

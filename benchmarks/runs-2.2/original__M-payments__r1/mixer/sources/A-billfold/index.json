@@ -1,0 +1,45 @@
+{
+  "root": "../../../sources/billfold",
+  "indexed_at": "2026-11-05T08:03:00+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 5,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "charges.py",
+      "size": 235,
+      "sha256": "02219d5a66b332ab0cdee0b35a686032e9a3c3a39c2c6aed26cb6d30a0164b1a",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 5,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 5,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "external_imports": {},
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "charges.py"
+    ],
+    "A-F02": [
+      "charges.py"
+    ]
+  }
+}

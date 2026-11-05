@@ -320,7 +320,10 @@ class StandaloneTest(unittest.TestCase):
 
     @unittest.skipUnless(hasattr(sys, "stdlib_module_names"), "needs Python 3.10+ to list standard modules")
     def test_scripts_use_only_the_standard_library(self):
-        allowed = set(sys.stdlib_module_names) | {
+        # tomllib joined the standard library in 3.11; check_dependencies.py imports it inside
+        # try/except ImportError and reads pyproject.toml by pattern without it (tested on 3.8 to 3.10)
+        newer_stdlib = {"tomllib"}
+        allowed = set(sys.stdlib_module_names) | newer_stdlib | {  # novermin (skipped before 3.10)
             n[:-3] for n in os.listdir(SCRIPTS) if n.endswith(".py")}
         for name in os.listdir(SCRIPTS):
             if not name.endswith(".py"):

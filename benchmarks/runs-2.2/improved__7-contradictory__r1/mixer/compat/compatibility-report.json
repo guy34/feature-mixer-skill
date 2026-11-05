@@ -1,0 +1,460 @@
+{
+  "scope": "kept features only",
+  "apps": [
+    "A",
+    "B"
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 4,
+    "medium": 5,
+    "low": 1,
+    "info": 0
+  },
+  "conflicts": [
+    {
+      "id": "application:authorization-model:model",
+      "category": "application",
+      "kind": "authorization-model",
+      "subject": "model",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Authorization models differ (A: no authentication or authorization; every endpoint is open (the documented gateway auth does not exist in the code); B: none: a local library with no users)",
+      "solutions": [
+        "Choose one authorization model and express the others' rules in it"
+      ],
+      "recommended": "One authorization model with one permission check function",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Owner-only model: every Book, Rating, ReadingList and list entry belongs to one person (owner_id); every read and write checks owner_id against the signed-in person in one permission function; another person's ids answer 404. No roles. Neither source had any authorization (Shelfie's documented gateway auth does not exist in its code); this is needed because the user wants 'people' to keep libraries. Alternative not chosen: a single-person local app with no accounts.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved recommendation (benchmark operator); no live user",
+        "verified_by": [
+          "AC02",
+          "test_second_person_cannot_see_or_change_first_persons_data"
+        ]
+      }
+    },
+    {
+      "id": "application:session:session",
+      "category": "application",
+      "kind": "session",
+      "subject": "session",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [],
+      "severity": "high",
+      "detail": "Session mechanisms differ (A: none in use: shelfie_session_secret is required at startup but never used; B: none)",
+      "solutions": [
+        "Choose one session mechanism (http-only cookie sessions are the safer default for web apps)",
+        "Use tokens only where a client cannot hold cookies"
+      ],
+      "recommended": "One session mechanism for the whole app",
+      "needs_approval": true,
+      "menu_features": [],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Email and password sign-in (password hashed with the standard library's scrypt), server-side session stored in the database, random token in an http-only, SameSite=Lax cookie; sign out deletes the session. Shelfie's unused SHELFIE_SESSION_SECRET is not carried over.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved recommendation (benchmark operator)",
+        "verified_by": [
+          "AC08",
+          "test_endpoints_require_sign_in"
+        ]
+      }
+    },
+    {
+      "id": "database:data-migration:existing-data-import",
+      "category": "database",
+      "kind": "data-migration",
+      "subject": "existing-data-import",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Both apps key books with their own integer ids in separate SQLite files (shelfie.db, readr.db). Importing both into one database would collide on ids and require re-keying Readr's books and rewriting its ratings and list_books rows; there is also no user to own imported rows. No database files were provided and nothing shows whether real data exists.",
+      "solutions": [
+        "Start the unified app with an empty database; import is out of scope for now",
+        "Write an import that re-keys Readr's ids into the unified Book table and assigns all rows to one chosen person (destructive-risk migration needing its own plan and approval)"
+      ],
+      "recommended": "Start empty; if the user has data worth keeping, plan the import separately with templates/migration-plan.md, a backup and a dry run",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Start the unified app with an empty database; no import of shelfie.db or readr.db in this plan (none was provided; whether real data exists is unknown). If the user has data, an import that re-keys Readr's ids is planned separately with templates/migration-plan.md, a backup and a dry run, and needs its own migration approval.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "plan approved; any future import needs its own approval"
+      }
+    },
+    {
+      "id": "database:entity-meaning:book",
+      "category": "database",
+      "kind": "entity-meaning",
+      "subject": "book",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "high",
+      "detail": "Book may not mean the same thing in A, B: A describes it as 'A book in the library (Shelfie's catalog).', B as 'A book that can be rated or listed (title only).'",
+      "solutions": [
+        "Keep them as separate entities with distinct names (for example UserAccount and LedgerAccount)",
+        "Merge them only if the user confirms they describe the same thing"
+      ],
+      "recommended": "Ask the user; never merge entities because their names match",
+      "needs_approval": true,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Same thing: both are a 'books' table with integer id and required title, referenced the same way by ratings (and by Readr's list_books). Merge into one Book (id, owner_id, title required, author optional). Field origins listed in architecture.json.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "note": "pre-approved recommendation (benchmark operator); evidence A-E01, B-E03"
+      }
+    },
+    {
+      "id": "application:business-rule:export-format",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "export-format",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F03"
+      ],
+      "severity": "medium",
+      "detail": "Shelfie's README and spec promise CSV at /api/v1/books/export.csv; the code returns JSON at /api/books/export (A-C01, A-C02).",
+      "solutions": [
+        "JSON as the code does",
+        "CSV as the docs claim (new work, not in any source's behaviour)",
+        "both"
+      ],
+      "recommended": "JSON only; CSV listed as a possible later addition if the user wants it",
+      "needs_approval": false,
+      "menu_features": [
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "JSON export only ([{title, stars}] for the signed-in person's books); no CSV.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC05",
+          "test_export_returns_json_title_and_stars_per_book"
+        ]
+      }
+    },
+    {
+      "id": "application:business-rule:rating-cardinality",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "rating-cardinality",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "A-F03"
+      ],
+      "severity": "medium",
+      "detail": "Both apps append a new ratings row each time a book is rated, so a book collects several ratings and Shelfie's export repeats it. A shared, multi-person app needs a clear rule.",
+      "solutions": [
+        "One rating per person per book; rating again replaces it",
+        "Keep every rating as history and show the latest or the average"
+      ],
+      "recommended": "One rating per person per book (unique key, upsert); history is not in the user's request",
+      "needs_approval": false,
+      "menu_features": [
+        "M02",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "One rating per person per book (unique (owner, book)); rating again replaces it; a rating can be cleared.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC04",
+          "test_rating_again_replaces_the_rating"
+        ]
+      }
+    },
+    {
+      "id": "application:business-rule:rating-scale",
+      "category": "application",
+      "kind": "business-rule",
+      "subject": "rating-scale",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F01"
+      ],
+      "severity": "medium",
+      "detail": "Shelfie's README and OpenAPI spec say ratings are 1-10 in a field called 'score'; Shelfie's code and Readr's code both use 1-5 'stars'. Documentation vs code, not code vs code (A-C03, A-C04).",
+      "solutions": [
+        "1-5 stars as both apps' code does",
+        "1-10 as Shelfie's old docs say (would need a conversion and a decision from the user)"
+      ],
+      "recommended": "1-5 integer stars: what both apps actually do, and the user said to trust the code",
+      "needs_approval": false,
+      "menu_features": [
+        "M02"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Integer 1-5 'stars', enforced on the server and by a database CHECK; anything else is 400. The 1-10 'score' scale in Shelfie's old docs is not used.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC03",
+          "test_rating_accepts_only_whole_stars_1_to_5"
+        ]
+      }
+    },
+    {
+      "id": "database:data-integrity:write-persistence",
+      "category": "database",
+      "kind": "data-integrity",
+      "subject": "write-persistence",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F02",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "Neither source ever commits a transaction, so (inferred from sqlite3 defaults; not run) writes would be lost when the process exits; neither enables SQLite foreign keys, so ratings and list entries can point at missing books.",
+      "solutions": [
+        "Commit every write and turn on PRAGMA foreign_keys in the unified app",
+        "Copy the sources' behaviour"
+      ],
+      "recommended": "Commit every write, enable foreign keys, and test that data survives a restart",
+      "needs_approval": false,
+      "menu_features": [
+        "M02",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Commit every write; PRAGMA foreign_keys=ON on every connection; deleting a book removes its rating and list entries (cascade); data survives a restart.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04",
+        "verified_by": [
+          "AC09",
+          "test_data_survives_restart"
+        ]
+      }
+    },
+    {
+      "id": "database:duplicate-entity:book",
+      "category": "database",
+      "kind": "duplicate-entity",
+      "subject": "book",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03",
+        "B-F01",
+        "B-F02"
+      ],
+      "severity": "medium",
+      "detail": "Book exists in A:Book, B:Book; fields not shared: author (only A)",
+      "solutions": [
+        "Merge into one table holding the fields kept features need",
+        "Keep separate tables if the two only share a name, and rename one"
+      ],
+      "recommended": "Merge only once it is confirmed they mean the same thing; then list every field's origin in architecture.json",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M04",
+        "M05"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Merge into one Book table holding title (A, B) and author (A only, nullable).",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    },
+    {
+      "id": "api:api-shape:path-version-prefix",
+      "category": "api",
+      "kind": "api-shape",
+      "subject": "path-version-prefix",
+      "apps": [
+        "A"
+      ],
+      "features": [
+        "A-F01",
+        "A-F02",
+        "A-F03"
+      ],
+      "severity": "low",
+      "detail": "Shelfie's spec uses /api/v1/...; its code serves /api/... (A-C05). Readr has no API.",
+      "solutions": [
+        "Use /api/... as the code does",
+        "Adopt /api/v1/... for the new app"
+      ],
+      "recommended": "Use /api/... (the observed shape); versioning is not needed for a new single app",
+      "needs_approval": false,
+      "menu_features": [
+        "M01",
+        "M02",
+        "M04"
+      ],
+      "status": "resolved",
+      "resolution": {
+        "decision": "Use /api/... without a version prefix, as Shelfie's code does.",
+        "approved": true,
+        "by": "benchmark operator",
+        "date": "2026-11-04"
+      }
+    }
+  ],
+  "migrations": [
+    {
+      "id": "migration:book",
+      "entity": "Book",
+      "apps": [
+        "A",
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "add fields that only some sources have: author (only A)",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "add fields that only some sources have: author (only A)"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": true,
+      "needs_approval": false
+    },
+    {
+      "id": "migration:rating",
+      "entity": "Rating",
+      "apps": [
+        "A"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    },
+    {
+      "id": "migration:readinglist",
+      "entity": "ReadingList",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    },
+    {
+      "id": "migration:listbook",
+      "entity": "ListBook",
+      "apps": [
+        "B"
+      ],
+      "steps": [
+        {
+          "change": "merge rows from every source into one table",
+          "risk": "low",
+          "data_loss": []
+        }
+      ],
+      "changes": [
+        "merge rows from every source into one table"
+      ],
+      "risk": "low",
+      "data_loss": [],
+      "destructive": false,
+      "approved": false,
+      "needs_approval": false
+    }
+  ]
+}

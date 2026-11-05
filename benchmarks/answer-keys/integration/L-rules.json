@@ -1,0 +1,13 @@
+{
+  "scenario": "L-rules",
+  "conflicts": [
+    {
+      "kind": "business-rule",
+      "subject": "edit_after_submit"
+    }
+  ],
+  "holdout_must_fail_on_naive": [
+    "test_author_cannot_edit_after_submit",
+    "test_admin_override_needs_a_reason"
+  ]
+}

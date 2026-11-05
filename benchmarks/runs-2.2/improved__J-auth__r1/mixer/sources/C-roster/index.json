@@ -1,0 +1,53 @@
+{
+  "root": "../../../sources/roster",
+  "indexed_at": "2026-11-04T19:58:48+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 7,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "permissions.py",
+      "size": 345,
+      "sha256": "5bf4c31e2eec64314b1d3d0d6f3a3aba4cfbfd9fe52c59f4dae9903dc997fe8d",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 7,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 7,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "module_cycles": [],
+  "external_imports": {},
+  "import_coverage": {
+    "python": {
+      "files": 1,
+      "method": "parsed (ast)"
+    }
+  },
+  "aliases": {
+    "paths": {},
+    "workspace_packages": {},
+    "go_modules": []
+  },
+  "skipped": {},
+  "nested_repositories": [],
+  "errors": [],
+  "limits_hit": [],
+  "complete": true
+}

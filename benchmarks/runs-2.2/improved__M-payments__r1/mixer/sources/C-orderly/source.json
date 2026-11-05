@@ -1,0 +1,183 @@
+{
+  "app": {
+    "id": "C",
+    "name": "Orderly"
+  },
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {
+      "ref": "C-R01",
+      "kind": "local-directory",
+      "location": "sources/orderly",
+      "accessed": "2026-11-04"
+    },
+    {
+      "ref": "C-R02",
+      "kind": "documentation",
+      "location": "task.md",
+      "accessed": "2026-11-04"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "C-E01",
+      "source": "C-R01",
+      "basis": "observed",
+      "locator": "sources/orderly/orders.py:1",
+      "summary": "STATES = ('pending', 'paid', 'cancelled', 'refunded')"
+    },
+    {
+      "id": "C-E02",
+      "source": "C-R01",
+      "basis": "observed",
+      "locator": "sources/orderly/orders.py:2-3",
+      "summary": "cancel(order) sets status to 'cancelled' whatever the current status; its comment says a paid order is cancelled without a refund"
+    },
+    {
+      "id": "C-E03",
+      "source": "C-R02",
+      "basis": "documented",
+      "locator": "task.md#scenario-m",
+      "summary": "The user describes Orderly as orders with states pending, paid, cancelled, refunded"
+    }
+  ],
+  "features": [
+    {
+      "id": "C-F01",
+      "name": "Order lifecycle states",
+      "description": "Orders carry one of four states: pending, paid, cancelled, refunded",
+      "observed_behaviour": "The states are declared; no code sets 'paid' or 'refunded' and no transition table exists",
+      "business_logic": "Allowed values: pending, paid, cancelled, refunded. Transitions are not defined in the code.",
+      "data": [
+        "Order.status"
+      ],
+      "evidence": [
+        "C-E01",
+        "C-E03"
+      ],
+      "basis": "observed",
+      "confidence": "high"
+    },
+    {
+      "id": "C-F02",
+      "name": "Cancel an order",
+      "description": "Moves an order to cancelled",
+      "observed_behaviour": "cancel() overwrites status with 'cancelled' for any order, including paid and refunded ones",
+      "business_logic": "No refund for a paid order; no guard against cancelling twice or cancelling a refunded order.",
+      "data": [
+        "Order.status"
+      ],
+      "depends_on": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E02"
+      ],
+      "basis": "observed",
+      "confidence": "high"
+    }
+  ],
+  "entities": [
+    {
+      "name": "Order",
+      "description": "An order as Orderly sees it: something with a lifecycle status (an in-memory dict)",
+      "fields": [
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "pending",
+            "paid",
+            "cancelled",
+            "refunded"
+          ],
+          "description": "lifecycle state"
+        }
+      ],
+      "features": [
+        "C-F01",
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E01",
+        "C-E02"
+      ],
+      "basis": "observed"
+    }
+  ],
+  "rules": [
+    {
+      "key": "order.states",
+      "value": [
+        "pending",
+        "paid",
+        "cancelled",
+        "refunded"
+      ],
+      "features": [
+        "C-F01"
+      ],
+      "evidence": [
+        "C-E01"
+      ]
+    },
+    {
+      "key": "cancel.refunds_paid_order",
+      "value": false,
+      "features": [
+        "C-F02"
+      ],
+      "evidence": [
+        "C-E02"
+      ]
+    }
+  ],
+  "state": [
+    {
+      "key": "order.status",
+      "scope": "order",
+      "features": [
+        "C-F01",
+        "C-F02"
+      ]
+    }
+  ],
+  "stack": {
+    "backend": [
+      "Python (plain function and a constant)"
+    ],
+    "database": [
+      "none"
+    ],
+    "basis": "observed"
+  },
+  "architecture": {
+    "backend": "one function and a states tuple",
+    "evidence": [
+      "C-E01",
+      "C-E02"
+    ],
+    "basis": "observed"
+  },
+  "packages": {},
+  "runtimes": {},
+  "tenancy": {
+    "model": "none"
+  },
+  "unknowns": [
+    "How orders are created, stored and looked up: no code for it",
+    "Which code moves an order to paid or refunded: none in Orderly",
+    "Rights: task.md states no rights and there is no licence file, so code_reuse is unknown and nothing is copied"
+  ],
+  "contradictions": [],
+  "coverage_detail": {
+    "index": "index.json",
+    "modules_analysed": [
+      "(root)"
+    ],
+    "modules_skipped": [],
+    "files_read": 1
+  }
+}

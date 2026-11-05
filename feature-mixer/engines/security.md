@@ -84,8 +84,8 @@ nothing isolates, say so and ask before running anything.
 
 ## 5. Actions that need explicit approval
 
-Ask, wait for a clear yes, and record it in `project.json` → `approvals`
-before:
+Ask, wait for a clear yes to the exact action, and record it in
+`project.json` → `approvals` before:
 
 | action | examples |
 | --- | --- |
@@ -97,16 +97,47 @@ before:
 | `migration` | any database migration, above all a destructive one |
 | `deployment` | anything that ships |
 
-```json
-{"id": "A03", "action": "run-tests", "target": "app/ unittest suite",
- "approved": true, "by": "user", "date": "2026-11-04", "note": "in the dev container"}
+For running tests, approvals are **scoped** and enforced (v2.2):
+
+```bash
+python3 scripts/approvals.py request --mixer mixer/ --cwd app/ --unittest tests      # show the user exactly this
+python3 scripts/approvals.py grant   --mixer mixer/ --cwd app/ --unittest tests \
+    --granted-by "<user's name>" --user-confirmed [--expires-in 8h] [--uses 1] [--bind-code]
 ```
 
-Phase sign-offs (selection, compatibility, architecture) are recorded in
-`project.json` → `phases.<phase>.approved`, not in this ledger; the ledger
-is for actions. A missing answer is not approval. An approval covers what it names, not
-similar actions later. If the user is away, stop before the action and
-write down what is waiting.
+`grant` writes an approval bound to the action (`run-tests`), the folder,
+the harness or the exact command (matched by SHA-256; the record shows it
+with secrets redacted) and its JUnit path, with an expiry (default 8
+hours), optionally a number of uses and a fingerprint of the code.
+`run_tests.py` and `verify_tests.py --rerun` refuse, and run nothing, when
+the approval is missing, unknown, for another action, for another command
+or folder, expired, revoked, used up, unscoped (a v2.1 record), or bound to
+code that has since changed. Every attempt, accepted or refused, goes to
+`mixer/approval-log.jsonl` with secrets redacted.
+
+Pass `--user-confirmed` only after the user said yes to what `request`
+printed. **Limit:** the approval record and its log live in the workspace,
+so anything that can write there, including the agent, could write a
+record. The check proves that what runs is exactly what the record names
+and that every attempt is logged; it does not prove a human agreed. That
+part rests on this rule. Keep `project.json` under version control, or copy
+the log elsewhere, when an independent trail matters.
+
+Other actions are recorded the same way (`approvals.py grant --action
+migration --command-json '[...]'`), or by hand for actions no script runs:
+
+```json
+{"id": "A03", "action": "migration", "target": "migration:user", "approved": true, "by": "user",
+ "date": "2026-11-04", "note": "dry run on a copy first"}
+```
+
+Phase sign-offs (selection, compatibility, architecture, deployment) are
+recorded with `approvals.py approve-phase --phase <phase> --granted-by
+"<name>" --user-confirmed`, which stores a fingerprint of what was approved;
+`validate_project.py` reports any later change to those decisions until the
+user approves again. A missing answer is not approval. An approval covers
+what it names, not similar actions later. If the user is away, stop before
+the action and write down what is waiting.
 
 ## 6. Building safely
 
@@ -127,4 +158,9 @@ Never claim an inspection, execution or result that did not happen:
   not have is `unavailable`
 - no website analysis without a browser or web-fetch tool that actually ran
 - no test result without `run_tests.py` evidence; `verify_tests.py` checks it
+- no "passed" from a run whose verdict is not `passed`: zero tests, a
+  timeout, an exit code that disagrees with the results, or a results file
+  that contradicts itself prove nothing
+- evidence fingerprints show a file did not change after it was recorded;
+  they do not show it was genuine. A rerun under approval is the proof
 - gaps go in `unknowns`; partial coverage is reported as partial

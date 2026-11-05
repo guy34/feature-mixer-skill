@@ -128,6 +128,13 @@
                 }
               }
             }
+          },
+          "tenant_key": {
+            "type": "string"
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "Not tenant data: visible across tenants by decision."
           }
         }
       }
@@ -217,6 +224,14 @@
               "type": "string",
               "pattern": "^M\\d{2,}$"
             }
+          },
+          "from": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{1,3}:\\s*[A-Za-z]+\\s+\\S+$"
+            },
+            "description": "Source endpoints this one comes from, as 'A: GET /path'. Checked against source.json; leave out for new endpoints."
           }
         }
       }

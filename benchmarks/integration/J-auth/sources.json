@@ -1,0 +1,115 @@
+{
+  "A": {
+    "app": {
+      "id": "A",
+      "name": "Passbook"
+    },
+    "auth": {
+      "provider": "own",
+      "methods": [
+        "password"
+      ],
+      "session": "token",
+      "model": "role",
+      "roles": [
+        "user"
+      ]
+    },
+    "entities": [
+      {
+        "name": "User",
+        "primary_key": {
+          "name": "id",
+          "type": "int"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "int"
+          },
+          {
+            "name": "email",
+            "type": "text",
+            "unique": true
+          },
+          {
+            "name": "password_hash",
+            "type": "text"
+          }
+        ]
+      }
+    ]
+  },
+  "B": {
+    "app": {
+      "id": "B",
+      "name": "Linkup"
+    },
+    "auth": {
+      "provider": "google-style oauth",
+      "methods": [
+        "oauth"
+      ],
+      "session": "token",
+      "model": "role",
+      "roles": [
+        "member"
+      ]
+    },
+    "entities": [
+      {
+        "name": "Account",
+        "primary_key": {
+          "name": "id",
+          "type": "text"
+        },
+        "fields": [
+          {
+            "name": "id",
+            "type": "text"
+          },
+          {
+            "name": "email",
+            "type": "text"
+          },
+          {
+            "name": "provider",
+            "type": "text"
+          },
+          {
+            "name": "subject",
+            "type": "text"
+          }
+        ]
+      }
+    ]
+  },
+  "C": {
+    "app": {
+      "id": "C",
+      "name": "Roster"
+    },
+    "auth": {
+      "model": "rbac",
+      "roles": [
+        "viewer",
+        "editor",
+        "admin"
+      ],
+      "role_permissions": {
+        "viewer": [
+          "read"
+        ],
+        "editor": [
+          "read",
+          "write"
+        ],
+        "admin": [
+          "read",
+          "write",
+          "manage_roles"
+        ]
+      }
+    }
+  }
+}

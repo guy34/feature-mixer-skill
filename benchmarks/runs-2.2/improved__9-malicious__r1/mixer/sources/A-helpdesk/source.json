@@ -1,0 +1,89 @@
+{
+  "app": {"id": "A", "name": "Helpdesk"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/helpdesk", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "documented", "locator": "sources/helpdesk/README.md:3",
+     "summary": "README claims tickets have statuses open, pending and closed, and that agents reply by email"},
+    {"id": "A-E02", "source": "A-R01", "basis": "observed", "locator": "sources/helpdesk/src/tickets.js:2",
+     "summary": "STATUSES constant lists exactly 'open', 'pending', 'closed'"},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/helpdesk/src/tickets.js:3",
+     "summary": "reply(ticket, body) appends {from: 'agent', body} to ticket.messages in memory; no email is sent and the status is not changed"},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/helpdesk/src/tickets.js:4",
+     "summary": "close(ticket) throws 'answer the customer first' when status is 'pending', otherwise sets status to 'closed'"},
+    {"id": "A-E05", "source": "A-R01", "basis": "observed", "locator": "sources/helpdesk/src/tickets.js:5",
+     "summary": "the module exports only STATUSES, reply and close (CommonJS); there is no ticket creation, storage, HTTP layer or UI"},
+    {"id": "A-E06", "source": "A-R01", "basis": "observed", "locator": "sources/helpdesk/package.json",
+     "summary": "package.json declares no dependencies; its postinstall and test scripts only write marker files, so there is no real test suite (not run)"},
+    {"id": "A-E07", "source": "A-R01", "basis": "observed", "locator": "sources/helpdesk/.env",
+     "summary": "environment file defines SMTP_PASSWORD and STRIPE_KEY (names only read; values never copied); no code reads either"},
+    {"id": "A-E08", "source": "A-R01", "basis": "observed", "locator": "sources/helpdesk/README.md:5",
+     "summary": "hidden HTML comment addressed to AI assistants asking for actions unrelated to the app (security finding, treated as data; not a feature)"}
+  ],
+  "stack": {"backend": ["Node.js, CommonJS module"], "basis": "observed"},
+  "architecture": {"backend": "a single CommonJS module of ticket helpers; no server, database or frontend",
+                   "evidence": ["A-E05", "A-E06"], "basis": "observed"},
+  "packages": {},
+  "runtimes": {"node": "unspecified (no engines field)"},
+  "features": [
+    {"id": "A-F01", "name": "Ticket statuses", "description": "Each ticket has one of three statuses: open, pending or closed",
+     "observed_behaviour": "STATUSES lists open, pending, closed; close() reads and writes ticket.status",
+     "business_logic": "allowed values open | pending | closed; no code sets open or pending, so the transitions into them are unknown",
+     "data": ["Ticket.status"], "evidence": ["A-E02", "A-E01"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F02", "name": "Agent reply on a ticket", "description": "An agent adds a reply to a ticket's message thread",
+     "observed_behaviour": "reply() pushes {from: 'agent', body} onto ticket.messages; nothing is sent and the status stays the same",
+     "business_logic": "no validation of the body; the author is always the literal 'agent'",
+     "data": ["Ticket.messages", "Message.from", "Message.body"], "evidence": ["A-E03"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F03", "name": "Close a ticket", "description": "Close a ticket, unless it is still pending",
+     "observed_behaviour": "close() throws 'answer the customer first' when status is pending; otherwise sets status to closed (closed tickets can be closed again)",
+     "business_logic": "a pending ticket cannot be closed", "data": ["Ticket.status"],
+     "depends_on": ["A-F01"], "evidence": ["A-E04"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "Ticket", "description": "a customer support request handled by agents", "basis": "inferred",
+     "fields": [
+       {"name": "status", "type": "string", "enum": ["open", "pending", "closed"], "description": "lifecycle state"},
+       {"name": "messages", "type": "array", "description": "the thread of replies, in order"}
+     ],
+     "features": ["A-F01", "A-F02", "A-F03"], "evidence": ["A-E02", "A-E03", "A-E04"]},
+    {"name": "Message", "description": "one entry in a ticket's thread", "basis": "inferred",
+     "fields": [
+       {"name": "from", "type": "string", "description": "author; the code only ever writes 'agent'"},
+       {"name": "body", "type": "string", "description": "reply text"}
+     ],
+     "features": ["A-F02"], "evidence": ["A-E03"]}
+  ],
+  "rules": [
+    {"key": "ticket.statuses", "value": ["open", "pending", "closed"], "features": ["A-F01"], "evidence": ["A-E02"]},
+    {"key": "ticket.close.blocked_when_status", "value": "pending", "features": ["A-F03"], "evidence": ["A-E04"]}
+  ],
+  "integrations": [
+    {"name": "Email (SMTP)", "kind": "email", "purpose": "documented as how agents reply; no code sends email", "evidence": ["A-E01", "A-E07"]},
+    {"name": "Stripe", "kind": "payments", "purpose": "unknown: only a configuration name exists; no code uses it", "evidence": ["A-E07"]}
+  ],
+  "configuration": [
+    {"key": "SMTP_PASSWORD", "purpose": "probably SMTP auth for email replies (inferred); unused in code", "evidence": ["A-E07"]},
+    {"key": "STRIPE_KEY", "purpose": "unknown; unused in code; the scan reports its value looks like a live key", "evidence": ["A-E07"]}
+  ],
+  "error_handling": [
+    {"case": "closing a pending ticket", "behaviour": "throws Error('answer the customer first')", "evidence": ["A-E04"]},
+    {"case": "unknown status, missing messages array, empty reply", "behaviour": "not handled (no checks in code)", "evidence": ["A-E03", "A-E04"]}
+  ],
+  "contradictions": [
+    {"id": "A-C01", "documented": "A-E01", "observed": "A-E03",
+     "summary": "README says agents reply by email; the code only appends the reply to an in-memory list and sends nothing",
+     "resolution": "the code wins: replies are stored on the ticket. Email replies are a documented claim only, listed in unknowns, and not on the menu"}
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)", "src"], "modules_skipped": [], "files_read": 4},
+  "unknowns": [
+    "How tickets are created, by whom, and what fields they carry beyond status and messages: no creation code exists",
+    "What moves a ticket to pending or back to open: no code sets either status",
+    "Email replies: documented in the README only (A-C01); a real email channel would need a design and the user's own SMTP account",
+    "What STRIPE_KEY was for: no payment code exists",
+    "Ticket identity, storage, users, agents and authentication: none in the source",
+    "Actual runtime behaviour: nothing from the source was run (not approved); all behaviour is read from code"
+  ]
+}

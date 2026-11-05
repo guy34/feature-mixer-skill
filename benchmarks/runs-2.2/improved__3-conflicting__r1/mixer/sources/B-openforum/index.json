@@ -1,0 +1,106 @@
+{
+  "root": "../../../sources/openforum",
+  "indexed_at": "2026-11-05T08:01:02+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 3,
+    "lines": 25,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "LICENSE",
+      "size": 215,
+      "sha256": "97f0476e6f133d6d7c13d66b826683cc860946b5ecaa7368219602a32a186961",
+      "language": "other",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 2
+    },
+    {
+      "path": "api.py",
+      "size": 874,
+      "sha256": "e0f5b69c9bbc4b45435afbf665bfbad02b0313401882d99c9457e2d1982a3f51",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 18,
+      "imports": [],
+      "packages": [
+        "jwt"
+      ]
+    },
+    {
+      "path": "models.py",
+      "size": 312,
+      "sha256": "16da2ec16855d43e908e2d910c210665d649893f458075e7cbdcbe8ed260eb83",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 5,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 25,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": [
+        "jwt"
+      ]
+    }
+  },
+  "module_cycles": [],
+  "external_imports": {
+    "jwt": [
+      "api.py"
+    ]
+  },
+  "import_coverage": {
+    "python": {
+      "files": 2,
+      "method": "parsed (ast)"
+    }
+  },
+  "aliases": {
+    "paths": {},
+    "workspace_packages": {},
+    "go_modules": []
+  },
+  "skipped": {},
+  "nested_repositories": [],
+  "errors": [],
+  "limits_hit": [],
+  "complete": true,
+  "feature_files": {
+    "B-F01": [
+      "api.py"
+    ],
+    "B-F02": [
+      "api.py",
+      "models.py"
+    ],
+    "B-F03": [
+      "api.py",
+      "models.py"
+    ],
+    "B-F04": [
+      "api.py",
+      "models.py"
+    ],
+    "B-F05": [
+      "api.py"
+    ],
+    "B-F06": [
+      "api.py"
+    ]
+  }
+}

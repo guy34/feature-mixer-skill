@@ -1,0 +1,133 @@
+{
+  "name": "Expense app (Tallyho x Spendly)",
+  "format": 4,
+  "mode": "plan",
+  "selection": "auto-pick",
+  "audience": "The user and the people they share budgets with; used mostly on a phone (from the user's Tallyho notes)",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Tallyho",
+      "slug": "tallyho",
+      "access": "closed",
+      "licence": "proprietary",
+      "code_reuse": "not-allowed",
+      "slice": "Receipt scanning and shared budgets (plus the expense records they touch)",
+      "inputs": [
+        {
+          "kind": "documentation",
+          "location": "sources/tallyho/help"
+        },
+        {
+          "kind": "api-spec",
+          "location": "sources/tallyho/api.md"
+        },
+        {
+          "kind": "screenshots",
+          "location": "sources/tallyho/screens"
+        },
+        {
+          "kind": "documentation",
+          "location": "sources/tallyho/my-notes.md"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Spendly",
+      "slug": "spendly",
+      "access": "own-code",
+      "licence": "user's own code (no licence file)",
+      "code_reuse": "allowed",
+      "slice": "Expense categories (and the expense record they apply to)",
+      "local_path": "sources/spendly",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/spendly"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "approved_at": "2026-11-05T07:58:48+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "04db005212e635ad9460c7b4f8c241b3b6769c850f18e59bb387a2966e643fa2",
+      "note": "auto-pick selection mode named in task.md; recommendation pre-approved by the benchmark operator (no user present) | re-approval after compatibility: only the compatibility status of M02, M05, M06 (conflict -> adaptable) and U01, U04 (conflict -> resolved) changed; no picks changed. Pre-approved by the benchmark operator"
+    },
+    "compatibility": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "approved_at": "2026-11-05T08:02:14+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "a7153b1482e0c92211f1fb67ff50ea0e70ca5f099baf5e809ab15a9bd8c060fd",
+      "note": "9 high and 4 medium conflicts resolved as recommended; migration:expense plan (no data moved) approved; pre-approved by the benchmark operator | re-approval: added plan decisions migration:budget, migration:budgetmember (no data migrated) and migration:user found after the architecture draft; pre-approved by the benchmark operator"
+    },
+    "architecture": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "approved_at": "2026-11-05T08:02:14+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "1155494b54312a8e5b74201572e9624c0ae9f25cf9a059e1b99e9bb34744e3a7",
+      "note": "modular monolith, Django + PostgreSQL, slices V1-V6; recommendation pre-approved by the benchmark operator"
+    },
+    "implementation": {
+      "status": "pending",
+      "note": "plan mode: nothing built or tested"
+    },
+    "integration": {
+      "status": "pending",
+      "note": "plan mode: nothing built or tested"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T07:56:27+00:00"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T07:57:06+00:00"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T07:57:40+00:00"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T07:58:48+00:00"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T08:02:14+00:00"
+    }
+  ],
+  "approvals": []
+}

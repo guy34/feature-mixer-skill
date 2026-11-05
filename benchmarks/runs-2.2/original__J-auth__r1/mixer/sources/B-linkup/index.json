@@ -1,0 +1,42 @@
+{
+  "root": "../../../sources/linkup",
+  "indexed_at": "2026-11-05T08:04:33+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 1,
+    "lines": 7,
+    "modules": 1
+  },
+  "files": [
+    {
+      "path": "oauth.py",
+      "size": 420,
+      "sha256": "9da8ac7b33bc2211eccaf9e2ac4babecc7e34e33955441d5ba2b74a442a00593",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 7,
+      "imports": [],
+      "packages": []
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 1,
+      "lines": 7,
+      "languages": [
+        "python"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "external_imports": {},
+  "skipped": {},
+  "feature_files": {
+    "B-F01": [
+      "oauth.py"
+    ]
+  }
+}

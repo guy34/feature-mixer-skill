@@ -1,0 +1,123 @@
+{
+  "name": "Helpdesk with FAQ suggestions",
+  "format": 4,
+  "mode": "plan",
+  "selection": "auto-pick",
+  "audience": "Support agents who answer customer tickets and want suggested FAQ answers on each ticket (from task.md)",
+  "target": {
+    "path": "app"
+  },
+  "sources": [
+    {
+      "id": "A",
+      "name": "Helpdesk",
+      "slug": "helpdesk",
+      "access": "open-source",
+      "licence": "MIT according to the user; no LICENSE file and no package.json 'license' field were found in sources/helpdesk, so the licence could not be confirmed",
+      "code_reuse": "not-allowed",
+      "slice": "Ticket lifecycle: statuses, agent replies, closing",
+      "local_path": "sources/helpdesk",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/helpdesk"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Faqbot",
+      "slug": "faqbot",
+      "access": "own-code",
+      "licence": "the user's own code (no licence file)",
+      "code_reuse": "allowed",
+      "slice": "FAQ answer suggestion from free text",
+      "local_path": "sources/faqbot",
+      "inputs": [
+        {
+          "kind": "local-directory",
+          "location": "sources/faqbot"
+        }
+      ]
+    }
+  ],
+  "phases": {
+    "recon": {
+      "status": "done",
+      "date": "2026-11-04",
+      "note": "Both sources scanned, indexed and reported with evidence. validate_project.py --phase recon still reports one error: scan_source.py wrote a finding kind 'hidden-text' that security-scan.schema.json does not allow (a defect in the skill's own scanner/schema pair). The scan file was left exactly as the scanner wrote it; the same README line is also reported as 'instruction-text'."
+    },
+    "extraction": {
+      "status": "done",
+      "date": "2026-11-04"
+    },
+    "selection": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "approved_at": "2026-11-05T07:56:10+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "7e6e501828797c81980b5169a0a36c7fbfcf204808525408f5bf21adf5946acd"
+    },
+    "compatibility": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "approved_at": "2026-11-05T07:59:14+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "01a05fa8c5c133aeb4426404ff70ac6a37783a553e69cb5324ef2a280328236b"
+    },
+    "architecture": {
+      "status": "done",
+      "date": "2026-11-05",
+      "approved": true,
+      "approved_at": "2026-11-05T07:59:14+00:00",
+      "approved_by": "benchmark operator",
+      "approved_fingerprint": "f5bcfe9cdda319b740d99885366c6646ffb5837e9a68da4357047bff7901b9ea"
+    },
+    "implementation": {
+      "status": "pending"
+    },
+    "integration": {
+      "status": "pending"
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "phase": "recon",
+      "ref": "snapshot:checkpoints/CP1",
+      "date": "2026-11-05T07:54:56+00:00",
+      "note": "recon reports for A and B"
+    },
+    {
+      "id": "CP2",
+      "phase": "extraction",
+      "ref": "snapshot:checkpoints/CP2",
+      "date": "2026-11-05T07:55:31+00:00",
+      "note": "feature menu built"
+    },
+    {
+      "id": "CP3",
+      "phase": "selection",
+      "ref": "snapshot:checkpoints/CP3",
+      "date": "2026-11-05T07:56:15+00:00",
+      "note": "auto-pick, approved"
+    },
+    {
+      "id": "CP4",
+      "phase": "compatibility",
+      "ref": "snapshot:checkpoints/CP4",
+      "date": "2026-11-05T07:56:39+00:00",
+      "note": "approved"
+    },
+    {
+      "id": "CP5",
+      "phase": "architecture",
+      "ref": "snapshot:checkpoints/CP5",
+      "date": "2026-11-05T07:59:14+00:00",
+      "note": "approved; plan mode ends here"
+    }
+  ],
+  "approvals": []
+}

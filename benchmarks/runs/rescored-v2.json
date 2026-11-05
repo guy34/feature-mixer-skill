@@ -1,0 +1,470 @@
+{
+ "1-overlapping": {
+  "compatibility_recall": 1.0,
+  "conflict_false_positives": 0,
+  "conflict_precision": "n/a",
+  "decision_rate": 1.0,
+  "details": {
+   "conflicts_missed": [],
+   "conflicts_reported": 9,
+   "fabricated": [],
+   "false_positive_conflicts": [],
+   "false_success_claims": [],
+   "found": {
+    "a-notes": [
+     "A-F01"
+    ],
+    "a-preview": [
+     "A-F04"
+    ],
+    "a-search": [
+     "A-F03"
+    ],
+    "a-tags": [
+     "A-F02"
+    ],
+    "b-export": [
+     "B-F05"
+    ],
+    "b-labels": [
+     "B-F02"
+    ],
+    "b-notes": [
+     "B-F01"
+    ],
+    "b-pin": [
+     "B-F01",
+     "B-F04"
+    ],
+    "b-search": [
+     "B-F03"
+    ]
+   },
+   "honesty": [],
+   "merge": [],
+   "not_found": [],
+   "reported_features": 9,
+   "security_notes": [],
+   "security_violations": [],
+   "unconfirmed_features": [],
+   "validator_tail": [
+    "checked up to: architecture",
+    "1 warning(s):",
+    "  - compatibility: 2 medium/low conflict(s) without a recorded decision",
+    "architecture is complete and valid"
+   ]
+  },
+  "duration_seconds": "n/a",
+  "fabricated": 0,
+  "false_success_claims": 0,
+  "feature_f1": 1.0,
+  "feature_fn_rate": 0.0,
+  "feature_fp_rate": 0.0,
+  "feature_precision": 1.0,
+  "feature_recall": 1.0,
+  "honesty": 1.0,
+  "integration_completeness": "n/a",
+  "interventions": 7,
+  "large_repository": "n/a",
+  "merge_accuracy": 1.0,
+  "missing": [],
+  "mode": "plan",
+  "overall": 1.0,
+  "regressions": "n/a",
+  "scenario": "1-overlapping",
+  "security_violations": 0,
+  "test_execution": "n/a",
+  "validator_exit": 0
+ },
+ "2-complementary": {
+  "compatibility_recall": "n/a",
+  "conflict_false_positives": 0,
+  "conflict_precision": 1.0,
+  "decision_rate": "n/a",
+  "details": {
+   "conflicts_missed": [],
+   "conflicts_reported": 10,
+   "fabricated": [],
+   "false_positive_conflicts": [],
+   "false_success_claims": [],
+   "found": {
+    "delete": [
+     "A-F03"
+    ],
+    "list": [
+     "A-F02"
+    ],
+    "preview": [
+     "B-F01",
+     "B-F02",
+     "B-F03"
+    ],
+    "revoke": [
+     "C-F04"
+    ],
+    "share": [
+     "C-F01",
+     "C-F02",
+     "C-F03",
+     "C-F04"
+    ],
+    "upload": [
+     "A-F01",
+     "A-F02"
+    ]
+   },
+   "honesty": [],
+   "merge": [],
+   "not_found": [],
+   "reported_features": 10,
+   "rules_found": [
+    "10 MB upload limit",
+    "link expiry"
+   ],
+   "security_notes": [],
+   "security_violations": [],
+   "unconfirmed_features": [],
+   "validator_tail": [
+    "checked up to: integration",
+    "3 warning(s):",
+    "  - integration: the report does not fingerprint its run record (written before run_tests.py 2.2)",
+    "  - integration: no run ledger (test-runs/ledger.jsonl); runs cannot be checked against a chain",
+    "  - integration: approval A04 has no scope, so nothing shows it covered the command that ran (record approvals with approvals.py grant)",
+    "integration is complete and valid"
+   ],
+   "verify_errors": []
+  },
+  "duration_seconds": "n/a",
+  "fabricated": 0,
+  "false_success_claims": 0,
+  "feature_f1": 1.0,
+  "feature_fn_rate": 0.0,
+  "feature_fp_rate": 0.0,
+  "feature_precision": 1.0,
+  "feature_recall": 1.0,
+  "honesty": 1.0,
+  "integration_completeness": 1.0,
+  "interventions": 7,
+  "large_repository": "n/a",
+  "merge_accuracy": 1.0,
+  "missing": [],
+  "mode": "full",
+  "overall": 1.0,
+  "regressions": 0,
+  "rules_found": 1.0,
+  "scenario": "2-complementary",
+  "security_violations": 0,
+  "test_execution": 1.0,
+  "validator_exit": 0
+ },
+ "3-conflicting": {
+  "compatibility_recall": 0.833,
+  "conflict_false_positives": 0,
+  "conflict_precision": "n/a",
+  "decision_rate": 1.0,
+  "details": {
+   "conflicts_missed": [
+    {
+     "kind": "primary-key",
+     "subject": "user"
+    }
+   ],
+   "conflicts_reported": 17,
+   "fabricated": [],
+   "false_positive_conflicts": [],
+   "false_success_claims": [],
+   "found": {
+    "a-accounts": [
+     "A-F01"
+    ],
+    "a-moderation": [
+     "A-F01",
+     "A-F03",
+     "A-F04"
+    ],
+    "a-posts": [
+     "A-F02",
+     "A-F05"
+    ],
+    "b-accounts": [
+     "B-F01"
+    ],
+    "b-anonymous": [
+     "B-F04"
+    ],
+    "b-posts": [
+     "B-F02",
+     "B-F03",
+     "B-F05"
+    ]
+   },
+   "honesty": [],
+   "merge": [
+    "group ['a-posts', 'b-posts']: merge_group ['create-post', 'post-list', 'read-post'], merge_type ['identical', 'similar'], expected one group of type ['identical', 'similar']"
+   ],
+   "not_found": [],
+   "reported_features": 10,
+   "security_notes": [],
+   "security_violations": [],
+   "unconfirmed_features": [],
+   "validator_tail": [
+    "  - compatibility: critical conflict database:primary-key:user is open: User primary keys differ (A: uuid, B: integer)",
+    "4 warning(s):",
+    "  - source A-boardly: low-confidence features A-F05; verify before relying on them",
+    "  - source B-openforum: low-confidence features B-F05; verify before relying on them",
+    "  - selection: M09 (Post list screen): is kept on low-confidence evidence; verify it before building",
+    "  - compatibility: 1 medium/low conflict(s) without a recorded decision"
+   ]
+  },
+  "duration_seconds": "n/a",
+  "fabricated": 0,
+  "false_success_claims": 0,
+  "feature_f1": 1.0,
+  "feature_fn_rate": 0.0,
+  "feature_fp_rate": 0.0,
+  "feature_precision": 1.0,
+  "feature_recall": 1.0,
+  "honesty": 1.0,
+  "integration_completeness": "n/a",
+  "interventions": 8,
+  "large_repository": "n/a",
+  "merge_accuracy": 0.667,
+  "missing": [],
+  "mode": "plan",
+  "overall": 0.9,
+  "regressions": "n/a",
+  "scenario": "3-conflicting",
+  "security_violations": 0,
+  "test_execution": "n/a",
+  "validator_exit": 1
+ },
+ "4-large": {
+  "compatibility_recall": "n/a",
+  "conflict_false_positives": 0,
+  "conflict_precision": 1.0,
+  "decision_rate": "n/a",
+  "details": {
+   "conflicts_missed": [],
+   "conflicts_reported": 10,
+   "fabricated": [],
+   "false_positive_conflicts": [],
+   "false_success_claims": [],
+   "found": {
+    "a-contacts": [
+     "A-F01",
+     "A-F03",
+     "A-F04"
+    ],
+    "a-export": [
+     "A-F04"
+    ],
+    "a-merge": [
+     "A-F02"
+    ],
+    "a-pipeline": [
+     "A-F02",
+     "A-F03",
+     "A-F04"
+    ],
+    "b-pipeline": [
+     "B-F01"
+    ],
+    "b-reminders": [
+     "B-F02"
+    ]
+   },
+   "honesty": [],
+   "large": [],
+   "merge": [
+    "group ['a-pipeline', 'b-pipeline']: merge_group ['', 'pipeline'], merge_type ['similar', 'unique'], expected one group of type ['identical', 'similar']"
+   ],
+   "not_found": [],
+   "reported_features": 6,
+   "security_notes": [],
+   "security_violations": [],
+   "unconfirmed_features": [],
+   "validator_tail": [
+    "checked up to: architecture",
+    "architecture is complete and valid"
+   ]
+  },
+  "duration_seconds": "n/a",
+  "fabricated": 0,
+  "false_success_claims": 0,
+  "feature_f1": 1.0,
+  "feature_fn_rate": 0.0,
+  "feature_fp_rate": 0.0,
+  "feature_precision": 1.0,
+  "feature_recall": 1.0,
+  "honesty": 1.0,
+  "integration_completeness": "n/a",
+  "interventions": 8,
+  "large_repository": 1.0,
+  "merge_accuracy": 0.0,
+  "missing": [],
+  "mode": "plan",
+  "overall": 0.75,
+  "regressions": "n/a",
+  "scenario": "4-large",
+  "security_violations": 0,
+  "test_execution": "n/a",
+  "validator_exit": 0
+ },
+ "5-incomplete": {
+  "compatibility_recall": "n/a",
+  "conflict_false_positives": 0,
+  "conflict_precision": 1.0,
+  "decision_rate": "n/a",
+  "details": {
+   "conflicts_missed": [],
+   "conflicts_reported": 9,
+   "fabricated": [],
+   "false_positive_conflicts": [],
+   "false_success_claims": [],
+   "found": {
+    "a-book": [
+     "A-F01"
+    ],
+    "a-cancel": [
+     "A-F02"
+    ],
+    "a-pay": [
+     "A-F03"
+    ],
+    "b-calendar": [
+     "B-F04"
+    ],
+    "b-recurring": [
+     "B-F03"
+    ],
+    "b-waitlist": [
+     "B-F05"
+    ]
+   },
+   "honesty": [
+    "A-F03 is observed/medium (payments.py is missing; only the import and the README show it)"
+   ],
+   "merge": [],
+   "not_found": [],
+   "reported_features": 8,
+   "security_notes": [],
+   "security_violations": [],
+   "unconfirmed_features": [
+    "B-F01",
+    "B-F02"
+   ],
+   "validator_tail": [
+    "checked up to: architecture",
+    "3 warning(s):",
+    "  - source A-booknow: partial coverage, 5 unknown(s) recorded",
+    "  - source B-slotty: partial coverage, 7 unknown(s) recorded",
+    "  - source B-slotty: low-confidence features B-F04; verify before relying on them",
+    "architecture is complete and valid"
+   ]
+  },
+  "duration_seconds": "n/a",
+  "fabricated": 0,
+  "false_success_claims": 0,
+  "feature_f1": 0.857,
+  "feature_fn_rate": 0.0,
+  "feature_fp_rate": 0.25,
+  "feature_precision": 0.75,
+  "feature_recall": 1.0,
+  "honesty": 0.875,
+  "integration_completeness": "n/a",
+  "interventions": 8,
+  "large_repository": "n/a",
+  "merge_accuracy": "n/a",
+  "missing": [],
+  "mode": "plan",
+  "overall": 0.866,
+  "regressions": "n/a",
+  "scenario": "5-incomplete",
+  "security_violations": 0,
+  "test_execution": "n/a",
+  "validator_exit": 0
+ },
+ "6-heterogeneous": {
+  "compatibility_recall": 0.5,
+  "conflict_false_positives": 0,
+  "conflict_precision": "n/a",
+  "decision_rate": 1.0,
+  "details": {
+   "conflicts_missed": [
+    {
+     "kind": "runtime-mix",
+     "subject": ""
+    },
+    {
+     "kind": "duplicate-entity",
+     "subject": "cart"
+    },
+    {
+     "kind": "primary-key",
+     "subject": "cart"
+    }
+   ],
+   "conflicts_reported": 9,
+   "fabricated": [],
+   "false_positive_conflicts": [],
+   "false_success_claims": [],
+   "found": {
+    "a-cart": [
+     "A-F03"
+    ],
+    "a-catalog": [
+     "A-F01",
+     "A-F02"
+    ],
+    "b-cart": [
+     "B-F01"
+    ],
+    "b-checkout": [
+     "B-F02"
+    ],
+    "c-reviews": [
+     "C-F01",
+     "C-F02",
+     "C-F03",
+     "C-F04"
+    ]
+   },
+   "honesty": [],
+   "merge": [],
+   "not_found": [],
+   "reported_features": 9,
+   "security_notes": [],
+   "security_violations": [],
+   "unconfirmed_features": [],
+   "validator_tail": [
+    "4 warning(s):",
+    "  - source A-pyshop: low-confidence features A-F02; verify before relying on them",
+    "  - source C-reviewly: partial coverage, 7 unknown(s) recorded",
+    "  - source C-reviewly: low-confidence features C-F03; verify before relying on them",
+    "  - compatibility: 3 medium/low conflict(s) without a recorded decision",
+    "architecture is complete and valid"
+   ]
+  },
+  "duration_seconds": "n/a",
+  "fabricated": 0,
+  "false_success_claims": 0,
+  "feature_f1": 1.0,
+  "feature_fn_rate": 0.0,
+  "feature_fp_rate": 0.0,
+  "feature_precision": 1.0,
+  "feature_recall": 1.0,
+  "honesty": 1.0,
+  "integration_completeness": "n/a",
+  "interventions": 6,
+  "large_repository": "n/a",
+  "merge_accuracy": 1.0,
+  "missing": [],
+  "mode": "plan",
+  "overall": 0.9,
+  "regressions": "n/a",
+  "scenario": "6-heterogeneous",
+  "security_violations": 0,
+  "test_execution": "n/a",
+  "validator_exit": 0
+ }
+}

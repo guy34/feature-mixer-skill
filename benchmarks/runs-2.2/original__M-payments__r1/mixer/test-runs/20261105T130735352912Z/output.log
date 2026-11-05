@@ -1,0 +1,67 @@
+test_create_order_is_pending (tests.test_v1_orders_payments.OrdersTest.test_create_order_is_pending)
+features: M01 ... ok
+test_create_order_write_failure_creates_nothing (tests.test_v1_orders_payments.OrdersTest.test_create_order_write_failure_creates_nothing)
+features: M01 ... ok
+test_invalid_amounts_and_missing_order (tests.test_v1_orders_payments.OrdersTest.test_invalid_amounts_and_missing_order)
+features: M01 ... ok
+test_default_store_exposed (tests.test_v1_orders_payments.PaymentsTest.test_default_store_exposed)
+features: M01 ... ok
+test_foreign_store_object_controls_failures (tests.test_v1_orders_payments.PaymentsTest.test_foreign_store_object_controls_failures)
+features: M02, M01 ... ok
+test_key_reused_for_other_order_refused (tests.test_v1_orders_payments.PaymentsTest.test_key_reused_for_other_order_refused)
+features: M02 ... ok
+test_missing_key_refused (tests.test_v1_orders_payments.PaymentsTest.test_missing_key_refused)
+features: M02 ... ok
+test_paid_order_with_new_key_not_charged (tests.test_v1_orders_payments.PaymentsTest.test_paid_order_with_new_key_not_charged)
+features: M02 ... ok
+test_pay_marks_paid_and_ledgers_once (tests.test_v1_orders_payments.PaymentsTest.test_pay_marks_paid_and_ledgers_once)
+features: M02, M01 ... ok
+test_retry_same_key_never_charges_twice (tests.test_v1_orders_payments.PaymentsTest.test_retry_same_key_never_charges_twice)
+features: M02 ... ok
+test_timeout_exception_importable_from_module (tests.test_v1_orders_payments.PaymentsTest.test_timeout_exception_importable_from_module)
+features: M02 ... ok
+test_timeout_then_retry_other_key_charges_once (tests.test_v1_orders_payments.PaymentsTest.test_timeout_then_retry_other_key_charges_once)
+features: M02 ... ok
+test_timeout_then_retry_same_key_charges_once (tests.test_v1_orders_payments.PaymentsTest.test_timeout_then_retry_same_key_charges_once)
+features: M02, M01 ... ok
+test_write_failure_after_charge_retry_collects_same_charge (tests.test_v1_orders_payments.PaymentsTest.test_write_failure_after_charge_retry_collects_same_charge)
+features: M02 ... ok
+test_write_failure_during_pay_leaves_order_unchanged (tests.test_v1_orders_payments.PaymentsTest.test_write_failure_during_pay_leaves_order_unchanged)
+features: M02, M01 ... ok
+test_duplicate_delivery_applied_once (tests.test_v2_webhooks.WebhookTest.test_duplicate_delivery_applied_once)
+features: M03 ... ok
+test_ignored_events (tests.test_v2_webhooks.WebhookTest.test_ignored_events)
+features: M03 ... ok
+test_refunded_webhook_refunds_paid_order_once (tests.test_v2_webhooks.WebhookTest.test_refunded_webhook_refunds_paid_order_once)
+features: M03, M01 ... ok
+test_succeeded_webhook_marks_pending_order_paid (tests.test_v2_webhooks.WebhookTest.test_succeeded_webhook_marks_pending_order_paid)
+features: M03, M01 ... ok
+test_webhook_after_pay_adds_nothing (tests.test_v2_webhooks.WebhookTest.test_webhook_after_pay_adds_nothing)
+features: M03, M02 ... ok
+test_webhook_after_timeout_then_retry (tests.test_v2_webhooks.WebhookTest.test_webhook_after_timeout_then_retry)
+features: M03, M02 ... ok
+test_write_failure_leaves_order_unchanged_and_redelivery_applies (tests.test_v2_webhooks.WebhookTest.test_write_failure_leaves_order_unchanged_and_redelivery_applies)
+features: M03 ... ok
+test_cancel_paid_refunds_exactly_once (tests.test_v3_cancel.CancelTest.test_cancel_paid_refunds_exactly_once)
+features: M04, M02 ... ok
+test_cancel_pending_no_refund (tests.test_v3_cancel.CancelTest.test_cancel_pending_no_refund)
+features: M04, M01 ... ok
+test_cancel_then_refund_webhook_not_applied_twice (tests.test_v3_cancel.CancelTest.test_cancel_then_refund_webhook_not_applied_twice)
+features: M04, M03 ... ok
+test_late_charge_on_cancelled_order_is_refunded_once (tests.test_v3_cancel.CancelTest.test_late_charge_on_cancelled_order_is_refunded_once)
+features: M04, M03, M02 ... ok
+test_write_failure_after_refund_never_refunds_again (tests.test_v3_cancel.CancelTest.test_write_failure_after_refund_never_refunds_again)
+features: M04 ... ok
+test_write_failure_before_refund (tests.test_v3_cancel.CancelTest.test_write_failure_before_refund)
+features: M04 ... ok
+test_renew_creates_order (tests.test_v4_renewals.RenewalTest.test_renew_creates_order)
+features: M05, M01 ... ok
+test_renewal_journey_pay_and_cancel (tests.test_v4_renewals.RenewalTest.test_renewal_journey_pay_and_cancel)
+features: M05, M02, M04, M03 ... ok
+test_same_period_renewed_once (tests.test_v4_renewals.RenewalTest.test_same_period_renewed_once)
+features: M05 ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 0.002s
+
+OK

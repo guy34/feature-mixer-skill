@@ -1,0 +1,149 @@
+{
+  "application:authorization-model:model": {
+    "decision": "One model: budget membership with roles owner and member. Every expense belongs to a budget; each user gets a personal budget at sign-up (Spendly's single-user use). One can_access(user, action, record) function used by every route and query.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC05",
+      "test_non_member_cannot_read_or_add_budget_expenses"
+    ]
+  },
+  "application:session:session": {
+    "decision": "Server-side sessions in http-only, Secure, SameSite=Lax cookies for the web app. Tallyho's personal access tokens are not built (M11 deferred).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC09",
+      "test_unauthenticated_requests_are_rejected"
+    ]
+  },
+  "application:tenancy-model:tenancy": {
+    "decision": "The budget is the tenant boundary: Expense, BudgetMember and Invitation carry budget_id and every query filters by the caller's memberships. Nothing is shared across budgets.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC05",
+      "test_non_member_cannot_read_or_add_budget_expenses"
+    ]
+  },
+  "application:business-rule:conversion-target-currency": {
+    "decision": "Convert to the budget's currency. Store original amount and currency, converted amount in budget currency, rate and rate date (receipt date). Totals use the converted amount; every member sees the same totals.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC04",
+      "test_foreign_expense_converted_to_budget_currency"
+    ]
+  },
+  "application:workflow:scanned-expense-category": {
+    "decision": "Category is required on the scan review screen; no silent default; Spendly's reject-unknown rule applies to scanned expenses too.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC03",
+      "test_scanned_expense_needs_category_before_save"
+    ]
+  },
+  "application:permission:access-after-member-removal": {
+    "decision": "On removal, the member loses all access to the budget immediately; their earlier expenses stay in the budget, attributed to them, and keep counting in totals. Only the owner may remove; the owner cannot remove themself.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC07",
+      "test_removed_member_loses_access_expenses_stay"
+    ]
+  },
+  "database:entity-meaning:expense": {
+    "decision": "Same concept in both (one spending record). One Expense entity: Tallyho's merchant, currency, date, budget plus Spendly's integer amount, category and note.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "database:field-type:expense.amount": {
+    "decision": "amount_minor: integer (bigint) minor units. Decimal user input such as 12.40 is parsed to 1240 using the currency's exponent; zero and negative rejected.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC10",
+      "test_amount_stored_as_integer_minor_units"
+    ]
+  },
+  "database:units:expense.amount.unit": {
+    "decision": "Minor units everywhere (Spendly's unit), with an ISO 4217 currency on every amount; display formats to major units.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC10",
+      "test_amount_stored_as_integer_minor_units"
+    ]
+  },
+  "application:business-rule:monthly-reset-meaning": {
+    "decision": "Budget period is the calendar month in the budget's time zone; spent vs limit counts expenses dated in that month; nothing is deleted; past months stay viewable. To confirm with the user.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "verified_by": [
+      "AC08",
+      "test_spent_counts_only_current_month"
+    ]
+  },
+  "database:data:expense-currency-missing-in-b": {
+    "decision": "currency and date are required columns; the entry form defaults currency to the budget currency and date to today.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "database:deletion-semantics:expense": {
+    "decision": "Hard delete, allowed to the member who added the expense or the budget owner (Tallyho's delete behaviour is unknown; Spendly has none).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "database:duplicate-entity:expense": {
+    "decision": "Merged into one Expense entity (see entity-meaning).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "database:unknown-type:expense.primary-key": {
+    "decision": "New uuid primary key; neither source's key is carried over (no data is migrated).",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  },
+  "migration:expense": {
+    "decision": "Plan approved: no data migration is performed. Spendly keeps no stored data (in-memory list) and importing Tallyho data is out of scope. If an import is added later: convert major to minor units per currency exponent, dry run on a copy, row and sum checks; running it needs its own migration approval.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "plan approved; running any migration needs its own approval"
+  },
+  "migration:budget": {
+    "decision": "Plan approved: no data migration is performed; Tallyho data is not imported in this plan, so no Budget limit (decimal to bigint minor units) and ids are converted. A future Tallyho import needs a dry run on a copy, count and sum checks, and its own migration approval.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "plan approved; running any migration needs its own approval"
+  },
+  "migration:budgetmember": {
+    "decision": "Plan approved: no data migration is performed; Tallyho data is not imported in this plan, so no BudgetMember ids are converted. A future Tallyho import needs a dry run on a copy, count and sum checks, and its own migration approval.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04",
+    "note": "plan approved; running any migration needs its own approval"
+  },
+  "migration:user": {
+    "decision": "No source users exist to merge (Spendly has none; Tallyho users are not imported); new sign-ups only.",
+    "approved": true,
+    "by": "benchmark operator",
+    "date": "2026-11-04"
+  }
+}

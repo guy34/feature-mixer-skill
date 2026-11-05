@@ -1,0 +1,4 @@
+{"at": "2026-11-05T07:56:10+00:00", "by": "approvals.py", "decision": "phase-approved", "fingerprint": "7e6e501828797c81980b5169a0a36c7fbfcf204808525408f5bf21adf5946acd", "granted_by": "benchmark operator", "phase": "selection"}
+{"at": "2026-11-05T07:56:39+00:00", "by": "approvals.py", "decision": "phase-approved", "fingerprint": "9fe902b8e79642df6b4aa5bea27337215370fefdcd7e9d1d1a06a28a91d1fe27", "granted_by": "benchmark operator", "phase": "compatibility"}
+{"at": "2026-11-05T07:59:14+00:00", "by": "approvals.py", "decision": "phase-approved", "fingerprint": "01a05fa8c5c133aeb4426404ff70ac6a37783a553e69cb5324ef2a280328236b", "granted_by": "benchmark operator", "phase": "compatibility"}
+{"at": "2026-11-05T07:59:14+00:00", "by": "approvals.py", "decision": "phase-approved", "fingerprint": "f5bcfe9cdda319b740d99885366c6646ffb5837e9a68da4357047bff7901b9ea", "granted_by": "benchmark operator", "phase": "architecture"}

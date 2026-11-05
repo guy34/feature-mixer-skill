@@ -1,0 +1,543 @@
+{
+  "style": {
+    "selected": "modular-monolith",
+    "drivers": [
+      "one small team and one release cadence",
+      "strong consistency between a post's status, its moderation decision and who may read it",
+      "modest scale: one forum, no independent scaling need",
+      "no existing systems that must stay separate"
+    ],
+    "alternatives": [
+      {
+        "style": "microservices",
+        "fit": "poor",
+        "reason": "network calls and distributed data for three small modules that share one Post table and one transaction (moderation changes visibility)"
+      },
+      {
+        "style": "event-driven",
+        "fit": "partial",
+        "reason": "a 'post published' event could later feed notifications, but nothing kept today is asynchronous"
+      },
+      {
+        "style": "service-oriented",
+        "fit": "poor",
+        "reason": "no existing system has to stay separate; both sources are being replaced"
+      },
+      {
+        "style": "hybrid",
+        "fit": "poor",
+        "reason": "no part needs a second style yet"
+      }
+    ],
+    "reason": "The simplest design that meets every driver; module boundaries keep accounts, posts and moderation apart inside one deployable."
+  },
+  "stack": {
+    "frontend": "React 18 single-page app built with Vite, served by the backend",
+    "backend": "Node.js 22 LTS with Express 4",
+    "database": "PostgreSQL 16",
+    "hosting": "one container (app) plus a managed PostgreSQL; chosen by the user at deployment",
+    "reasons": {
+      "backend": "D02: Boardly (the user's own code) is Express-style Node.js and M05 adapts its moderation handlers; B's Python code is rebuilt, not reused",
+      "database": "D03: A's schema already uses uuid, timestamptz and check constraints, which PostgreSQL supports natively",
+      "frontend": "D04: A already routes screens client-side (client-routes.js); a small React SPA keeps that model with a common, well-documented stack",
+      "sessions": "D05: server-side sessions in PostgreSQL (connect-pg-simple) behind an http-only cookie, as decided at compatibility",
+      "passwords": "D06: argon2id password hashes; neither source shows how passwords are stored",
+      "hosting": "D09: no hosting constraint was given; one container keeps the monolith simple"
+    }
+  },
+  "modules": [
+    {
+      "name": "platform",
+      "responsibility": "configuration from environment variables, database pool and migrations, error format, request validation, the can(user, action, post) authorisation function",
+      "features": [],
+      "depends_on": [],
+      "owns_entities": []
+    },
+    {
+      "name": "accounts",
+      "responsibility": "users, password hashing, sign-in and sign-out, cookie sessions, roles",
+      "features": [
+        "M01"
+      ],
+      "depends_on": [
+        "platform"
+      ],
+      "owns_entities": [
+        "User",
+        "Session"
+      ]
+    },
+    {
+      "name": "posts",
+      "responsibility": "creating posts, reading one post and the published list under the single read rule",
+      "features": [
+        "M03",
+        "M04",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "depends_on": [
+        "platform",
+        "accounts"
+      ],
+      "owns_entities": [
+        "Post"
+      ]
+    },
+    {
+      "name": "moderation",
+      "responsibility": "the pending queue and publish or reject decisions, recorded with moderator and time; changes a post's status only through the posts module",
+      "features": [
+        "M05"
+      ],
+      "depends_on": [
+        "platform",
+        "accounts",
+        "posts"
+      ],
+      "owns_entities": [
+        "ModerationDecision"
+      ]
+    },
+    {
+      "name": "web",
+      "responsibility": "the React screens: Login, PostList (with compose form), PostDetail, ModerationQueue",
+      "features": [],
+      "depends_on": [
+        "platform"
+      ],
+      "owns_entities": []
+    }
+  ],
+  "entities": [
+    {
+      "name": "User",
+      "merged_from": [
+        "A:User",
+        "B:User"
+      ],
+      "primary_key": "id uuid",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "from": [
+            "A:User.id",
+            "B:User.id"
+          ]
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "from": [
+            "A:User.email",
+            "B:User.email"
+          ]
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "from": [
+            "A:User.display_name",
+            "B:User.name"
+          ]
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "from": [
+            "A:User.role",
+            "B:User.role"
+          ]
+        },
+        {
+          "name": "password_hash",
+          "type": "text"
+        },
+        {
+          "name": "legacy_id",
+          "type": "integer",
+          "from": [
+            "B:User.id"
+          ]
+        },
+        {
+          "name": "imported_from",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ],
+      "notes": "role in {member, moderator}; email unique (lower-cased); B integer ids kept in legacy_id on import"
+    },
+    {
+      "name": "Session",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "sid text",
+      "fields": [
+        {
+          "name": "sid",
+          "type": "text"
+        },
+        {
+          "name": "sess",
+          "type": "json"
+        },
+        {
+          "name": "expire",
+          "type": "timestamptz"
+        }
+      ],
+      "notes": "connect-pg-simple session store"
+    },
+    {
+      "name": "Post",
+      "merged_from": [
+        "A:Post",
+        "B:Post"
+      ],
+      "primary_key": "id uuid",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "from": [
+            "A:Post.id",
+            "B:Post.id"
+          ]
+        },
+        {
+          "name": "author_id",
+          "type": "uuid",
+          "from": [
+            "A:Post.author_id",
+            "B:Post.author_id"
+          ]
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "from": [
+            "A:Post.body",
+            "B:Post.body"
+          ]
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "from": [
+            "A:Post.status"
+          ]
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "from": [
+            "A:Post.created_at",
+            "B:Post.created_at"
+          ]
+        },
+        {
+          "name": "legacy_id",
+          "type": "integer",
+          "from": [
+            "B:Post.id"
+          ]
+        },
+        {
+          "name": "imported_from",
+          "type": "text"
+        }
+      ],
+      "notes": "body 1..10000 characters; status in {pending, published, rejected} default pending; author_id null only when imported_from = 'B'"
+    },
+    {
+      "name": "ModerationDecision",
+      "merged_from": [
+        "new"
+      ],
+      "primary_key": "id uuid",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "post_id",
+          "type": "uuid"
+        },
+        {
+          "name": "moderator_id",
+          "type": "uuid"
+        },
+        {
+          "name": "decision",
+          "type": "text"
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamptz"
+        }
+      ],
+      "notes": "audit of A's moderation decisions (A only changed the status); decision in {published, rejected}; one per post"
+    }
+  ],
+  "auth": {
+    "method": "email and password (argon2id hashes)",
+    "session": "server-side session, http-only secure SameSite=Lax cookie, 7-day idle expiry; no bearer tokens",
+    "roles": [
+      "member",
+      "moderator"
+    ],
+    "permissions": {
+      "member": [
+        "create-post",
+        "read-published",
+        "read-own-unpublished"
+      ],
+      "moderator": [
+        "create-post",
+        "read-published",
+        "read-own-unpublished",
+        "read-any-unpublished",
+        "moderate-posts"
+      ],
+      "visitor (signed out)": [
+        "read-published"
+      ]
+    },
+    "role_mapping": {
+      "A:member": "member",
+      "A:moderator": "moderator",
+      "B:user": "member",
+      "B:admin": "member"
+    }
+  },
+  "api": [
+    {
+      "method": "POST",
+      "path": "/api/v1/session",
+      "module": "accounts",
+      "auth": "none",
+      "features": [
+        "M01"
+      ],
+      "from": [
+        "A: POST /api/login"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/session",
+      "module": "accounts",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "module": "accounts",
+      "auth": "session",
+      "features": [
+        "M01"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/posts",
+      "module": "posts",
+      "auth": "session",
+      "features": [
+        "M03",
+        "M04"
+      ],
+      "from": [
+        "A: POST /api/posts",
+        "B: POST /api/posts"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/posts/{id}",
+      "module": "posts",
+      "auth": "public for published; session (author or moderator) otherwise",
+      "features": [
+        "M08",
+        "M09"
+      ],
+      "from": [
+        "A: GET /api/posts/:id",
+        "B: GET /api/posts/<int:post_id>"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/posts",
+      "module": "posts",
+      "auth": "public",
+      "features": [
+        "M10"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/moderation/queue",
+      "module": "moderation",
+      "auth": "session (moderate-posts)",
+      "features": [
+        "M05"
+      ],
+      "from": [
+        "A: GET /api/moderation"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/moderation/posts/{id}/decision",
+      "module": "moderation",
+      "auth": "session (moderate-posts)",
+      "features": [
+        "M05"
+      ],
+      "from": [
+        "A: POST /api/moderation/:id"
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "route": "/login",
+      "screen": "Login",
+      "module": "web"
+    },
+    {
+      "route": "/posts",
+      "screen": "PostList",
+      "module": "web"
+    },
+    {
+      "route": "/posts/:id",
+      "screen": "PostDetail",
+      "module": "web"
+    },
+    {
+      "route": "/moderation",
+      "screen": "ModerationQueue",
+      "module": "web"
+    }
+  ],
+  "design_system": {
+    "tokens": "colour roles (bg, surface, text, muted, accent, danger, success) for light and dark; type scale 14/16/20/28; spacing 4-px base; radius 6",
+    "components": [
+      "Button (primary, secondary, danger)",
+      "TextField",
+      "TextArea with character counter (10000)",
+      "PostCard (published, pending, rejected badge)",
+      "Alert (error, info)",
+      "Pagination (next/previous cursor)"
+    ],
+    "fonts": "system font stack",
+    "icons": "none needed; Lucide (ISC) if added",
+    "source_assets": "none taken from either source"
+  },
+  "configuration": {
+    "DATABASE_URL": "PostgreSQL connection string (secret)",
+    "SESSION_SECRET": "cookie signing secret (secret)",
+    "SESSION_TTL_HOURS": "idle expiry, default 168",
+    "COOKIE_SECURE": "true outside local development",
+    "PORT": "default 3000",
+    "MAX_POST_LENGTH": "fixed at 10000 by decision; not configurable"
+  },
+  "slices": [
+    {
+      "id": "V1",
+      "name": "Core loop: sign in, write, moderate, read",
+      "features": [
+        "M01",
+        "M03",
+        "M04",
+        "M05",
+        "M08",
+        "M09"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "V2",
+      "name": "Published post list",
+      "features": [
+        "M10"
+      ],
+      "status": "pending"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "decision": "Modular monolith",
+      "reason": "see style: one team, one transaction for status and visibility, modest scale",
+      "approved": true
+    },
+    {
+      "id": "D02",
+      "decision": "Node.js 22 LTS + Express 4",
+      "reason": "A is the user's own Express-style code; M05 adapts it; B (Python) is rebuilt",
+      "approved": true
+    },
+    {
+      "id": "D03",
+      "decision": "PostgreSQL 16",
+      "reason": "uuid, timestamptz and check constraints from A's schema",
+      "approved": true
+    },
+    {
+      "id": "D04",
+      "decision": "React 18 SPA (Vite)",
+      "reason": "both sources route screens client-side",
+      "approved": true
+    },
+    {
+      "id": "D05",
+      "decision": "Cookie sessions stored in PostgreSQL; no JWT",
+      "reason": "compatibility decision application:session:session",
+      "approved": true
+    },
+    {
+      "id": "D06",
+      "decision": "argon2id password hashes",
+      "reason": "neither source shows password storage",
+      "approved": true
+    },
+    {
+      "id": "D07",
+      "decision": "REST under /api/v1, errors as {error: {code, message}}, cursor pagination",
+      "reason": "one API style; neither source has versioning or an error shape",
+      "approved": true
+    },
+    {
+      "id": "D08",
+      "decision": "Read rule enforced only by platform can(); list and detail use it",
+      "reason": "compatibility decision application:business-rule:read_requires_account",
+      "approved": true
+    },
+    {
+      "id": "D09",
+      "decision": "All settings from environment variables in platform/config; .env.example with names only",
+      "reason": "B hard-coded its signing key; no secrets in code",
+      "approved": true
+    },
+    {
+      "id": "D10",
+      "decision": "No code copied from B; A's moderation handlers adapted",
+      "reason": "B is in another language; MIT notice therefore not needed in the app (keep it if any B code is ever copied)",
+      "approved": true
+    }
+  ]
+}

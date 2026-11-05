@@ -1,0 +1,68 @@
+{
+  "app": {"id": "A", "name": "Passbook"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "A-R01", "kind": "local-directory", "location": "sources/passbook", "accessed": "2026-11-05"}
+  ],
+  "evidence": [
+    {"id": "A-E01", "source": "A-R01", "basis": "observed", "locator": "sources/passbook/accounts.py:4-7",
+     "summary": "register() lowercases the email, draws a 16-byte random salt, stores a PBKDF2-HMAC-SHA256 hash (100,000 iterations), role 'user' and id len(USERS)+1."},
+    {"id": "A-E02", "source": "A-R01", "basis": "observed", "locator": "sources/passbook/accounts.py:6",
+     "summary": "register() assigns USERS[email] without checking whether the email exists, so registering an existing email replaces that account and its password."},
+    {"id": "A-E03", "source": "A-R01", "basis": "observed", "locator": "sources/passbook/accounts.py:8-12",
+     "summary": "login() recomputes the hash and compares with '!=' (not constant time); unknown email and wrong password both raise ValueError('bad credentials'); success stores a token_urlsafe(24) in SESSIONS mapped to the user id."},
+    {"id": "A-E04", "source": "A-R01", "basis": "observed", "locator": "sources/passbook/accounts.py:2-3",
+     "summary": "USERS (email -> record) and SESSIONS (token -> user id) are module-level in-memory dicts; there is no logout, no session lookup and no expiry in the file."}
+  ],
+  "stack": {"backend": ["Python (standard library: hashlib, os, secrets)"], "database": ["in-memory dicts"], "basis": "observed"},
+  "packages": {},
+  "runtimes": {"python": "3"},
+  "architecture": {"backend": "single Python module with module-level state", "evidence": ["A-E04"], "basis": "observed"},
+  "features": [
+    {"id": "A-F01", "name": "Email and password registration",
+     "description": "Create an account from an email address and a password.",
+     "observed_behaviour": "Email is lowercased; a salted PBKDF2-HMAC-SHA256 hash is stored with role 'user' and a sequential integer id. Nothing is returned.",
+     "business_logic": "Email is case-insensitive. No password rules. No duplicate check: an existing email is silently overwritten (A-E02).",
+     "data": ["User.id", "User.email", "User.salt", "User.hash", "User.role"],
+     "integration": "Needs the unified user store and the unified role set (role 'user').",
+     "evidence": ["A-E01", "A-E02"], "basis": "observed", "confidence": "high"},
+    {"id": "A-F02", "name": "Password login with session token",
+     "description": "Sign in with email and password and receive a session token.",
+     "observed_behaviour": "Looks up the lowercased email, recomputes the hash, raises ValueError('bad credentials') on any failure, otherwise returns a random token stored in SESSIONS.",
+     "business_logic": "Same error for unknown email and wrong password. Non-constant-time comparison. Tokens never expire and cannot be revoked (no logout).",
+     "data": ["User", "Session.token", "Session.user_id"],
+     "depends_on": ["A-F01"],
+     "integration": "Needs the unified session mechanism, whoami and logout.",
+     "evidence": ["A-E03", "A-E04"], "basis": "observed", "confidence": "high"}
+  ],
+  "entities": [
+    {"name": "User", "primary_key": {"name": "id", "type": "integer"},
+     "fields": [{"name": "id", "type": "integer", "required": true}, {"name": "email", "type": "text", "required": true},
+                {"name": "salt", "type": "bytes", "required": true}, {"name": "hash", "type": "bytes", "required": true},
+                {"name": "role", "type": "text", "required": true}],
+     "features": ["A-F01", "A-F02"], "evidence": ["A-E01", "A-E04"], "basis": "observed"},
+    {"name": "Session", "primary_key": {"name": "token", "type": "text"},
+     "fields": [{"name": "token", "type": "text", "required": true}, {"name": "user_id", "type": "integer", "required": true}],
+     "foreign_keys": [{"field": "user_id", "references": "User"}],
+     "features": ["A-F02"], "evidence": ["A-E03", "A-E04"], "basis": "observed"}
+  ],
+  "auth": {"provider": "local", "methods": ["password"], "session": "opaque random token in a server-side in-memory map, no expiry",
+           "model": "one role string per user, no permission checks in this app", "roles": ["user"],
+           "evidence": ["A-E01", "A-E03"], "basis": "observed"},
+  "rules": [
+    {"key": "password_hash", "value": "pbkdf2_hmac sha256, 100000 iterations, 16-byte salt", "features": ["A-F01", "A-F02"], "evidence": ["A-E01"]},
+    {"key": "email_case_insensitive", "value": true, "features": ["A-F01", "A-F02"], "evidence": ["A-E01", "A-E03"]},
+    {"key": "default_role", "value": "user", "features": ["A-F01"], "evidence": ["A-E01"]},
+    {"key": "duplicate_email", "value": "overwrites the existing account", "features": ["A-F01"], "evidence": ["A-E02"]}
+  ],
+  "configuration": [],
+  "error_handling": [
+    {"case": "unknown email or wrong password", "behaviour": "raises ValueError('bad credentials')", "evidence": ["A-E03"]},
+    {"case": "registering an email that exists", "behaviour": "no error; the account is replaced", "evidence": ["A-E02"]}
+  ],
+  "unknowns": [
+    "Only accounts.py was provided; whether Passbook has password reset, email verification or logout elsewhere is unknown (the user could share the rest of the app)."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}

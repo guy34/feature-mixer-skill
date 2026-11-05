@@ -1,0 +1,107 @@
+{
+  "root": "../../../sources/shelfie",
+  "indexed_at": "2026-11-05T07:54:58+00:00",
+  "indexer": "index_repo.py",
+  "totals": {
+    "files": 4,
+    "lines": 55,
+    "modules": 2
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "size": 221,
+      "sha256": "a802d90fc1f28d8e6301da6127b32eeca976e307b2caaf7df66a56bc9082b11f",
+      "language": "markdown",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 6
+    },
+    {
+      "path": "app.py",
+      "size": 1712,
+      "sha256": "3856a26440417e3c388c29d4191d4b628df418fa3029933d8b7774419c9c9ad1",
+      "language": "python",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 34,
+      "imports": [],
+      "packages": [
+        "http",
+        "json"
+      ]
+    },
+    {
+      "path": "docs/architecture.md",
+      "size": 145,
+      "sha256": "0e18480997ac73e97d69f8676ff42d9a5d684a7a0e62e03e0549955baa91a4a3",
+      "language": "markdown",
+      "module": "docs",
+      "binary": false,
+      "generated": false,
+      "lines": 4
+    },
+    {
+      "path": "openapi.yaml",
+      "size": 372,
+      "sha256": "2956edf722bdbbe3d4ec163b80798dbbdde81c261e1bb4fba5471722221ccd88",
+      "language": "yaml",
+      "module": "(root)",
+      "binary": false,
+      "generated": false,
+      "lines": 11
+    }
+  ],
+  "modules": {
+    "(root)": {
+      "files": 3,
+      "lines": 51,
+      "languages": [
+        "markdown",
+        "python",
+        "yaml"
+      ],
+      "depends_on": [],
+      "external": [
+        "http",
+        "json"
+      ]
+    },
+    "docs": {
+      "files": 1,
+      "lines": 4,
+      "languages": [
+        "markdown"
+      ],
+      "depends_on": [],
+      "external": []
+    }
+  },
+  "external_imports": {
+    "http": [
+      "app.py"
+    ],
+    "json": [
+      "app.py"
+    ]
+  },
+  "skipped": {},
+  "feature_files": {
+    "A-F01": [
+      "app.py",
+      "openapi.yaml"
+    ],
+    "A-F02": [
+      "README.md",
+      "app.py",
+      "openapi.yaml"
+    ],
+    "A-F03": [
+      "README.md",
+      "app.py",
+      "openapi.yaml"
+    ]
+  }
+}

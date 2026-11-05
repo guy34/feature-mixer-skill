@@ -1,0 +1,6 @@
+{
+  "entities": {
+    "Account": {"to": "User", "reason": "B's Account and A's User are both a person who signs in; the user decided one account per person (task.md), so they become one User entity with identities per sign-in method"}
+  },
+  "fields": {}
+}

@@ -1,0 +1,62 @@
+{
+  "app": {"id": "B", "name": "Linkup"},
+  "coverage": "complete",
+  "size": "S",
+  "sources_used": [
+    {"ref": "B-R01", "kind": "local-directory", "location": "sources/linkup", "accessed": "2026-11-04"}
+  ],
+  "evidence": [
+    {"id": "B-E01", "source": "B-R01", "basis": "observed", "locator": "sources/linkup/oauth.py:1-2",
+     "summary": "Header comment and ACCOUNTS dict: accounts are keyed by (provider, subject); each holds id, email and role 'member'; the provider sends email and email_verified."},
+    {"id": "B-E02", "source": "B-R01", "basis": "observed", "locator": "sources/linkup/oauth.py:3-7",
+     "summary": "callback() creates an account the first time a (provider, subject) pair is seen, with id 'lu-<n>', the email as given and role 'member', and returns the account; email_verified is accepted but never used."}
+  ],
+  "architecture": {"backend": "single Python module with an in-memory dict; the OAuth redirect and token exchange are not in the source", "evidence": ["B-E01"], "basis": "observed"},
+  "stack": {"backend": ["Python 3, no imports"], "database": ["in-memory dict"], "basis": "observed"},
+  "runtimes": {"python": "3 (version not declared)"},
+  "packages": {},
+  "features": [
+    {"id": "B-F01", "name": "Sign in with an OAuth provider",
+     "description": "Sign in through a Google-style provider; the first sign-in creates an account.",
+     "observed_behaviour": "callback(provider, subject, email, email_verified) looks up the account by (provider, subject); if missing it creates one with id 'lu-<n>', the email and role 'member'. It returns the account record; no session or token is issued.",
+     "business_logic": "Identity is the (provider, subject) pair, not the email. The email is stored as given (not normalised). email_verified is ignored. No linking to any other account. Default role 'member'.",
+     "data": ["Account"], "evidence": ["B-E01", "B-E02"], "basis": "observed", "confidence": "high",
+     "integration": "Needs the unified user store, account linking rules, a session, and a real provider adapter (redirect, code exchange, ID-token checks are not in the source)."}
+  ],
+  "entities": [
+    {"name": "Account", "description": "A person who signs in through an OAuth provider, identified by provider and subject",
+     "primary_key": {"name": "id", "type": "string"},
+     "fields": [
+       {"name": "id", "type": "string", "required": true, "unique": true, "description": "'lu-' plus a counter", "format": "lu-<n>"},
+       {"name": "provider", "type": "string", "required": true, "description": "part of the lookup key"},
+       {"name": "subject", "type": "string", "required": true, "description": "the provider's user id; part of the lookup key"},
+       {"name": "email", "type": "string", "required": false, "description": "as sent by the provider, not normalised, not unique"},
+       {"name": "role", "type": "string", "required": true, "enum": ["member"], "default": "member"}
+     ],
+     "features": ["B-F01"], "evidence": ["B-E01", "B-E02"], "basis": "observed"}
+  ],
+  "auth": {"provider": "external OAuth provider (Google-style)", "methods": ["oauth"], "session": "none in the source (callback returns the account record)",
+           "model": "single role", "roles": ["member"], "role_permissions": {"member": ["unspecified"]},
+           "evidence": ["B-E01", "B-E02"], "basis": "observed"},
+  "rules": [
+    {"key": "account_identity", "value": "(provider, subject)", "features": ["B-F01"], "evidence": ["B-E01"]},
+    {"key": "default_role", "value": "member", "features": ["B-F01"], "evidence": ["B-E02"]},
+    {"key": "email_verified_used", "value": false, "features": ["B-F01"], "evidence": ["B-E02"]},
+    {"key": "email_case", "value": "as given", "features": ["B-F01"], "evidence": ["B-E02"]}
+  ],
+  "integrations": [
+    {"name": "OAuth provider", "kind": "auth", "provider": "Google-style OAuth / OpenID provider", "purpose": "federated sign-in; supplies subject, email and email_verified",
+     "features": ["B-F01"], "evidence": ["B-E01"], "webhooks": false, "idempotency": "(provider, subject) lookup"}
+  ],
+  "error_handling": [
+    {"case": "repeat sign-in", "behaviour": "returns the existing account for the same (provider, subject)", "evidence": ["B-E02"]}
+  ],
+  "tenancy": {"model": "none"},
+  "configuration": [],
+  "unknowns": [
+    "The OAuth redirect, code exchange and ID-token signature checks are not in the source; the callback trusts its arguments. A real provider cannot be exercised here (no network, no provider account).",
+    "What the 'member' role may do: Linkup has no permission checks.",
+    "Licence: the user says MIT, but sources/linkup contains no licence file, so code reuse is recorded as not-allowed until a licence file is supplied (the feature is rebuilt anyway)."
+  ],
+  "coverage_detail": {"index": "index.json", "modules_analysed": ["(root)"], "modules_skipped": [], "files_read": 1}
+}
